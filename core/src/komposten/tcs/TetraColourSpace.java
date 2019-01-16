@@ -42,8 +42,8 @@ public class TetraColourSpace extends ApplicationAdapter
 	private Environment environment;
 	
 	private List<Disposable> disposables;
-	private List<Point> points;
-	private List<ModelInstance> models;
+	private List<Point> dataPoints;
+	private List<ModelInstance> dataModels;
 	private Map<Color, Material> materials;
 
 	public TetraColourSpace(File dataFile)
@@ -56,8 +56,8 @@ public class TetraColourSpace extends ApplicationAdapter
 	public void create()
 	{
 		disposables = new ArrayList<>();
-		points = new ArrayList<>();
-		models = new ArrayList<>();
+		dataPoints = new ArrayList<>();
+		dataModels = new ArrayList<>();
 		materials = new HashMap<>();
 		camera = new PerspectiveCamera(67, 1, Gdx.graphics.getHeight() / (float)Gdx.graphics.getWidth());
 		batch = new ModelBatch();
@@ -112,7 +112,7 @@ public class TetraColourSpace extends ApplicationAdapter
 					coords.setLength(magnitude);
 					
 					Point point = new Point(coords, activeMaterial);
-					points.add(point);
+					dataPoints.add(point);
 				}
 				else if (line.startsWith("[volume]"))
 				{
@@ -138,18 +138,18 @@ public class TetraColourSpace extends ApplicationAdapter
 				VertexAttributes.Usage.Normal);
 		disposables.add(model);
 		
-		for (Point point : points)
+		for (Point point : dataPoints)
 		{
 			ModelInstance instance = new ModelInstance(model);
 			instance.transform.translate(point.coordinates);
 			instance.nodes.forEach(node -> node.parts.forEach(part -> part.material = point.material));
-			models.add(instance);
+			dataModels.add(instance);
 		}
 		
 		ModelInstance instance = new ModelInstance(model);
 		instance.transform.setTranslation(0, 0, 0);
 		instance.materials.set(0, new Material(ColorAttribute.createDiffuse(Color.BLACK)));
-		models.add(instance);
+		dataModels.add(instance);
 	}
 
 
@@ -222,7 +222,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 		
 		batch.begin(camera);
-		batch.render(models);
+		batch.render(dataModels);
 		batch.end();
 		
 		readInput(Gdx.graphics.getDeltaTime());
