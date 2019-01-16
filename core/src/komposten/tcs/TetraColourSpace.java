@@ -71,7 +71,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		DirectionalLight light = new DirectionalLight();
 		light.setDirection(0, 0, -1);
-		light.setColor(Color.BLUE);
+		light.setColor(Color.WHITE);
 		environment = new Environment();
 		environment.add(light);
 		
@@ -222,7 +222,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 		
 		batch.begin(camera);
-		batch.render(dataModels);
+		batch.render(dataModels, environment);
 		batch.end();
 		
 		readInput(Gdx.graphics.getDeltaTime());
