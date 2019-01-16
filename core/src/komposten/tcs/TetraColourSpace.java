@@ -12,7 +12,10 @@ import java.util.Map;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
@@ -55,6 +58,8 @@ public class TetraColourSpace extends ApplicationAdapter
 	@Override
 	public void create()
 	{
+		Gdx.input.setInputProcessor(inputProcessor);
+		
 		disposables = new ArrayList<>();
 		dataPoints = new ArrayList<>();
 		dataModels = new ArrayList<>();
@@ -281,8 +286,22 @@ public class TetraColourSpace extends ApplicationAdapter
 		}
 		
 		//TODO Handle camera input.
-		float mouseDX = Gdx.input.getDeltaX();
-		float mouseDY = Gdx.input.getDeltaY();
+		if (Gdx.input.isButtonPressed(Buttons.RIGHT))
+		{
+			int mouseDX = Gdx.input.getDeltaX();
+			int mouseDY = Gdx.input.getDeltaY();
+			
+			if (mouseDX != 0 || mouseDY != 0)
+			{
+				float sensitivity = -0.2f;
+				
+				camera.rotate(Vector3.Y, mouseDX * sensitivity);
+				Vector3 axis = new Vector3(camera.direction.z, 0, -camera.direction.x);
+				camera.rotate(axis, -mouseDY * sensitivity);
+				//FIXME Prevent rotation beyond straight up/down.
+				camera.update();
+			}
+		}
 	}
 
 
@@ -303,6 +322,35 @@ public class TetraColourSpace extends ApplicationAdapter
 			disposable.dispose();
 		}
 	}
+	
+	
+	private InputProcessor inputProcessor = new InputAdapter()
+	{
+		@Override
+		public boolean touchDown(int screenX, int screenY, int pointer, int button)
+		{
+			if (button == Buttons.RIGHT)
+			{
+				Gdx.input.setCursorCatched(true);
+				return true;
+			}
+			
+			return false;
+		}
+		
+		
+		@Override
+		public boolean touchUp(int screenX, int screenY, int pointer, int button)
+		{
+			if (button == Buttons.RIGHT)
+			{
+				Gdx.input.setCursorCatched(false);
+				return true;
+			}
+			
+			return false;
+		}
+	};
 	
 	
 	private static class Point
