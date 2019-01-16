@@ -56,11 +56,13 @@ public class TetraColourSpace extends ApplicationAdapter
 		points = new ArrayList<>();
 		models = new ArrayList<>();
 		materials = new HashMap<>();
-		camera = new PerspectiveCamera(67, 100, 100);
+		camera = new PerspectiveCamera(67, 1, Gdx.graphics.getHeight() / (float)Gdx.graphics.getWidth());
 		batch = new ModelBatch();
 		
-		int distance = 3;
+		int distance = 1;
 		camera.translate(distance, distance, 0);
+		camera.near = 1;
+		camera.far = 300;
 		camera.lookAt(Vector3.Zero);
 		camera.update();
 		
@@ -128,9 +130,8 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		ModelBuilder builder = new ModelBuilder();
 		float diameter = 0.25f;
-		Model model = builder.createSphere(diameter, diameter, diameter, 5, 5, new Material(),
+		Model model = builder.createSphere(diameter, diameter, diameter, 25, 25, new Material(),
 				VertexAttributes.Usage.Position |
-				VertexAttributes.Usage.ColorUnpacked |
 				VertexAttributes.Usage.Normal);
 		
 		for (Point point : points)
