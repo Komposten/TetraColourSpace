@@ -71,7 +71,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		camera.translate(distance, distance, 0);
 		camera.near = 0.1f;
 		camera.far = 300;
-		camera.lookAt(Vector3.Zero);
+		lookAt(Vector3.Zero);
 		camera.update();
 		
 		DirectionalLight light = new DirectionalLight();
@@ -307,9 +307,20 @@ public class TetraColourSpace extends ApplicationAdapter
 
 	private void readOtherInput()
 	{
+		if (Gdx.input.isKeyJustPressed(Keys.HOME))
+		{
+			lookAt(Vector3.Zero);
+			camera.update();
+		}
 		//TODO If f just pressed -> set camera to follow the currently selected point (or centre if no point is selected).
 		//TODO If r just pressed -> start automatic rotation around the vertical axis.
-		//TODO If home just pressed -> look towards the pyramid centre.
+	}
+
+
+	private void lookAt(Vector3 target)
+	{
+		camera.lookAt(target);
+		camera.up.set(Vector3.Y); //Resetting the up vector since camera.lookAt() changes it.
 	}
 
 
