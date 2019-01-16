@@ -99,8 +99,6 @@ public class TetraColourSpace extends ApplicationAdapter
 					float phi = floats[1];
 					float magnitude = floats[2];
 					
-					System.out.format("%.02f, %.02f, %.02f\n", theta, phi, magnitude);
-					
 					Vector3 coords = new Vector3(1, 0, 0);
 					coords.rotateRad(Vector3.Z, theta);
 					coords.rotateRad(new Vector3(coords.y, -coords.x, 0), phi);
@@ -139,7 +137,6 @@ public class TetraColourSpace extends ApplicationAdapter
 			instance.transform.translate(point.coordinates);
 			instance.nodes.forEach(node -> node.parts.forEach(part -> part.material = point.material));
 			models.add(instance);
-			System.out.println(point);
 		}
 		
 		ModelInstance instance = new ModelInstance(model);
@@ -227,7 +224,6 @@ public class TetraColourSpace extends ApplicationAdapter
 
 	private void readInput(float deltaTime)
 	{
-		//TODO Movement input using Gdx.input.isButtonPressed() and .getDeltaX/Y().
 		readCameraInput(deltaTime);
 		readOtherInput();
 	}
@@ -273,6 +269,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	{
 		//TODO If f just pressed -> set camera to follow the currently selected point (or centre if no point is selected).
 		//TODO If r just pressed -> start automatic rotation around the vertical axis.
+		//TODO If home just pressed -> look towards the pyramid centre.
 	}
 
 
