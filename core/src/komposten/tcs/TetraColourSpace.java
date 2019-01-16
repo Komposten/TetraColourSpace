@@ -236,12 +236,12 @@ public class TetraColourSpace extends ApplicationAdapter
 
 	private void readInput(float deltaTime)
 	{
-		readCameraInput(deltaTime);
-		readOtherInput();
+		if (readCameraInput(deltaTime) || readOtherInput())
+			camera.update();
 	}
 
 
-	private void readCameraInput(float deltaTime)
+	private boolean readCameraInput(float deltaTime)
 	{
 		Vector3 movement = new Vector3();
 		
@@ -277,12 +277,13 @@ public class TetraColourSpace extends ApplicationAdapter
 			movement.y -= VELOCITY * deltaTime;
 		}
 		
+		boolean needsUpdate = false;
 		if (!movement.epsilonEquals(Vector3.Zero))
 		{
 			camera.position.x = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.x + movement.x);
 			camera.position.y = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.y + movement.y);
 			camera.position.z = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.z + movement.z);
-			camera.update();
+			needsUpdate = true;
 		}
 		
 		//TODO Handle camera input.
@@ -299,21 +300,27 @@ public class TetraColourSpace extends ApplicationAdapter
 				Vector3 axis = new Vector3(camera.direction.z, 0, -camera.direction.x);
 				camera.rotate(axis, -mouseDY * sensitivity);
 				//FIXME Prevent rotation beyond straight up/down.
-				camera.update();
+				needsUpdate = true;
 			}
 		}
+		
+		return needsUpdate;
 	}
 
 
-	private void readOtherInput()
+	private boolean readOtherInput()
 	{
+		boolean needUpdate = false;
 		if (Gdx.input.isKeyJustPressed(Keys.HOME))
 		{
 			lookAt(Vector3.Zero);
-			camera.update();
+			needUpdate = true;
 		}
+		
 		//TODO If f just pressed -> set camera to follow the currently selected point (or centre if no point is selected).
 		//TODO If r just pressed -> start automatic rotation around the vertical axis.
+		
+		return needUpdate;
 	}
 
 
