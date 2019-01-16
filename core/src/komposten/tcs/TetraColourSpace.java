@@ -108,7 +108,7 @@ public class TetraColourSpace extends ApplicationAdapter
 					
 					Vector3 coords = new Vector3(1, 0, 0);
 					coords.rotateRad(Vector3.Y, theta);
-					coords.rotateRad(new Vector3(coords.y, -coords.x, 0), phi);
+					coords.rotateRad(new Vector3(coords.z, -coords.x, 0), phi);
 					coords.setLength(magnitude);
 					
 					Point point = new Point(coords, activeMaterial);
