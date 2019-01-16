@@ -27,12 +27,14 @@ import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 
+import komposten.utilities.tools.MathOps;
 import komposten.utilities.tools.Regex;
 
 
 public class TetraColourSpace extends ApplicationAdapter
 {
 	private static final int VELOCITY = 1;
+	private static final int MAX_DISTANCE = 10;
 	private File dataFile;
 	private PerspectiveCamera camera;
 	private ModelBatch batch;
@@ -257,6 +259,14 @@ public class TetraColourSpace extends ApplicationAdapter
 		else if (Gdx.input.isKeyPressed(Keys.CONTROL_LEFT))
 		{
 			movement.z -= VELOCITY * deltaTime;
+		}
+		
+		if (!movement.epsilonEquals(Vector3.Zero))
+		{
+			camera.position.x = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.x + movement.x);
+			camera.position.y = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.y + movement.y);
+			camera.position.z = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.z + movement.z);
+			camera.update();
 		}
 		
 		//TODO Handle camera input.
