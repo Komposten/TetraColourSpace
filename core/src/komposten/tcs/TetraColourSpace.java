@@ -26,6 +26,7 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.Disposable;
 
 import komposten.utilities.tools.MathOps;
 import komposten.utilities.tools.Regex;
@@ -40,6 +41,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private ModelBatch batch;
 	private Environment environment;
 	
+	private List<Disposable> disposables;
 	private List<Point> points;
 	private List<ModelInstance> models;
 	private Map<Color, Material> materials;
@@ -53,6 +55,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	@Override
 	public void create()
 	{
+		disposables = new ArrayList<>();
 		points = new ArrayList<>();
 		models = new ArrayList<>();
 		materials = new HashMap<>();
@@ -133,6 +136,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		Model model = builder.createSphere(diameter, diameter, diameter, 25, 25, new Material(),
 				VertexAttributes.Usage.Position |
 				VertexAttributes.Usage.Normal);
+		disposables.add(model);
 		
 		for (Point point : points)
 		{
@@ -288,6 +292,10 @@ public class TetraColourSpace extends ApplicationAdapter
 	public void dispose()
 	{
 		batch.dispose();
+		for (Disposable disposable : disposables)
+		{
+			disposable.dispose();
+		}
 	}
 	
 	
