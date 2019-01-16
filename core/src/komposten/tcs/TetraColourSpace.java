@@ -239,22 +239,28 @@ public class TetraColourSpace extends ApplicationAdapter
 	private void readCameraInput(float deltaTime)
 	{
 		Vector3 movement = new Vector3();
-		if (Gdx.input.isKeyPressed(Keys.W))
+		
+		if (Gdx.input.isKeyPressed(Keys.W) || Gdx.input.isKeyPressed(Keys.S))
 		{
-			movement.x -= VELOCITY * deltaTime;
-		}
-		else if (Gdx.input.isKeyPressed(Keys.S))
-		{
-			movement.x += VELOCITY * deltaTime;
+			Vector3 velocity = camera.direction.cpy();
+			velocity.y = 0;
+			velocity.setLength(VELOCITY * deltaTime);
+			
+			if (Gdx.input.isKeyPressed(Keys.W))
+				movement.add(velocity);
+			else
+				movement.sub(velocity);
 		}
 		
-		if (Gdx.input.isKeyPressed(Keys.A))
+		if (Gdx.input.isKeyPressed(Keys.A) || Gdx.input.isKeyPressed(Keys.D))
 		{
-			movement.z += VELOCITY * deltaTime;
-		}
-		else if (Gdx.input.isKeyPressed(Keys.D))
-		{
-			movement.z -= VELOCITY * deltaTime;
+			Vector3 velocity = new Vector3(camera.direction.z, 0, -camera.direction.x);
+			velocity.setLength(VELOCITY * deltaTime);
+			
+			if (Gdx.input.isKeyPressed(Keys.A))
+				movement.add(velocity);
+			else
+				movement.sub(velocity);
 		}
 		
 		if (Gdx.input.isKeyPressed(Keys.SPACE))
