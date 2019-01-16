@@ -64,13 +64,13 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		int distance = 1;
 		camera.translate(distance, distance, 0);
-		camera.near = 1;
+		camera.near = 0.1f;
 		camera.far = 300;
 		camera.lookAt(Vector3.Zero);
 		camera.update();
 		
 		DirectionalLight light = new DirectionalLight();
-		light.setDirection(0, 0, -1);
+		light.setDirection(0, -1, 0);
 		light.setColor(Color.WHITE);
 		environment = new Environment();
 		environment.add(light);
@@ -107,7 +107,7 @@ public class TetraColourSpace extends ApplicationAdapter
 					float magnitude = floats[2];
 					
 					Vector3 coords = new Vector3(1, 0, 0);
-					coords.rotateRad(Vector3.Z, theta);
+					coords.rotateRad(Vector3.Y, theta);
 					coords.rotateRad(new Vector3(coords.y, -coords.x, 0), phi);
 					coords.setLength(magnitude);
 					
@@ -132,7 +132,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		}
 		
 		ModelBuilder builder = new ModelBuilder();
-		float diameter = 0.25f;
+		float diameter = 0.02f;
 		Model model = builder.createSphere(diameter, diameter, diameter, 25, 25, new Material(),
 				VertexAttributes.Usage.Position |
 				VertexAttributes.Usage.Normal);
@@ -241,29 +241,29 @@ public class TetraColourSpace extends ApplicationAdapter
 		Vector3 movement = new Vector3();
 		if (Gdx.input.isKeyPressed(Keys.W))
 		{
-			movement.x += VELOCITY * deltaTime;
+			movement.x -= VELOCITY * deltaTime;
 		}
 		else if (Gdx.input.isKeyPressed(Keys.S))
 		{
-			movement.x -= VELOCITY * deltaTime;
+			movement.x += VELOCITY * deltaTime;
 		}
 		
 		if (Gdx.input.isKeyPressed(Keys.A))
 		{
-			movement.y += VELOCITY * deltaTime;
+			movement.z += VELOCITY * deltaTime;
 		}
 		else if (Gdx.input.isKeyPressed(Keys.D))
 		{
-			movement.y -= VELOCITY * deltaTime;
+			movement.z -= VELOCITY * deltaTime;
 		}
 		
 		if (Gdx.input.isKeyPressed(Keys.SPACE))
 		{
-			movement.z += VELOCITY * deltaTime;
+			movement.y += VELOCITY * deltaTime;
 		}
 		else if (Gdx.input.isKeyPressed(Keys.CONTROL_LEFT))
 		{
-			movement.z -= VELOCITY * deltaTime;
+			movement.y -= VELOCITY * deltaTime;
 		}
 		
 		if (!movement.epsilonEquals(Vector3.Zero))
