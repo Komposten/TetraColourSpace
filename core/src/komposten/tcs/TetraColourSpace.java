@@ -28,6 +28,7 @@ import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Disposable;
 
@@ -37,6 +38,7 @@ import komposten.utilities.tools.Regex;
 
 public class TetraColourSpace extends ApplicationAdapter
 {
+	private static final int SPHERE_SEGMENTS = 25;
 	private static final int VELOCITY = 1;
 	private static final int MAX_DISTANCE = 10;
 	private File dataFile;
@@ -46,6 +48,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private List<Disposable> disposables;
 	private List<Point> dataPoints;
+	private List<ModelInstance> staticModels;
 	private List<ModelInstance> dataModels;
 	private Map<Color, Material> materials;
 
@@ -62,12 +65,13 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		disposables = new ArrayList<>();
 		dataPoints = new ArrayList<>();
+		staticModels = new ArrayList<>();
 		dataModels = new ArrayList<>();
 		materials = new HashMap<>();
 		camera = new PerspectiveCamera(67, 1, Gdx.graphics.getHeight() / (float)Gdx.graphics.getWidth());
 		batch = new ModelBatch();
 		
-		int distance = 1;
+		int distance = 2;
 		camera.translate(distance, distance, 0);
 		camera.near = 0.1f;
 		camera.far = 300;
@@ -80,7 +84,45 @@ public class TetraColourSpace extends ApplicationAdapter
 		environment = new Environment();
 		environment.add(light);
 		
+		createStaticModels();
 		loadData();
+	}
+
+
+	private void createStaticModels()
+	{
+		ModelBuilder builder = new ModelBuilder();
+		float diameter = 0.05f;
+		Model model = builder.createSphere(diameter, diameter, diameter, SPHERE_SEGMENTS, SPHERE_SEGMENTS, new Material(),
+				VertexAttributes.Usage.Position |
+				VertexAttributes.Usage.Normal);
+		disposables.add(model);
+		
+		ModelInstance redSphere = new ModelInstance(model);
+		ModelInstance greenSphere = new ModelInstance(model);
+		ModelInstance blueSphere = new ModelInstance(model);
+		ModelInstance uvSphere = new ModelInstance(model);
+		ModelInstance achroSphere = new ModelInstance(model);
+		
+		float pi = MathUtils.PI;
+		float circleThird = MathUtils.PI2/3;
+		redSphere.transform.setTranslation(createVectorFromAngles(circleThird - pi, -pi/2 + circleThird, 1));
+		greenSphere.transform.setTranslation(createVectorFromAngles(-circleThird + pi, -pi/2 + circleThird, 1));
+		blueSphere.transform.setTranslation(createVectorFromAngles(-pi, -pi/2 + circleThird, 1));
+		uvSphere.transform.setTranslation(createVectorFromAngles(0, -pi/2, 1));
+		achroSphere.transform.setTranslation(0, 0, 0);
+
+		setMaterial(new Material(ColorAttribute.createDiffuse(Color.RED)), redSphere);
+		setMaterial(new Material(ColorAttribute.createDiffuse(Color.GREEN)), greenSphere);
+		setMaterial(new Material(ColorAttribute.createDiffuse(Color.BLUE)), blueSphere);
+		setMaterial(new Material(ColorAttribute.createDiffuse(Color.VIOLET)), uvSphere);
+		setMaterial(new Material(ColorAttribute.createDiffuse(Color.GRAY)), achroSphere);
+
+		staticModels.add(redSphere);
+		staticModels.add(greenSphere);
+		staticModels.add(blueSphere);
+		staticModels.add(uvSphere);
+		staticModels.add(achroSphere);
 	}
 
 
@@ -111,10 +153,7 @@ public class TetraColourSpace extends ApplicationAdapter
 					float phi = floats[1];
 					float magnitude = floats[2];
 					
-					Vector3 coords = new Vector3(1, 0, 0);
-					coords.rotateRad(Vector3.Y, theta);
-					coords.rotateRad(new Vector3(coords.z, -coords.x, 0), phi);
-					coords.setLength(magnitude);
+					Vector3 coords = createVectorFromAngles(theta, phi, magnitude);
 					
 					Point point = new Point(coords, activeMaterial);
 					dataPoints.add(point);
@@ -138,7 +177,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		ModelBuilder builder = new ModelBuilder();
 		float diameter = 0.02f;
-		Model model = builder.createSphere(diameter, diameter, diameter, 25, 25, new Material(),
+		Model model = builder.createSphere(diameter, diameter, diameter, SPHERE_SEGMENTS, SPHERE_SEGMENTS, new Material(),
 				VertexAttributes.Usage.Position |
 				VertexAttributes.Usage.Normal);
 		disposables.add(model);
@@ -147,14 +186,26 @@ public class TetraColourSpace extends ApplicationAdapter
 		{
 			ModelInstance instance = new ModelInstance(model);
 			instance.transform.translate(point.coordinates);
-			instance.nodes.forEach(node -> node.parts.forEach(part -> part.material = point.material));
+			setMaterial(point.material, instance);
 			dataModels.add(instance);
 		}
-		
-		ModelInstance instance = new ModelInstance(model);
-		instance.transform.setTranslation(0, 0, 0);
-		instance.materials.set(0, new Material(ColorAttribute.createDiffuse(Color.BLACK)));
-		dataModels.add(instance);
+	}
+
+
+	private Vector3 createVectorFromAngles(float theta, float phi,
+			float magnitude)
+	{
+		Vector3 coords = new Vector3(1, 0, 0);
+		coords.rotateRad(Vector3.Y, theta);
+		coords.rotateRad(new Vector3(coords.z, 0, -coords.x), phi);
+		coords.setLength(magnitude);
+		return coords;
+	}
+
+
+	private void setMaterial(Material material, ModelInstance instance)
+	{
+		instance.nodes.forEach(node -> node.parts.forEach(part -> part.material = material));
 	}
 
 
@@ -228,6 +279,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		batch.begin(camera);
 		batch.render(dataModels, environment);
+		batch.render(staticModels, environment);
 		batch.end();
 		
 		readInput(Gdx.graphics.getDeltaTime());
