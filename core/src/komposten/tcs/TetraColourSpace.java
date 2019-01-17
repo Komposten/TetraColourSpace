@@ -105,10 +105,10 @@ public class TetraColourSpace extends ApplicationAdapter
 
 		float pi = MathUtils.PI;
 		float circleThird = MathUtils.PI2/3;
-		Vector3 redPos = createVectorFromAngles(circleThird - pi, -pi/2 + circleThird, 1);
-		Vector3 greenPos = createVectorFromAngles(-circleThird + pi, -pi/2 + circleThird, 1);
-		Vector3 bluePos = createVectorFromAngles(-pi, -pi/2 + circleThird, 1);
-		Vector3 uvPos = createVectorFromAngles(0, -pi/2, 1);
+		Vector3 greenPos = createVectorFromAngles(pi/2, pi/2 - circleThird, 1);
+		Vector3 redPos = createVectorFromAngles(pi/2 - circleThird, pi/2 - circleThird, 1);
+		Vector3 bluePos = createVectorFromAngles(pi/2 + circleThird, pi/2 - circleThird, 1);
+		Vector3 uvPos = createVectorFromAngles(0, pi/2, 1);
 		Vector3 achroPos = Vector3.Zero.cpy();
 
 		createPyramidCorners(redPos, greenPos, bluePos, uvPos, achroPos);
@@ -294,7 +294,6 @@ public class TetraColourSpace extends ApplicationAdapter
 					float magnitude = floats[2];
 					
 					Vector3 coords = createVectorFromAngles(theta, phi, magnitude);
-					
 					Point point = new Point(coords, activeMaterial);
 					dataPoints.add(point);
 				}
@@ -337,7 +336,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	{
 		Vector3 coords = new Vector3(1, 0, 0);
 		coords.rotateRad(Vector3.Y, theta);
-		coords.rotateRad(new Vector3(coords.z, 0, -coords.x), phi);
+		coords.rotateRad(new Vector3(-coords.z, 0, coords.x), phi);
 		coords.setLength(magnitude);
 		return coords;
 	}
