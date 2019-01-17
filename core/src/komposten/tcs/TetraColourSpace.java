@@ -12,23 +12,28 @@ import java.util.Map;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
+import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.VertexAttributes;
+import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
+import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Disposable;
 
@@ -50,6 +55,8 @@ public class TetraColourSpace extends ApplicationAdapter
 	private List<Point> dataPoints;
 	private List<ModelInstance> staticModels;
 	private List<ModelInstance> dataModels;
+	private Mesh pyramidMesh;
+	private Renderable pyramidRenderable;
 	private Map<Color, Material> materials;
 
 	public TetraColourSpace(File dataFile)
@@ -92,38 +99,86 @@ public class TetraColourSpace extends ApplicationAdapter
 
 	private void createStaticModels()
 	{
-		ModelBuilder builder = new ModelBuilder();
+		ModelBuilder modelBuilder = new ModelBuilder();
 		float diameter = 0.05f;
-		Model model = builder.createSphere(diameter, diameter, diameter, SPHERE_SEGMENTS, SPHERE_SEGMENTS, new Material(),
+		Model sphereModel = modelBuilder.createSphere(diameter, diameter, diameter, SPHERE_SEGMENTS, SPHERE_SEGMENTS, new Material(),
 				VertexAttributes.Usage.Position |
 				VertexAttributes.Usage.Normal);
-		disposables.add(model);
-		
-		ModelInstance redSphere = new ModelInstance(model);
-		ModelInstance greenSphere = new ModelInstance(model);
-		ModelInstance blueSphere = new ModelInstance(model);
-		ModelInstance uvSphere = new ModelInstance(model);
-		ModelInstance achroSphere = new ModelInstance(model);
-		
+
 		float pi = MathUtils.PI;
 		float circleThird = MathUtils.PI2/3;
-		redSphere.transform.setTranslation(createVectorFromAngles(circleThird - pi, -pi/2 + circleThird, 1));
-		greenSphere.transform.setTranslation(createVectorFromAngles(-circleThird + pi, -pi/2 + circleThird, 1));
-		blueSphere.transform.setTranslation(createVectorFromAngles(-pi, -pi/2 + circleThird, 1));
-		uvSphere.transform.setTranslation(createVectorFromAngles(0, -pi/2, 1));
-		achroSphere.transform.setTranslation(0, 0, 0);
-
-		setMaterial(new Material(ColorAttribute.createDiffuse(Color.RED)), redSphere);
-		setMaterial(new Material(ColorAttribute.createDiffuse(Color.GREEN)), greenSphere);
-		setMaterial(new Material(ColorAttribute.createDiffuse(Color.BLUE)), blueSphere);
-		setMaterial(new Material(ColorAttribute.createDiffuse(Color.VIOLET)), uvSphere);
-		setMaterial(new Material(ColorAttribute.createDiffuse(Color.GRAY)), achroSphere);
-
+		Vector3 redPos = createVectorFromAngles(circleThird - pi, -pi/2 + circleThird, 1);
+		Vector3 greenPos = createVectorFromAngles(-circleThird + pi, -pi/2 + circleThird, 1);
+		Vector3 bluePos = createVectorFromAngles(-pi, -pi/2 + circleThird, 1);
+		Vector3 uvPos = createVectorFromAngles(0, -pi/2, 1);
+		Vector3 achroPos = Vector3.Zero.cpy();
+		
+		ModelInstance redSphere = createModelInstance(sphereModel, redPos, Color.RED);
+		ModelInstance greenSphere = createModelInstance(sphereModel, greenPos, Color.GREEN);
+		ModelInstance blueSphere = createModelInstance(sphereModel, bluePos, Color.BLUE);
+		ModelInstance uvSphere = createModelInstance(sphereModel, uvPos, Color.VIOLET);
+		ModelInstance achroSphere = createModelInstance(sphereModel, achroPos, Color.GRAY);
+		
 		staticModels.add(redSphere);
 		staticModels.add(greenSphere);
 		staticModels.add(blueSphere);
 		staticModels.add(uvSphere);
 		staticModels.add(achroSphere);
+		
+
+		MeshBuilder meshBuilder = new MeshBuilder();
+		meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_TRIANGLES);
+		
+		Vector3 normal = greenPos.cpy().add(redPos).add(bluePos);
+		short corner1 = meshBuilder.vertex(greenPos, normal, Color.GREEN, Vector2.Zero);
+		short corner2 = meshBuilder.vertex(redPos, normal, Color.RED, Vector2.Zero);
+		short corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
+		meshBuilder.triangle(corner1, corner2, corner3);
+		
+		normal = redPos.cpy().add(greenPos).add(uvPos);
+		corner1 = meshBuilder.vertex(redPos, normal, Color.RED, Vector2.Zero);
+		corner2 = meshBuilder.vertex(greenPos, normal, Color.GREEN, Vector2.Zero);
+		corner3 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
+		meshBuilder.triangle(corner1, corner2, corner3);
+		
+		normal = redPos.cpy().add(uvPos).add(bluePos);
+		corner1 = meshBuilder.vertex(redPos, normal, Color.RED, Vector2.Zero);
+		corner2 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
+		corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
+		meshBuilder.triangle(corner1, corner2, corner3);
+		
+		normal = uvPos.cpy().add(greenPos).add(bluePos);
+		corner1 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
+		corner2 = meshBuilder.vertex(greenPos, normal, Color.GREEN, Vector2.Zero);
+		corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
+		meshBuilder.triangle(corner1, corner2, corner3);
+		
+		pyramidMesh = meshBuilder.end();
+		
+		pyramidRenderable = new Renderable();
+		pyramidRenderable.material = new Material(getMaterialForColour(Color.WHITE));
+		pyramidRenderable.environment = environment;
+		pyramidRenderable.meshPart.set("pyramid", pyramidMesh, 0, pyramidMesh.getNumVertices(), GL20.GL_LINES);
+		
+		disposables.add(sphereModel);
+		disposables.add(pyramidMesh);
+	}
+	
+	
+	private ModelInstance createModelInstance(Model model, Vector3 position, Color colour)
+	{
+		Material material = materials.get(colour);
+		
+		if (material == null)
+		{
+			material = new Material(ColorAttribute.createDiffuse(colour));
+			materials.put(colour, material);
+		}
+		
+		ModelInstance instance = new ModelInstance(model);
+		instance.transform.setTranslation(position);
+		setMaterial(material, instance);
+		return instance;
 	}
 
 
@@ -277,8 +332,9 @@ public class TetraColourSpace extends ApplicationAdapter
 	{
 		Gdx.gl.glClearColor(1, 1, 1, 1);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
-		
+
 		batch.begin(camera);
+		batch.render(pyramidRenderable);
 		batch.render(dataModels, environment);
 		batch.render(staticModels, environment);
 		batch.end();
