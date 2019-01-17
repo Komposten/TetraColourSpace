@@ -36,6 +36,7 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Disposable;
+import com.github.quickhull3d.QuickHull3D;
 
 import komposten.utilities.tools.MathOps;
 import komposten.utilities.tools.Regex;
@@ -54,8 +55,10 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private List<Disposable> disposables;
 	private List<Point> dataPoints;
+	private List<Volume> dataVolumes;
 	private List<ModelInstance> staticModels;
 	private List<ModelInstance> dataModels;
+	private List<Renderable> dataMeshes;
 	private Renderable pyramidLines;
 	private Renderable pyramidSides;
 	private Map<Color, Material> materials;
@@ -76,8 +79,10 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		disposables = new ArrayList<>();
 		dataPoints = new ArrayList<>();
+		dataVolumes = new ArrayList<>();
 		staticModels = new ArrayList<>();
 		dataModels = new ArrayList<>();
+		dataMeshes = new ArrayList<>();
 		materials = new HashMap<>();
 		camera = new PerspectiveCamera(67, 1, 1);
 		batch = new ModelBatch();
@@ -275,9 +280,44 @@ public class TetraColourSpace extends ApplicationAdapter
 			String line;
 			Material activeMaterial = getMaterialForColour(Color.BLACK);
 			
+			boolean isInVolume = false;
+			List<String> volumeData = new ArrayList<>();
+			
 			while ((line = reader.readLine()) != null)
 			{
-				if (line.startsWith("[color="))
+				if (isInVolume)
+				{
+					if (!line.startsWith("[/volume]"))
+					{
+						volumeData.add(line);
+					}
+					else
+					{
+						isInVolume = false;
+						
+						double[] coords = new double[volumeData.size()*3];
+						for (int i = 0; i < volumeData.size(); i++)
+						{
+							Vector3 vector = getCoordinatesFromLine(volumeData.get(i));
+							coords[i*3+0] = vector.x;
+							coords[i*3+1] = vector.y;
+							coords[i*3+2] = vector.z;
+						}
+						
+						QuickHull3D quickHull = new QuickHull3D();
+						quickHull.build(coords);
+						
+						coords = new double[quickHull.getNumVertices()*3];
+						quickHull.getVertices(coords);
+						
+						Volume volume = new Volume(coords, quickHull.getFaces(), activeMaterial);
+						dataVolumes.add(volume);
+						
+						volumeData.clear();
+					}
+					
+				}
+				else if (line.startsWith("[color="))
 				{
 					String inputHex = Regex.getMatches("#[A-Fa-f0-9]+", line)[0];
 					Color colour = getColourFromHex(inputHex);
@@ -285,23 +325,13 @@ public class TetraColourSpace extends ApplicationAdapter
 				}
 				else if (line.startsWith("[point="))
 				{
-					String[] values = Regex.getMatches("-?\\d+\\.\\d+", line);
-					float[] floats = new float[values.length];
-					
-					for (int i = 0; i < floats.length; i++)
-						floats[i] = Float.parseFloat(values[i]);
-
-					float theta = floats[0];
-					float phi = floats[1];
-					float magnitude = floats[2];
-					
-					Vector3 coords = createVectorFromAngles(theta, phi, magnitude);
+					Vector3 coords = getCoordinatesFromLine(line);
 					Point point = new Point(coords, activeMaterial);
 					dataPoints.add(point);
 				}
 				else if (line.startsWith("[volume]"))
 				{
-					//TODO Handle volumes.
+					isInVolume = true;
 				}
 			}
 		}
@@ -330,6 +360,57 @@ public class TetraColourSpace extends ApplicationAdapter
 			setMaterial(point.material, instance);
 			dataModels.add(instance);
 		}
+		
+		MeshBuilder meshBuilder = new MeshBuilder();
+		Vector3 vector1 = new Vector3();
+		Vector3 vector2 = new Vector3();
+		Vector3 vector3 = new Vector3();
+		for (Volume volume : dataVolumes)
+		{
+			meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_TRIANGLES);
+			for (int[] face : volume.faces)
+			{
+				int vertex1Index = face[0]*3;
+				int vertex2Index = face[1]*3;
+				int vertex3Index = face[2]*3;
+				vector1.set((float) volume.coordinates[vertex1Index],
+						(float) volume.coordinates[vertex1Index + 1],
+						(float) volume.coordinates[vertex1Index + 2]);
+				vector2.set((float) volume.coordinates[vertex2Index],
+						(float) volume.coordinates[vertex2Index + 1],
+						(float) volume.coordinates[vertex2Index + 2]);
+				vector3.set((float) volume.coordinates[vertex3Index],
+						(float) volume.coordinates[vertex3Index + 1],
+						(float) volume.coordinates[vertex3Index + 2]);
+				meshBuilder.triangle(vector1, vector2, vector3);
+				//FIXME Add normals!
+			}
+			Mesh mesh = meshBuilder.end();
+			
+			Renderable renderable = new Renderable();
+			renderable.meshPart.set("volume", mesh, 0, mesh.getNumVertices(), GL20.GL_TRIANGLES);
+			renderable.material = volume.material.copy();
+			renderable.material.set(new BlendingAttribute(0.5f));
+			renderable.environment = environment;
+			
+			dataMeshes.add(renderable);
+		}
+	}
+	
+	
+	private Vector3 getCoordinatesFromLine(String line)
+	{
+		String[] values = Regex.getMatches("-?\\d+\\.\\d+", line);
+		float[] floats = new float[values.length];
+		
+		for (int i = 0; i < floats.length; i++)
+			floats[i] = Float.parseFloat(values[i]);
+
+		float theta = floats[0];
+		float phi = floats[1];
+		float magnitude = floats[2];
+		
+		return createVectorFromAngles(theta, phi, magnitude);
 	}
 
 
@@ -428,6 +509,8 @@ public class TetraColourSpace extends ApplicationAdapter
 		batch.render(showPyramidSides ? pyramidSides : pyramidLines);
 		batch.render(dataModels, environment);
 		batch.render(staticModels, environment);
+		for (Renderable mesh : dataMeshes)
+			batch.render(mesh);
 		batch.end();
 		
 		readInput(Gdx.graphics.getDeltaTime());
@@ -626,6 +709,21 @@ public class TetraColourSpace extends ApplicationAdapter
 		{
 			ColorAttribute colour = (ColorAttribute) material.get(ColorAttribute.Diffuse);
 			return String.format("(%.03f, %.03f, %.03f)[%s]", coordinates.x, coordinates.y, coordinates.z, colour.color);
+		}
+	}
+	
+	
+	private static class Volume
+	{
+		double[] coordinates;
+		private int[][] faces;
+		Material material;
+		
+		public Volume(double[] coordinates, int[][] faces, Material material)
+		{
+			this.coordinates = coordinates;
+			this.faces = faces;
+			this.material = material;
 		}
 	}
 }

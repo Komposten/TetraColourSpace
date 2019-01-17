@@ -27,6 +27,7 @@ allprojects {
         box2DLightsVersion = '1.4'
         ashleyVersion = '1.7.0'
         aiVersion = '1.8.0'
+        qhVersion = '1.0.0'
     }
 
     repositories {
@@ -57,6 +58,7 @@ project(":core") {
 
     dependencies {
         compile "com.badlogicgames.gdx:gdx:$gdxVersion"
+        compile "com.github.quickhull3d:quickhull3d:$qhVersion"
         implementation "com.github.Komposten:Utilities:master-SNAPSHOT"
         
     }
