@@ -105,10 +105,11 @@ public class TetraColourSpace extends ApplicationAdapter
 
 		float pi = MathUtils.PI;
 		float circleThird = MathUtils.PI2/3;
-		Vector3 greenPos = createVectorFromAngles(pi/2, pi/2 - circleThird, 1);
-		Vector3 redPos = createVectorFromAngles(pi/2 - circleThird, pi/2 - circleThird, 1);
-		Vector3 bluePos = createVectorFromAngles(pi/2 + circleThird, pi/2 - circleThird, 1);
-		Vector3 uvPos = createVectorFromAngles(0, pi/2, 1);
+		float deg110 = (float) Math.toRadians(109.5);
+		Vector3 greenPos = createVectorFromAngles(pi/2, pi/2 - deg110, 0.75f);
+		Vector3 redPos = createVectorFromAngles(pi/2 - circleThird, pi/2 - deg110, 0.75f);
+		Vector3 bluePos = createVectorFromAngles(pi/2 + circleThird, pi/2 - deg110, 0.75f);
+		Vector3 uvPos = createVectorFromAngles(0, pi/2, 0.75f);
 		Vector3 achroPos = Vector3.Zero.cpy();
 
 		createPyramidCorners(redPos, greenPos, bluePos, uvPos, achroPos);
