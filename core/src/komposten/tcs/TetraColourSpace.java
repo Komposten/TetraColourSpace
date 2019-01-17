@@ -442,31 +442,29 @@ public class TetraColourSpace extends ApplicationAdapter
 	}
 
 
+	private Vector3 calcVector = new Vector3();
 	private boolean readCameraInput(float deltaTime)
 	{
 		Vector3 movement = new Vector3();
 		
 		if (Gdx.input.isKeyPressed(Keys.W) || Gdx.input.isKeyPressed(Keys.S))
 		{
-			Vector3 velocity = camera.direction.cpy();
-			velocity.y = 0;
-			velocity.setLength(VELOCITY * deltaTime);
+			calcVector.set(camera.direction.x, 0, camera.direction.z).setLength(VELOCITY * deltaTime);
 			
 			if (Gdx.input.isKeyPressed(Keys.W))
-				movement.add(velocity);
+				movement.add(calcVector);
 			else
-				movement.sub(velocity);
+				movement.sub(calcVector);
 		}
 		
 		if (Gdx.input.isKeyPressed(Keys.A) || Gdx.input.isKeyPressed(Keys.D))
 		{
-			Vector3 velocity = new Vector3(camera.direction.z, 0, -camera.direction.x);
-			velocity.setLength(VELOCITY * deltaTime);
+			calcVector.set(camera.direction.z, 0, -camera.direction.x).setLength(VELOCITY * deltaTime);
 			
 			if (Gdx.input.isKeyPressed(Keys.A))
-				movement.add(velocity);
+				movement.add(calcVector);
 			else
-				movement.sub(velocity);
+				movement.sub(calcVector);
 		}
 		
 		if (Gdx.input.isKeyPressed(Keys.SPACE))
@@ -487,7 +485,6 @@ public class TetraColourSpace extends ApplicationAdapter
 			needsUpdate = true;
 		}
 		
-		//TODO Handle camera input.
 		if (Gdx.input.isButtonPressed(Buttons.RIGHT))
 		{
 			int mouseDX = Gdx.input.getDeltaX();
@@ -496,11 +493,24 @@ public class TetraColourSpace extends ApplicationAdapter
 			if (mouseDX != 0 || mouseDY != 0)
 			{
 				float sensitivity = -0.2f;
+				float rotationX = mouseDX * sensitivity;
+				float rotationY = -mouseDY * sensitivity;
 				
-				camera.rotate(Vector3.Y, mouseDX * sensitivity);
-				Vector3 axis = new Vector3(camera.direction.z, 0, -camera.direction.x);
-				camera.rotate(axis, -mouseDY * sensitivity);
-				//FIXME Prevent rotation beyond straight up/down.
+				camera.rotate(Vector3.Y, rotationX);
+				
+				calcVector.set(camera.direction.x, 0, camera.direction.z);
+				
+				double currentAngle = Math.toDegrees(Math.atan2(calcVector.y - camera.direction.y, calcVector.len()));
+				double maxAngle = 89;
+				
+				if (currentAngle + rotationY > maxAngle)
+					rotationY = (float) (maxAngle - currentAngle);
+				else if (currentAngle + rotationY < -maxAngle)
+					rotationY = (float) -(maxAngle + currentAngle);
+				
+				calcVector.set(camera.direction.z, 0, -camera.direction.x);
+				camera.rotate(calcVector, rotationY);
+				
 				needsUpdate = true;
 			}
 		}
