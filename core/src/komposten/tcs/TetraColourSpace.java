@@ -64,6 +64,8 @@ public class TetraColourSpace extends ApplicationAdapter
 	private Map<Color, Material> materials;
 	
 	private boolean showPyramidSides = false;
+	private boolean showPoints = true;
+	private boolean showVolumes = true;
 	private boolean cameraDirty = true;
 
 	public TetraColourSpace(File dataFile)
@@ -507,10 +509,16 @@ public class TetraColourSpace extends ApplicationAdapter
 
 		batch.begin(camera);
 		batch.render(showPyramidSides ? pyramidSides : pyramidLines);
-		batch.render(dataModels, environment);
 		batch.render(staticModels, environment);
-		for (Renderable mesh : dataMeshes)
-			batch.render(mesh);
+		if (showPoints)
+		{
+			batch.render(dataModels, environment);
+		}
+		if (showVolumes)
+		{
+			for (Renderable mesh : dataMeshes)
+				batch.render(mesh);
+		}
 		batch.end();
 		
 		readInput(Gdx.graphics.getDeltaTime());
@@ -615,6 +623,16 @@ public class TetraColourSpace extends ApplicationAdapter
 		if (Gdx.input.isKeyJustPressed(Keys.T))
 		{
 			showPyramidSides = !showPyramidSides;
+		}
+		
+		if (Gdx.input.isKeyJustPressed(Keys.NUM_1))
+		{
+			showPoints = !showPoints;
+		}
+		
+		if (Gdx.input.isKeyJustPressed(Keys.NUM_2))
+		{
+			showVolumes = !showVolumes;
 		}
 		
 		//TODO If f just pressed -> set camera to follow the currently selected point (or centre if no point is selected).
