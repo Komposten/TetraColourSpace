@@ -27,6 +27,7 @@ import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.Renderable;
+import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
@@ -54,10 +55,11 @@ public class TetraColourSpace extends ApplicationAdapter
 	private List<Point> dataPoints;
 	private List<ModelInstance> staticModels;
 	private List<ModelInstance> dataModels;
-	private Mesh pyramidMesh;
-	private Renderable pyramidRenderable;
+	private Renderable pyramidLines;
+	private Renderable pyramidSides;
 	private Map<Color, Material> materials;
 	
+	private boolean showPyramidSides = false;
 	private boolean cameraDirty = true;
 
 	public TetraColourSpace(File dataFile)
@@ -100,11 +102,6 @@ public class TetraColourSpace extends ApplicationAdapter
 
 	private void createStaticModels()
 	{
-		ModelBuilder modelBuilder = new ModelBuilder();
-		float diameter = 0.05f;
-		Model sphereModel = modelBuilder.createSphere(
-				diameter, diameter, diameter, SPHERE_SEGMENTS, SPHERE_SEGMENTS,
-				new Material(), Usage.Position | Usage.Normal);
 
 		float pi = MathUtils.PI;
 		float circleThird = MathUtils.PI2/3;
@@ -113,21 +110,83 @@ public class TetraColourSpace extends ApplicationAdapter
 		Vector3 bluePos = createVectorFromAngles(-pi, -pi/2 + circleThird, 1);
 		Vector3 uvPos = createVectorFromAngles(0, -pi/2, 1);
 		Vector3 achroPos = Vector3.Zero.cpy();
-		
-		ModelInstance redSphere = createModelInstance(sphereModel, redPos, Color.RED);
-		ModelInstance greenSphere = createModelInstance(sphereModel, greenPos, Color.GREEN);
-		ModelInstance blueSphere = createModelInstance(sphereModel, bluePos, Color.BLUE);
-		ModelInstance uvSphere = createModelInstance(sphereModel, uvPos, Color.VIOLET);
-		ModelInstance achroSphere = createModelInstance(sphereModel, achroPos, Color.GRAY);
-		
-		staticModels.add(redSphere);
-		staticModels.add(greenSphere);
-		staticModels.add(blueSphere);
-		staticModels.add(uvSphere);
-		staticModels.add(achroSphere);
-		
 
+		createPyramidCorners(redPos, greenPos, bluePos, uvPos, achroPos);
+		
 		MeshBuilder meshBuilder = new MeshBuilder();
+		createPyramidSides(redPos, greenPos, bluePos, uvPos, meshBuilder);
+		createPyramidEdges(redPos, greenPos, bluePos, uvPos, meshBuilder);
+		
+	}
+
+
+	private void createPyramidSides(Vector3 redPos, Vector3 greenPos,
+			Vector3 bluePos, Vector3 uvPos, MeshBuilder meshBuilder)
+	{
+		meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_TRIANGLES);
+
+		Vector3 normal = greenPos.cpy().add(redPos).add(bluePos);
+		short corner1 = meshBuilder.vertex(greenPos, normal, Color.GREEN, Vector2.Zero);
+		short corner2 = meshBuilder.vertex(redPos, normal, Color.RED, Vector2.Zero);
+		short corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
+		meshBuilder.triangle(corner1, corner2, corner3);
+
+		normal = normal.scl(-1);
+		corner1 = meshBuilder.vertex(greenPos, normal, Color.GREEN, Vector2.Zero);
+		corner2 = meshBuilder.vertex(redPos, normal, Color.RED, Vector2.Zero);
+		corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
+		meshBuilder.triangle(corner3, corner2, corner1);
+		
+		normal = redPos.cpy().add(greenPos).add(uvPos);
+		corner1 = meshBuilder.vertex(redPos, normal, Color.RED, Vector2.Zero);
+		corner2 = meshBuilder.vertex(greenPos, normal, Color.GREEN, Vector2.Zero);
+		corner3 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
+		meshBuilder.triangle(corner1, corner2, corner3);
+		
+		normal = normal.scl(-1);
+		corner1 = meshBuilder.vertex(redPos, normal, Color.RED, Vector2.Zero);
+		corner2 = meshBuilder.vertex(greenPos, normal, Color.GREEN, Vector2.Zero);
+		corner3 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
+		meshBuilder.triangle(corner3, corner2, corner1);
+		
+		normal = redPos.cpy().add(uvPos).add(bluePos);
+		corner1 = meshBuilder.vertex(redPos, normal, Color.RED, Vector2.Zero);
+		corner2 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
+		corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
+		meshBuilder.triangle(corner1, corner2, corner3);
+
+		normal = normal.scl(-1);
+		corner1 = meshBuilder.vertex(redPos, normal, Color.RED, Vector2.Zero);
+		corner2 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
+		corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
+		meshBuilder.triangle(corner3, corner2, corner1);
+		
+		normal = uvPos.cpy().add(greenPos).add(bluePos);
+		corner1 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
+		corner2 = meshBuilder.vertex(greenPos, normal, Color.GREEN, Vector2.Zero);
+		corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
+		meshBuilder.triangle(corner1, corner2, corner3);
+
+		normal = normal.scl(-1);
+		corner1 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
+		corner2 = meshBuilder.vertex(greenPos, normal, Color.GREEN, Vector2.Zero);
+		corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
+		meshBuilder.triangle(corner3, corner2, corner1);
+
+		Mesh pyramidMesh = meshBuilder.end();
+		
+		pyramidSides = new Renderable();
+		pyramidSides.material = new Material(getMaterialForColour(Color.WHITE));
+		pyramidSides.material.set(new BlendingAttribute(0.5f));
+		pyramidSides.meshPart.set("pyramid", pyramidMesh, 0, pyramidMesh.getNumVertices(), GL20.GL_TRIANGLES);
+
+		disposables.add(pyramidMesh);
+	}
+	
+	
+	private void createPyramidEdges(Vector3 redPos, Vector3 greenPos,
+			Vector3 bluePos, Vector3 uvPos, MeshBuilder meshBuilder)
+	{
 		meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_TRIANGLES);
 		
 		Vector3 normal = greenPos.cpy().add(redPos).add(bluePos);
@@ -154,15 +213,39 @@ public class TetraColourSpace extends ApplicationAdapter
 		corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
 		meshBuilder.triangle(corner1, corner2, corner3);
 		
-		pyramidMesh = meshBuilder.end();
+		Mesh pyramidMesh = meshBuilder.end();
+
+		pyramidLines = new Renderable();
+		pyramidLines.material = new Material(getMaterialForColour(Color.WHITE));
+//		pyramidLines.environment = environment;
+		pyramidLines.meshPart.set("pyramid", pyramidMesh, 0, pyramidMesh.getNumVertices(), GL20.GL_LINES);
 		
-		pyramidRenderable = new Renderable();
-		pyramidRenderable.material = new Material(getMaterialForColour(Color.WHITE));
-		pyramidRenderable.environment = environment;
-		pyramidRenderable.meshPart.set("pyramid", pyramidMesh, 0, pyramidMesh.getNumVertices(), GL20.GL_LINES);
-		
-		disposables.add(sphereModel);
 		disposables.add(pyramidMesh);
+	}
+
+
+	private void createPyramidCorners(Vector3 redPos, Vector3 greenPos,
+			Vector3 bluePos, Vector3 uvPos, Vector3 achroPos)
+	{
+		ModelBuilder modelBuilder = new ModelBuilder();
+		float diameter = 0.05f;
+		Model sphereModel = modelBuilder.createSphere(
+				diameter, diameter, diameter, SPHERE_SEGMENTS, SPHERE_SEGMENTS,
+				new Material(), Usage.Position | Usage.Normal);
+		
+		ModelInstance redSphere = createModelInstance(sphereModel, redPos, Color.RED);
+		ModelInstance greenSphere = createModelInstance(sphereModel, greenPos, Color.GREEN);
+		ModelInstance blueSphere = createModelInstance(sphereModel, bluePos, Color.BLUE);
+		ModelInstance uvSphere = createModelInstance(sphereModel, uvPos, Color.VIOLET);
+		ModelInstance achroSphere = createModelInstance(sphereModel, achroPos, Color.GRAY);
+		
+		staticModels.add(redSphere);
+		staticModels.add(greenSphere);
+		staticModels.add(blueSphere);
+		staticModels.add(uvSphere);
+		staticModels.add(achroSphere);
+
+		disposables.add(sphereModel);
 	}
 	
 	
@@ -341,7 +424,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
 		batch.begin(camera);
-		batch.render(pyramidRenderable);
+		batch.render(showPyramidSides ? pyramidSides : pyramidLines);
 		batch.render(dataModels, environment);
 		batch.render(staticModels, environment);
 		batch.end();
@@ -433,6 +516,11 @@ public class TetraColourSpace extends ApplicationAdapter
 		{
 			lookAt(Vector3.Zero);
 			needUpdate = true;
+		}
+		
+		if (Gdx.input.isKeyJustPressed(Keys.T))
+		{
+			showPyramidSides = !showPyramidSides;
 		}
 		
 		//TODO If f just pressed -> set camera to follow the currently selected point (or centre if no point is selected).
