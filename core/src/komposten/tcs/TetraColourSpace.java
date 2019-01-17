@@ -429,7 +429,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private boolean readOtherInput()
 	{
 		boolean needUpdate = false;
-		if (Gdx.input.isKeyJustPressed(Keys.HOME))
+		if (Gdx.input.isKeyPressed(Keys.HOME))
 		{
 			lookAt(Vector3.Zero);
 			needUpdate = true;
