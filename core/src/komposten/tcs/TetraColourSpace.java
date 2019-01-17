@@ -20,7 +20,6 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
-import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
@@ -101,9 +100,9 @@ public class TetraColourSpace extends ApplicationAdapter
 	{
 		ModelBuilder modelBuilder = new ModelBuilder();
 		float diameter = 0.05f;
-		Model sphereModel = modelBuilder.createSphere(diameter, diameter, diameter, SPHERE_SEGMENTS, SPHERE_SEGMENTS, new Material(),
-				VertexAttributes.Usage.Position |
-				VertexAttributes.Usage.Normal);
+		Model sphereModel = modelBuilder.createSphere(
+				diameter, diameter, diameter, SPHERE_SEGMENTS, SPHERE_SEGMENTS,
+				new Material(), Usage.Position | Usage.Normal);
 
 		float pi = MathUtils.PI;
 		float circleThird = MathUtils.PI2/3;
@@ -233,9 +232,9 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		ModelBuilder builder = new ModelBuilder();
 		float diameter = 0.02f;
-		Model model = builder.createSphere(diameter, diameter, diameter, SPHERE_SEGMENTS, SPHERE_SEGMENTS, new Material(),
-				VertexAttributes.Usage.Position |
-				VertexAttributes.Usage.Normal);
+		Model model = builder.createSphere(
+				diameter, diameter, diameter, SPHERE_SEGMENTS, SPHERE_SEGMENTS,
+				new Material(), Usage.Position | Usage.Normal);
 		disposables.add(model);
 		
 		for (Point point : dataPoints)
