@@ -79,9 +79,10 @@ public class TetraColourSpace extends ApplicationAdapter
 		camera.update();
 		
 		DirectionalLight light = new DirectionalLight();
-		light.setDirection(0, -1, 0);
+		light.setDirection(-1f, -1f, 0);
 		light.setColor(Color.WHITE);
 		environment = new Environment();
+		environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.6f, 0.6f, 0.6f, 1.0f));
 		environment.add(light);
 		
 		createStaticModels();
