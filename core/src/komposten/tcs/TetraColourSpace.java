@@ -57,6 +57,8 @@ public class TetraColourSpace extends ApplicationAdapter
 	private Mesh pyramidMesh;
 	private Renderable pyramidRenderable;
 	private Map<Color, Material> materials;
+	
+	private boolean cameraDirty = true;
 
 	public TetraColourSpace(File dataFile)
 	{
@@ -74,15 +76,15 @@ public class TetraColourSpace extends ApplicationAdapter
 		staticModels = new ArrayList<>();
 		dataModels = new ArrayList<>();
 		materials = new HashMap<>();
-		camera = new PerspectiveCamera(67, 1, Gdx.graphics.getHeight() / (float)Gdx.graphics.getWidth());
+		camera = new PerspectiveCamera(67, 1, 1);
 		batch = new ModelBatch();
 		
 		int distance = 2;
+		updateViewport();
 		camera.translate(distance, distance, 0);
 		camera.near = 0.1f;
 		camera.far = 300;
 		lookAt(Vector3.Zero);
-		camera.update();
 		
 		DirectionalLight light = new DirectionalLight();
 		light.setDirection(-1f, -1f, 0);
@@ -329,6 +331,12 @@ public class TetraColourSpace extends ApplicationAdapter
 	@Override
 	public void render()
 	{
+		if (cameraDirty)
+		{
+			cameraDirty = false;
+			camera.update();
+		}
+		
 		Gdx.gl.glClearColor(1, 1, 1, 1);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
@@ -345,7 +353,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private void readInput(float deltaTime)
 	{
 		if (readCameraInput(deltaTime) || readOtherInput())
-			camera.update();
+			cameraDirty = true;
 	}
 
 
@@ -436,6 +444,21 @@ public class TetraColourSpace extends ApplicationAdapter
 	{
 		camera.lookAt(target);
 		camera.up.set(Vector3.Y); //Resetting the up vector since camera.lookAt() changes it.
+	}
+	
+	
+	private void updateViewport()
+	{
+		float ratio = Gdx.graphics.getHeight() / (float)Gdx.graphics.getWidth();
+		camera.viewportHeight = ratio;
+		cameraDirty = true;
+	}
+	
+	
+	@Override
+	public void resize(int width, int height)
+	{
+		updateViewport();
 	}
 
 
