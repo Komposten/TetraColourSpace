@@ -352,7 +352,9 @@ public class TetraColourSpace extends ApplicationAdapter
 
 	private void readInput(float deltaTime)
 	{
-		if (readCameraInput(deltaTime) || readOtherInput())
+		if (readCameraInput(deltaTime))
+			cameraDirty = true;
+		if (readOtherInput())
 			cameraDirty = true;
 	}
 
