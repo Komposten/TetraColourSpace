@@ -43,8 +43,9 @@ import komposten.utilities.tools.Regex;
 
 public class TetraColourSpace extends ApplicationAdapter
 {
+	private static final float SENSITIVITY = -0.2f;
 	private static final int SPHERE_SEGMENTS = 25;
-	private static final int VELOCITY = 1;
+	private static final int VELOCITY = 2;
 	private static final int MAX_DISTANCE = 10;
 	private File dataFile;
 	private PerspectiveCamera camera;
@@ -229,7 +230,7 @@ public class TetraColourSpace extends ApplicationAdapter
 			Vector3 bluePos, Vector3 uvPos, Vector3 achroPos)
 	{
 		ModelBuilder modelBuilder = new ModelBuilder();
-		float diameter = 0.05f;
+		float diameter = 0.03f;
 		Model sphereModel = modelBuilder.createSphere(
 				diameter, diameter, diameter, SPHERE_SEGMENTS, SPHERE_SEGMENTS,
 				new Material(), Usage.Position | Usage.Normal);
@@ -492,7 +493,7 @@ public class TetraColourSpace extends ApplicationAdapter
 			
 			if (mouseDX != 0 || mouseDY != 0)
 			{
-				float sensitivity = -0.2f;
+				float sensitivity = SENSITIVITY;
 				float rotationX = mouseDX * sensitivity;
 				float rotationY = -mouseDY * sensitivity;
 				
