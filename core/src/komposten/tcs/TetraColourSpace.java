@@ -47,7 +47,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private static final float SENSITIVITY = -0.2f;
 	private static final int SPHERE_SEGMENTS = 25;
 	private static final int VELOCITY = 2;
-	private static final int MAX_DISTANCE = 10;
+	private static final int MAX_DISTANCE = 5;
 	private File dataFile;
 	private PerspectiveCamera camera;
 	private ModelBatch batch;
@@ -63,12 +63,17 @@ public class TetraColourSpace extends ApplicationAdapter
 	private Renderable pyramidLines;
 	private Renderable pyramidSides;
 	private ModelInstance selectedModel;
+	private ModelInstance highlightModel;
 	private Map<Color, Material> materials;
+	
+	private Point highlightPoint;
+	private Point selectedPoint;
 	
 	private boolean showPyramidSides = false;
 	private boolean showPoints = true;
 	private boolean showVolumes = true;
 	private boolean hasSelection = false;
+	private boolean hasHighlight = false;
 	private boolean cameraDirty = true;
 
 	public TetraColourSpace(File dataFile)
@@ -126,9 +131,10 @@ public class TetraColourSpace extends ApplicationAdapter
 
 		ModelBuilder modelBuilder = new ModelBuilder();
 		createPyramidCorners(redPos, greenPos, bluePos, uvPos, achroPos, modelBuilder);
-		
+
 		Model model = createSphere(modelBuilder, 0.025f, GL20.GL_LINES, 10);
 		selectedModel = createModelInstance(model, Vector3.Zero, Color.DARK_GRAY);
+		highlightModel = createModelInstance(model, Vector3.Zero, Color.CORAL);
 		
 		MeshBuilder meshBuilder = new MeshBuilder();
 		createPyramidSides(redPos, greenPos, bluePos, uvPos, meshBuilder);
@@ -626,9 +632,15 @@ public class TetraColourSpace extends ApplicationAdapter
 		{
 			batch.render(selectedModel, environment);
 		}
+		if (hasHighlight)
+		{
+			if (!hasSelection || selectedPoint != highlightPoint)
+				batch.render(highlightModel, environment);
+		}
 		batch.end();
 		
 		readInput(Gdx.graphics.getDeltaTime());
+		updateHighlight();
 	}
 
 
@@ -764,6 +776,60 @@ public class TetraColourSpace extends ApplicationAdapter
 	}
 	
 	
+	private void updateHighlight()
+	{
+		highlightPoint = getPointNearCrosshair();
+		ModelInstance model = pointToModelMap.get(highlightPoint);
+		if (model != null)
+		{
+			hasHighlight = true;
+			highlightModel.transform.setTranslation(model.transform.getTranslation(calcVector));
+		}
+		else
+		{
+			hasHighlight = false;
+		}
+	}
+	
+	
+	private Point getPointNearCrosshair()
+	{
+		Vector3 point1 = camera.position.cpy();
+		Vector3 point2 = point1.cpy().add(camera.direction);
+		
+		Point closest = null;
+		float closestDist = Float.MAX_VALUE;
+		
+		Vector3 calc1 = new Vector3();
+		Vector3 calc2 = new Vector3();
+		Vector3 calc3 = new Vector3();
+		
+		for (Point point : dataPoints)
+		{
+			calc1.set(point.coordinates).sub(point1);
+			calc2.set(point.coordinates).sub(point2);
+			calc1.crs(calc2);
+			
+			calc3.set(point2).sub(point1);
+			
+			float dist = calc1.len() / calc3.len();
+			
+			if (dist < closestDist)
+			{
+				closest = point;
+				closestDist = dist;
+			}
+		}
+		
+		if (closestDist < 0.2)
+		{
+			return closest;
+		}
+		
+		return null;
+	}
+	
+	
 	@Override
 	public void resize(int width, int height)
 	{
@@ -794,39 +860,13 @@ public class TetraColourSpace extends ApplicationAdapter
 			}
 			else if (button == Buttons.LEFT)
 			{
-				Vector3 point1 = camera.position.cpy();
-				Vector3 point2 = point1.cpy().add(camera.direction);
-				
-				Point closest = null;
-				float closestDist = Float.MAX_VALUE;
-				
-				Vector3 calc1 = new Vector3();
-				Vector3 calc2 = new Vector3();
-				Vector3 calc3 = new Vector3();
-				
-				for (Point point : dataPoints)
-				{
-					calc1.set(point.coordinates).sub(point1);
-					calc2.set(point.coordinates).sub(point2);
-					calc1.crs(calc2);
-					
-					calc3.set(point2).sub(point1);
-					
-					float dist = calc1.len() / calc3.len();
-					
-					if (dist < closestDist)
-					{
-						closest = point;
-						closestDist = dist;
-					}
-				}
-				
-				ModelInstance model = pointToModelMap.get(closest);
-				if (closestDist < 0.2 && model != null)
+				selectedPoint = getPointNearCrosshair();
+				ModelInstance model = pointToModelMap.get(selectedPoint);
+				if (model != null)
 				{
 					hasSelection = true;
 					selectedModel.transform.setTranslation(model.transform.getTranslation(calcVector));
-					System.out.println(closest);
+					System.out.println(selectedPoint);
 				}
 				else
 				{
