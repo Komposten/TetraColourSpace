@@ -382,13 +382,15 @@ public class TetraColourSpace extends ApplicationAdapter
 		Vector3 vector1 = new Vector3();
 		Vector3 vector2 = new Vector3();
 		Vector3 vector3 = new Vector3();
+		Vector3 vector4 = new Vector3();
 		Vector3 edge1 = new Vector3();
 		Vector3 edge2 = new Vector3();
 		Vector3 normal = new Vector3();
 		
 		for (Volume volume : dataVolumes)
 		{
-			if (volume.coordinates.length >= 9)
+			int vertexCount = volume.coordinates.length / 3;
+			if (vertexCount >= 3)
 			{
 				meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_TRIANGLES);
 				for (int[] face : volume.faces)
@@ -411,7 +413,29 @@ public class TetraColourSpace extends ApplicationAdapter
 					normal.x = edge1.y*edge2.z - edge1.z*edge2.y;
 					normal.y = edge1.z*edge2.x - edge1.x*edge2.z;
 					normal.z = edge1.x*edge2.y - edge1.y*edge2.x;
-					//FIXME Ensure that the normals point outwards.
+					normal.nor();
+					
+					if (vertexCount > 3)
+					{
+						// This code ensures that the normal is pointing outwards.
+						// Basic idea: 
+						// 1) Find any point not in the current face.
+						// 2) Check if adding or subtracting the normal takes us away from said point.
+						
+						int vertex4Index = (vertex1Index + 3) % volume.coordinates.length;
+						while (vertex4Index == vertex2Index || vertex4Index == vertex3Index)
+							vertex4Index = (vertex4Index + 3) % volume.coordinates.length;
+						
+						vector4.set((float) volume.coordinates[vertex4Index],
+							(float) volume.coordinates[vertex4Index + 1],
+							(float) volume.coordinates[vertex4Index + 2]);
+						
+						float length1 = calcVector.set(vector1).add(normal).sub(vector4).len2();
+						float length2 = calcVector.set(vector1).sub(normal).sub(vector4).len2();
+						
+						if (length1 < length2)
+							normal.scl(-1);
+					}
 					
 					short vertex1 = meshBuilder.vertex(vector1, normal, Color.WHITE, null);
 					short vertex2 = meshBuilder.vertex(vector2, normal, Color.WHITE, null);
@@ -423,7 +447,7 @@ public class TetraColourSpace extends ApplicationAdapter
 				Renderable renderable = new Renderable();
 				renderable.meshPart.set("volume", mesh, 0, mesh.getNumVertices(), GL20.GL_TRIANGLES);
 				renderable.material = volume.material.copy();
-	//			renderable.material.set(new BlendingAttribute(0.5f));
+				renderable.material.set(new BlendingAttribute(0.5f));
 				renderable.environment = environment;
 				
 				dataMeshes.add(renderable);
