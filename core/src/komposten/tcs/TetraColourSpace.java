@@ -367,6 +367,10 @@ public class TetraColourSpace extends ApplicationAdapter
 		Vector3 vector1 = new Vector3();
 		Vector3 vector2 = new Vector3();
 		Vector3 vector3 = new Vector3();
+		Vector3 edge1 = new Vector3();
+		Vector3 edge2 = new Vector3();
+		Vector3 normal = new Vector3();
+		
 		for (Volume volume : dataVolumes)
 		{
 			meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_TRIANGLES);
@@ -384,8 +388,18 @@ public class TetraColourSpace extends ApplicationAdapter
 				vector3.set((float) volume.coordinates[vertex3Index],
 						(float) volume.coordinates[vertex3Index + 1],
 						(float) volume.coordinates[vertex3Index + 2]);
-				meshBuilder.triangle(vector1, vector2, vector3);
-				//FIXME Add normals!
+				
+				edge1.set(vector2).sub(vector1);
+				edge2.set(vector3).sub(vector1);
+				normal.x = edge1.y*edge2.z - edge1.z*edge2.y;
+				normal.y = edge1.z*edge2.x - edge1.x*edge2.z;
+				normal.z = edge1.x*edge2.y - edge1.y*edge2.x;
+				//FIXME Ensure that the normals point outwards.
+				
+				short vertex1 = meshBuilder.vertex(vector1, normal, Color.WHITE, null);
+				short vertex2 = meshBuilder.vertex(vector2, normal, Color.WHITE, null);
+				short vertex3 = meshBuilder.vertex(vector3, normal, Color.WHITE, null);
+				meshBuilder.triangle(vertex1, vertex2, vertex3);
 			}
 			Mesh mesh = meshBuilder.end();
 			
