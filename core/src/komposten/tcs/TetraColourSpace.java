@@ -72,6 +72,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private boolean showPyramidSides = false;
 	private boolean showPoints = true;
 	private boolean showVolumes = true;
+	private boolean showHighlight = true;
 	private boolean hasSelection = false;
 	private boolean hasHighlight = false;
 	private boolean cameraDirty = true;
@@ -632,7 +633,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		{
 			batch.render(selectedModel, environment);
 		}
-		if (hasHighlight)
+		if (showHighlight && hasHighlight)
 		{
 			if (!hasSelection || selectedPoint != highlightPoint)
 				batch.render(highlightModel, environment);
@@ -640,7 +641,9 @@ public class TetraColourSpace extends ApplicationAdapter
 		batch.end();
 		
 		readInput(Gdx.graphics.getDeltaTime());
-		updateHighlight();
+		
+		if (showHighlight)
+			updateHighlight();
 	}
 
 
@@ -742,6 +745,11 @@ public class TetraColourSpace extends ApplicationAdapter
 		if (Gdx.input.isKeyJustPressed(Keys.T))
 		{
 			showPyramidSides = !showPyramidSides;
+		}
+		
+		if (Gdx.input.isKeyJustPressed(Keys.H))
+		{
+			showHighlight = !showHighlight;
 		}
 		
 		if (Gdx.input.isKeyJustPressed(Keys.NUM_1))
