@@ -28,6 +28,7 @@ allprojects {
         ashleyVersion = '1.7.0'
         aiVersion = '1.8.0'
         qhVersion = '1.0.0'
+        slf4jVersion = '1.7.25'
     }
 
     repositories {
@@ -59,6 +60,7 @@ project(":core") {
     dependencies {
         compile "com.badlogicgames.gdx:gdx:$gdxVersion"
         compile "com.github.quickhull3d:quickhull3d:$qhVersion"
+        compile "org.slf4j:slf4j-nop:$slf4jVersion"
         implementation "com.github.Komposten:Utilities:master-SNAPSHOT"
         
     }
