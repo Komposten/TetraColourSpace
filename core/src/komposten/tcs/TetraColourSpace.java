@@ -59,13 +59,16 @@ public class TetraColourSpace extends ApplicationAdapter
 	private List<ModelInstance> staticModels;
 	private List<ModelInstance> dataModels;
 	private List<Renderable> dataMeshes;
+	private Map<Point, ModelInstance> pointToModelMap;
 	private Renderable pyramidLines;
 	private Renderable pyramidSides;
+	private ModelInstance selectedModel;
 	private Map<Color, Material> materials;
 	
 	private boolean showPyramidSides = false;
 	private boolean showPoints = true;
 	private boolean showVolumes = true;
+	private boolean hasSelection = false;
 	private boolean cameraDirty = true;
 
 	public TetraColourSpace(File dataFile)
@@ -86,6 +89,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		dataModels = new ArrayList<>();
 		dataMeshes = new ArrayList<>();
 		materials = new HashMap<>();
+		pointToModelMap = new HashMap<>();
 		camera = new PerspectiveCamera(67, 1, 1);
 		batch = new ModelBatch();
 		
@@ -120,7 +124,11 @@ public class TetraColourSpace extends ApplicationAdapter
 		Vector3 uvPos = createVectorFromAngles(0, pi/2, 0.75f);
 		Vector3 achroPos = Vector3.Zero.cpy();
 
-		createPyramidCorners(redPos, greenPos, bluePos, uvPos, achroPos);
+		ModelBuilder modelBuilder = new ModelBuilder();
+		createPyramidCorners(redPos, greenPos, bluePos, uvPos, achroPos, modelBuilder);
+		
+		Model model = createSphere(modelBuilder, 0.025f, GL20.GL_LINES, 10);
+		selectedModel = createModelInstance(model, Vector3.Zero, Color.DARK_GRAY);
 		
 		MeshBuilder meshBuilder = new MeshBuilder();
 		createPyramidSides(redPos, greenPos, bluePos, uvPos, meshBuilder);
@@ -234,13 +242,10 @@ public class TetraColourSpace extends ApplicationAdapter
 
 
 	private void createPyramidCorners(Vector3 redPos, Vector3 greenPos,
-			Vector3 bluePos, Vector3 uvPos, Vector3 achroPos)
+			Vector3 bluePos, Vector3 uvPos, Vector3 achroPos, ModelBuilder modelBuilder)
 	{
-		ModelBuilder modelBuilder = new ModelBuilder();
 		float diameter = 0.03f;
-		Model sphereModel = modelBuilder.createSphere(
-				diameter, diameter, diameter, SPHERE_SEGMENTS, SPHERE_SEGMENTS,
-				new Material(), Usage.Position | Usage.Normal);
+		Model sphereModel = createSphere(modelBuilder, diameter, GL20.GL_TRIANGLES);
 		
 		ModelInstance redSphere = createModelInstance(sphereModel, redPos, Color.RED);
 		ModelInstance greenSphere = createModelInstance(sphereModel, greenPos, Color.GREEN);
@@ -255,6 +260,21 @@ public class TetraColourSpace extends ApplicationAdapter
 		staticModels.add(achroSphere);
 
 		disposables.add(sphereModel);
+	}
+
+
+	private Model createSphere(ModelBuilder modelBuilder, float diameter, int primitiveType)
+	{
+		return createSphere(modelBuilder, diameter, primitiveType, SPHERE_SEGMENTS);
+	}
+
+
+	private Model createSphere(ModelBuilder modelBuilder, float diameter, int primitiveType, int segments)
+	{
+		Model sphereModel = modelBuilder.createSphere(
+				diameter, diameter, diameter, segments, segments,
+				primitiveType, new Material(), Usage.Position | Usage.Normal);
+		return sphereModel;
 	}
 	
 	
@@ -365,9 +385,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		ModelBuilder builder = new ModelBuilder();
 		float diameter = 0.02f;
-		Model model = builder.createSphere(
-				diameter, diameter, diameter, SPHERE_SEGMENTS, SPHERE_SEGMENTS,
-				new Material(), Usage.Position | Usage.Normal);
+		Model model = createSphere(builder, diameter, GL20.GL_TRIANGLES);
 		disposables.add(model);
 		
 		for (Point point : dataPoints)
@@ -376,6 +394,7 @@ public class TetraColourSpace extends ApplicationAdapter
 			instance.transform.translate(point.coordinates);
 			setMaterial(point.material, instance);
 			dataModels.add(instance);
+			pointToModelMap.put(point, instance);
 		}
 		
 		MeshBuilder meshBuilder = new MeshBuilder();
@@ -603,6 +622,10 @@ public class TetraColourSpace extends ApplicationAdapter
 			for (Renderable mesh : dataMeshes)
 				batch.render(mesh);
 		}
+		if (hasSelection)
+		{
+			batch.render(selectedModel, environment);
+		}
 		batch.end();
 		
 		readInput(Gdx.graphics.getDeltaTime());
@@ -768,6 +791,47 @@ public class TetraColourSpace extends ApplicationAdapter
 			{
 				Gdx.input.setCursorCatched(true);
 				return true;
+			}
+			else if (button == Buttons.LEFT)
+			{
+				Vector3 point1 = camera.position.cpy();
+				Vector3 point2 = point1.cpy().add(camera.direction);
+				
+				Point closest = null;
+				float closestDist = Float.MAX_VALUE;
+				
+				Vector3 calc1 = new Vector3();
+				Vector3 calc2 = new Vector3();
+				Vector3 calc3 = new Vector3();
+				
+				for (Point point : dataPoints)
+				{
+					calc1.set(point.coordinates).sub(point1);
+					calc2.set(point.coordinates).sub(point2);
+					calc1.crs(calc2);
+					
+					calc3.set(point2).sub(point1);
+					
+					float dist = calc1.len() / calc3.len();
+					
+					if (dist < closestDist)
+					{
+						closest = point;
+						closestDist = dist;
+					}
+				}
+				
+				ModelInstance model = pointToModelMap.get(closest);
+				if (closestDist < 0.2 && model != null)
+				{
+					hasSelection = true;
+					selectedModel.transform.setTranslation(model.transform.getTranslation(calcVector));
+					System.out.println(closest);
+				}
+				else
+				{
+					hasSelection = false;
+				}
 			}
 			
 			return false;
