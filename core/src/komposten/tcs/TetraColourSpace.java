@@ -296,7 +296,8 @@ public class TetraColourSpace extends ApplicationAdapter
 					else
 					{
 						isInVolume = false;
-						
+
+						int[][] faces = null;
 						double[] coords = new double[volumeData.size()*3];
 						for (int i = 0; i < volumeData.size(); i++)
 						{
@@ -306,13 +307,27 @@ public class TetraColourSpace extends ApplicationAdapter
 							coords[i*3+2] = vector.z;
 						}
 						
-						QuickHull3D quickHull = new QuickHull3D();
-						quickHull.build(coords);
+						if (coords.length >= 12)
+						{
+							QuickHull3D quickHull = new QuickHull3D();
+							quickHull.build(coords);
+							
+							coords = new double[quickHull.getNumVertices()*3];
+							quickHull.getVertices(coords);
+							
+							faces = quickHull.getFaces();
+						}
+						else if (coords.length == 9)
+						{
+							faces = new int[1][];
+							faces[0] = new int[] { 0, 1, 2 };
+						}
+						else
+						{
+							faces = new int[0][];
+						}
 						
-						coords = new double[quickHull.getNumVertices()*3];
-						quickHull.getVertices(coords);
-						
-						Volume volume = new Volume(coords, quickHull.getFaces(), activeMaterial);
+						Volume volume = new Volume(coords, faces, activeMaterial);
 						dataVolumes.add(volume);
 						
 						volumeData.clear();
@@ -373,43 +388,74 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		for (Volume volume : dataVolumes)
 		{
-			meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_TRIANGLES);
-			for (int[] face : volume.faces)
+			if (volume.coordinates.length >= 9)
 			{
-				int vertex1Index = face[0]*3;
-				int vertex2Index = face[1]*3;
-				int vertex3Index = face[2]*3;
-				vector1.set((float) volume.coordinates[vertex1Index],
-						(float) volume.coordinates[vertex1Index + 1],
-						(float) volume.coordinates[vertex1Index + 2]);
-				vector2.set((float) volume.coordinates[vertex2Index],
-						(float) volume.coordinates[vertex2Index + 1],
-						(float) volume.coordinates[vertex2Index + 2]);
-				vector3.set((float) volume.coordinates[vertex3Index],
-						(float) volume.coordinates[vertex3Index + 1],
-						(float) volume.coordinates[vertex3Index + 2]);
+				meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_TRIANGLES);
+				for (int[] face : volume.faces)
+				{
+					int vertex1Index = face[0]*3;
+					int vertex2Index = face[1]*3;
+					int vertex3Index = face[2]*3;
+					vector1.set((float) volume.coordinates[vertex1Index],
+							(float) volume.coordinates[vertex1Index + 1],
+							(float) volume.coordinates[vertex1Index + 2]);
+					vector2.set((float) volume.coordinates[vertex2Index],
+							(float) volume.coordinates[vertex2Index + 1],
+							(float) volume.coordinates[vertex2Index + 2]);
+					vector3.set((float) volume.coordinates[vertex3Index],
+							(float) volume.coordinates[vertex3Index + 1],
+							(float) volume.coordinates[vertex3Index + 2]);
+					
+					edge1.set(vector2).sub(vector1);
+					edge2.set(vector3).sub(vector1);
+					normal.x = edge1.y*edge2.z - edge1.z*edge2.y;
+					normal.y = edge1.z*edge2.x - edge1.x*edge2.z;
+					normal.z = edge1.x*edge2.y - edge1.y*edge2.x;
+					//FIXME Ensure that the normals point outwards.
+					
+					short vertex1 = meshBuilder.vertex(vector1, normal, Color.WHITE, null);
+					short vertex2 = meshBuilder.vertex(vector2, normal, Color.WHITE, null);
+					short vertex3 = meshBuilder.vertex(vector3, normal, Color.WHITE, null);
+					meshBuilder.triangle(vertex1, vertex2, vertex3);
+				}
+				Mesh mesh = meshBuilder.end();
 				
-				edge1.set(vector2).sub(vector1);
-				edge2.set(vector3).sub(vector1);
-				normal.x = edge1.y*edge2.z - edge1.z*edge2.y;
-				normal.y = edge1.z*edge2.x - edge1.x*edge2.z;
-				normal.z = edge1.x*edge2.y - edge1.y*edge2.x;
-				//FIXME Ensure that the normals point outwards.
+				Renderable renderable = new Renderable();
+				renderable.meshPart.set("volume", mesh, 0, mesh.getNumVertices(), GL20.GL_TRIANGLES);
+				renderable.material = volume.material.copy();
+	//			renderable.material.set(new BlendingAttribute(0.5f));
+				renderable.environment = environment;
 				
-				short vertex1 = meshBuilder.vertex(vector1, normal, Color.WHITE, null);
-				short vertex2 = meshBuilder.vertex(vector2, normal, Color.WHITE, null);
-				short vertex3 = meshBuilder.vertex(vector3, normal, Color.WHITE, null);
-				meshBuilder.triangle(vertex1, vertex2, vertex3);
+				dataMeshes.add(renderable);
+				
+	//			renderable = new Renderable();
+	//			renderable.meshPart.set("volume_lines", mesh, 0, mesh.getNumVertices(), GL20.GL_LINES);
+	//			renderable.material = volume.material.copy();
+	//			renderable.material.set(new BlendingAttribute(0.7f));
+	//			renderable.environment = environment;
+	//			
+	//			dataMeshes.add(renderable);
 			}
-			Mesh mesh = meshBuilder.end();
-			
-			Renderable renderable = new Renderable();
-			renderable.meshPart.set("volume", mesh, 0, mesh.getNumVertices(), GL20.GL_TRIANGLES);
-			renderable.material = volume.material.copy();
-			renderable.material.set(new BlendingAttribute(0.5f));
-			renderable.environment = environment;
-			
-			dataMeshes.add(renderable);
+			else if (volume.coordinates.length == 6)
+			{
+				vector1.set((float) volume.coordinates[0],
+						(float) volume.coordinates[1],
+						(float) volume.coordinates[2]);
+				vector2.set((float) volume.coordinates[3],
+						(float) volume.coordinates[4],
+						(float) volume.coordinates[5]);
+				
+				meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_LINES);
+				meshBuilder.line(vector1, vector2);
+				Mesh mesh = meshBuilder.end();
+				
+				Renderable renderable = new Renderable();
+				renderable.meshPart.set("volume", mesh, 0, mesh.getNumVertices(), GL20.GL_LINES);
+				renderable.material = volume.material.copy();
+				renderable.environment = environment;
+				
+				dataMeshes.add(renderable);
+			}
 		}
 	}
 	
