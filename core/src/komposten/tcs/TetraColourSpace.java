@@ -44,6 +44,12 @@ import komposten.utilities.tools.Regex;
 
 public class TetraColourSpace extends ApplicationAdapter
 {
+	private enum FollowMode
+	{
+		Selected,
+		Centre,
+		Off
+	}
 	private static final float SENSITIVITY = -0.2f;
 	private static final int SPHERE_SEGMENTS = 25;
 	private static final int VELOCITY = 2;
@@ -68,6 +74,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private Point highlightPoint;
 	private Point selectedPoint;
+	private FollowMode followMode = FollowMode.Off;
 	
 	private boolean showPyramidSides = false;
 	private boolean showPoints = true;
@@ -644,14 +651,36 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		if (showHighlight)
 			updateHighlight();
+		
+		if (followMode != FollowMode.Off)
+		{
+			updateFollow();
+		}
+	}
+
+
+	private void updateFollow()
+	{
+		switch (followMode)
+		{
+			case Centre :
+				lookAt(Vector3.Zero);
+				cameraDirty = true;
+				break;
+			case Selected :
+				lookAt(selectedPoint.coordinates);
+				cameraDirty = true;
+				break;
+			case Off :
+			default :
+				break;
+		}
 	}
 
 
 	private void readInput(float deltaTime)
 	{
 		if (readCameraInput(deltaTime))
-			cameraDirty = true;
-		if (readOtherInput())
 			cameraDirty = true;
 	}
 
@@ -730,47 +759,6 @@ public class TetraColourSpace extends ApplicationAdapter
 		}
 		
 		return needsUpdate;
-	}
-
-
-	private boolean readOtherInput()
-	{
-		boolean needUpdate = false;
-		if (Gdx.input.isKeyPressed(Keys.HOME))
-		{
-			lookAt(Vector3.Zero);
-			needUpdate = true;
-		}
-		
-		if (Gdx.input.isKeyJustPressed(Keys.T))
-		{
-			showPyramidSides = !showPyramidSides;
-		}
-		
-		if (Gdx.input.isKeyJustPressed(Keys.H))
-		{
-			showHighlight = !showHighlight;
-		}
-		
-		if (Gdx.input.isKeyJustPressed(Keys.NUM_1))
-		{
-			showPoints = !showPoints;
-		}
-		
-		if (Gdx.input.isKeyJustPressed(Keys.NUM_2))
-		{
-			showVolumes = !showVolumes;
-		}
-		
-		if (Gdx.input.isKeyPressed(Keys.F) && hasSelection)
-		{
-			lookAt(selectedPoint.coordinates);
-			needUpdate = true;
-		}
-		
-		//TODO If r just pressed -> start automatic rotation around the vertical axis.
-		
-		return needUpdate;
 	}
 
 
@@ -864,11 +852,67 @@ public class TetraColourSpace extends ApplicationAdapter
 	private InputProcessor inputProcessor = new InputAdapter()
 	{
 		@Override
+		public boolean keyDown(int keycode)
+		{
+			if (keycode == Keys.HOME)
+			{
+				followMode = FollowMode.Centre;
+				return true;
+			}
+			
+			return false;
+		}
+		
+		
+		@Override
+		public boolean keyUp(int keycode)
+		{
+			if (keycode == Keys.HOME && followMode == FollowMode.Centre)
+			{
+				followMode = FollowMode.Off;
+				return true;
+			}
+			else if (keycode == Keys.T)
+			{
+				showPyramidSides = !showPyramidSides;
+				return true;
+			}
+			else if (keycode == Keys.H)
+			{
+				showHighlight = !showHighlight;
+				return true;
+			}
+			else if (keycode == Keys.NUM_1)
+			{
+				showPoints = !showPoints;
+				return true;
+			}
+			else if (keycode == Keys.NUM_2)
+			{
+				showVolumes = !showVolumes;
+				return true;
+			}
+			else if (keycode == Keys.F && hasSelection)
+			{
+				if (followMode != FollowMode.Selected)
+					followMode = FollowMode.Selected;
+				else
+					followMode = FollowMode.Off;
+				return true;
+			}
+			
+			
+			return false;
+		}
+		
+		
+		@Override
 		public boolean touchDown(int screenX, int screenY, int pointer, int button)
 		{
 			if (button == Buttons.RIGHT)
 			{
 				Gdx.input.setCursorCatched(true);
+				followMode = FollowMode.Off;
 				return true;
 			}
 			else if (button == Buttons.LEFT)
