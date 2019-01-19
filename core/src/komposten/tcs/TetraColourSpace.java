@@ -386,15 +386,10 @@ public class TetraColourSpace extends ApplicationAdapter
 				}
 			}
 		}
-		catch (FileNotFoundException e)
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 		catch (IOException e)
 		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.err.println("Error reading file: " + dataFile.getPath());
+			System.err.println("  Cause: " + e.getMessage());
 		}
 		
 		ModelBuilder builder = new ModelBuilder();
