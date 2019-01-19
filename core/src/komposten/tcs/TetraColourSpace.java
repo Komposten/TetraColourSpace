@@ -630,20 +630,21 @@ public class TetraColourSpace extends ApplicationAdapter
 		if (showPoints)
 		{
 			batch.render(dataModels, environment);
+			
+			if (hasSelection)
+			{
+				batch.render(selectedModel, environment);
+			}
+			if (showHighlight && hasHighlight)
+			{
+				if (!hasSelection || selectedPoint != highlightPoint)
+					batch.render(highlightModel, environment);
+			}
 		}
 		if (showVolumes)
 		{
 			for (Renderable mesh : dataMeshes)
 				batch.render(mesh);
-		}
-		if (hasSelection)
-		{
-			batch.render(selectedModel, environment);
-		}
-		if (showHighlight && hasHighlight)
-		{
-			if (!hasSelection || selectedPoint != highlightPoint)
-				batch.render(highlightModel, environment);
 		}
 		batch.end();
 		
