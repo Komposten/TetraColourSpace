@@ -872,6 +872,14 @@ public class TetraColourSpace extends ApplicationAdapter
 				followMode = FollowMode.Off;
 				return true;
 			}
+			else if (keycode == Keys.C)
+			{
+				if (followMode != FollowMode.Centre)
+					followMode = FollowMode.Centre;
+				else
+					followMode = FollowMode.Off;
+				return true;
+			}
 			else if (keycode == Keys.T)
 			{
 				showPyramidSides = !showPyramidSides;
