@@ -762,7 +762,12 @@ public class TetraColourSpace extends ApplicationAdapter
 			showVolumes = !showVolumes;
 		}
 		
-		//TODO If f just pressed -> set camera to follow the currently selected point (or centre if no point is selected).
+		if (Gdx.input.isKeyPressed(Keys.F) && hasSelection)
+		{
+			lookAt(selectedPoint.coordinates);
+			needUpdate = true;
+		}
+		
 		//TODO If r just pressed -> start automatic rotation around the vertical axis.
 		
 		return needUpdate;
