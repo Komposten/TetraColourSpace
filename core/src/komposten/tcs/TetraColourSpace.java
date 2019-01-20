@@ -1,14 +1,25 @@
 package komposten.tcs;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
@@ -311,84 +322,115 @@ public class TetraColourSpace extends ApplicationAdapter
 
 	private void loadData()
 	{
-		try (BufferedReader reader = new BufferedReader(new FileReader(dataFile)))
+		try
 		{
-			String line;
 			Material activeMaterial = getMaterialForColour(Color.BLACK);
 			
-			boolean isInVolume = false;
-			List<String> volumeData = new ArrayList<>();
+			DocumentBuilder docBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+			Document document = docBuilder.parse(dataFile);
+			Element root = document.getDocumentElement();
 			
-			while ((line = reader.readLine()) != null)
+			NodeList points = root.getElementsByTagName("point");
+			for (int i = 0; i < points.getLength(); i++)
 			{
-				if (isInVolume)
+				Node pointNode = points.item(i);
+				
+				NamedNodeMap attributes = pointNode.getAttributes();
+				Node colourAttr = attributes.getNamedItem("colour");
+				Node nameAttr = attributes.getNamedItem("name");
+				Node positionAttr = attributes.getNamedItem("position");
+				
+				String name = "Point " + (i+1);
+				if (colourAttr != null)
 				{
-					if (!line.startsWith("[/volume]"))
-					{
-						volumeData.add(line);
-					}
-					else
-					{
-						isInVolume = false;
-
-						int[][] faces = null;
-						double[] coords = new double[volumeData.size()*3];
-						for (int i = 0; i < volumeData.size(); i++)
-						{
-							Vector3 vector = getCoordinatesFromLine(volumeData.get(i));
-							coords[i*3+0] = vector.x;
-							coords[i*3+1] = vector.y;
-							coords[i*3+2] = vector.z;
-						}
-						
-						if (coords.length >= 12)
-						{
-							QuickHull3D quickHull = new QuickHull3D();
-							quickHull.build(coords);
-							
-							coords = new double[quickHull.getNumVertices()*3];
-							quickHull.getVertices(coords);
-							
-							faces = quickHull.getFaces();
-						}
-						else if (coords.length == 9)
-						{
-							faces = new int[1][];
-							faces[0] = new int[] { 0, 1, 2 };
-						}
-						else
-						{
-							faces = new int[0][];
-						}
-						
-						Volume volume = new Volume(coords, faces, activeMaterial);
-						dataVolumes.add(volume);
-						
-						volumeData.clear();
-					}
-					
-				}
-				else if (line.startsWith("[color="))
-				{
-					String inputHex = Regex.getMatches("#[A-Fa-f0-9]+", line)[0];
-					Color colour = getColourFromHex(inputHex);
+					String colourHex = colourAttr.getNodeValue();
+					Color colour = getColourFromHex(colourHex);
 					activeMaterial = getMaterialForColour(colour);
 				}
-				else if (line.startsWith("[point="))
+				
+				if (nameAttr != null)
 				{
-					Vector3 coords = getCoordinatesFromLine(line);
-					Point point = new Point(coords, activeMaterial);
-					dataPoints.add(point);
+					name = nameAttr.getNodeValue();
 				}
-				else if (line.startsWith("[volume]"))
+				
+				String position = positionAttr.getNodeValue();
+				Vector3 coords = getCoordinatesFromLine(position);
+				Point point = new Point(name, coords, activeMaterial);
+				dataPoints.add(point);
+			}
+			
+			NodeList volumes = root.getElementsByTagName("volume");
+			for (int i = 0; i < volumes.getLength(); i++)
+			{
+				Node volumesNode = volumes.item(i);
+				
+				NamedNodeMap attributes = volumesNode.getAttributes();
+				Node colourAttr = attributes.getNamedItem("colour");
+				
+				if (colourAttr != null)
 				{
-					isInVolume = true;
+					String colourHex = colourAttr.getNodeValue();
+					Color colour = getColourFromHex(colourHex);
+					activeMaterial = getMaterialForColour(colour);
 				}
+
+				String[] pointStrings = volumesNode.getFirstChild().getTextContent().trim().split("[\n\r]+");
+				List<String> list = new LinkedList<>(Arrays.asList(pointStrings));
+				for(Iterator<String> itr = list.iterator(); itr.hasNext();)
+				{
+					if (itr.next().trim().isEmpty())
+						itr.remove();
+				}
+				pointStrings = list.toArray(new String[list.size()]);
+				
+				int[][] faces = null;
+				double[] coords = new double[pointStrings.length*3];
+				for (int j = 0; j < pointStrings.length; j++)
+				{
+					String pointString = pointStrings[j].trim();
+					Vector3 vector = getCoordinatesFromLine(pointString);
+					coords[j*3+0] = vector.x;
+					coords[j*3+1] = vector.y;
+					coords[j*3+2] = vector.z;
+				}
+				
+				if (coords.length >= 12)
+				{
+					QuickHull3D quickHull = new QuickHull3D();
+					quickHull.build(coords);
+					
+					coords = new double[quickHull.getNumVertices()*3];
+					quickHull.getVertices(coords);
+					
+					faces = quickHull.getFaces();
+				}
+				else if (coords.length == 9)
+				{
+					faces = new int[1][];
+					faces[0] = new int[] { 0, 1, 2 };
+				}
+				else
+				{
+					faces = new int[0][];
+				}
+				
+				Volume volume = new Volume(coords, faces, activeMaterial);
+				dataVolumes.add(volume);
 			}
 		}
 		catch (IOException e)
 		{
 			System.err.println("Error reading file: " + dataFile.getPath());
+			System.err.println("  Cause: " + e.getMessage());
+		}
+		catch (ParserConfigurationException e)
+		{
+			System.err.println("Error creating the XML parser!");
+			System.err.println("  Cause: " + e.getMessage());
+		}
+		catch (SAXException e)
+		{
+			System.err.println("Error parsing file: " + dataFile.getPath());
 			System.err.println("  Cause: " + e.getMessage());
 		}
 		
@@ -955,17 +997,13 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private static class Point
 	{
+		String name;
 		Vector3 coordinates;
 		Material material;
 		
-		public Point(float x, float y, float z, Material material)
+		public Point(String name, Vector3 coordinates, Material material)
 		{
-			this(new Vector3(x, y, z), material);
-		}
-		
-		
-		public Point(Vector3 coordinates, Material material)
-		{
+			this.name = name;
 			this.coordinates = coordinates;
 			this.material = material;
 		}
@@ -975,7 +1013,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		public String toString()
 		{
 			ColorAttribute colour = (ColorAttribute) material.get(ColorAttribute.Diffuse);
-			return String.format("(%.03f, %.03f, %.03f)[%s]", coordinates.x, coordinates.y, coordinates.z, colour.color);
+			return String.format("%s|(%.03f, %.03f, %.03f)[%s]", name, coordinates.x, coordinates.y, coordinates.z, colour.color);
 		}
 	}
 	
