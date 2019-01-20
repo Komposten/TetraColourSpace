@@ -961,7 +961,7 @@ public class TetraColourSpace extends ApplicationAdapter
 				followMode = FollowMode.Off;
 				return true;
 			}
-			else if (button == Buttons.LEFT)
+			else if (button == Buttons.LEFT && showPoints)
 			{
 				selectedPoint = getPointNearCrosshair();
 				ModelInstance model = pointToModelMap.get(selectedPoint);
