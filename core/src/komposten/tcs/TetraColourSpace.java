@@ -343,14 +343,14 @@ public class TetraColourSpace extends ApplicationAdapter
 				String name = "Point " + (i+1);
 				if (colourAttr != null)
 				{
-					String colourHex = colourAttr.getNodeValue();
+					String colourHex = colourAttr.getNodeValue().trim();
 					Color colour = getColourFromHex(colourHex);
 					activeMaterial = getMaterialForColour(colour);
 				}
 				
 				if (nameAttr != null)
 				{
-					name = nameAttr.getNodeValue();
+					name = nameAttr.getNodeValue().trim();
 				}
 				
 				String position = positionAttr.getNodeValue();
@@ -369,7 +369,7 @@ public class TetraColourSpace extends ApplicationAdapter
 				
 				if (colourAttr != null)
 				{
-					String colourHex = colourAttr.getNodeValue();
+					String colourHex = colourAttr.getNodeValue().trim();
 					Color colour = getColourFromHex(colourHex);
 					activeMaterial = getMaterialForColour(colour);
 				}
