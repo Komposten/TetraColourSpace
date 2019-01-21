@@ -15,10 +15,11 @@ public class DesktopLauncher
 		if (arg.length > 0)
 		{
 			File file = new File(arg[0]);
+			File outputDir = (arg.length > 1 ? new File(arg[1]) : null);
 			LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
 			config.useGL30 = true;
 			config.samples = 8;
-			new LwjglApplication(new TetraColourSpace(file), config);
+			new LwjglApplication(new TetraColourSpace(file, outputDir), config);
 		}
 		else
 		{

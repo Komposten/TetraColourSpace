@@ -2,8 +2,10 @@ package komposten.tcs;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -27,10 +29,15 @@ import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Pixmap.Filter;
+import com.badlogic.gdx.graphics.Pixmap.Format;
+import com.badlogic.gdx.graphics.PixmapIO.PNG;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
@@ -43,12 +50,16 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.BufferUtils;
 import com.badlogic.gdx.utils.Disposable;
+import com.badlogic.gdx.utils.ScreenUtils;
 import com.github.quickhull3d.QuickHull3D;
 
+import komposten.utilities.tools.FileOperations;
 import komposten.utilities.tools.MathOps;
 import komposten.utilities.tools.Regex;
 
@@ -61,14 +72,21 @@ public class TetraColourSpace extends ApplicationAdapter
 		Centre,
 		Off
 	}
+	
 	private static final float SENSITIVITY = -0.2f;
 	private static final int SPHERE_SEGMENTS = 25;
 	private static final int VELOCITY = 2;
 	private static final int MAX_DISTANCE = 5;
+	private static final int SCREENSHOT_SIZE = 1080;
+	private static final int SCREENSHOT_SUPERSAMPLE = 10;
+	
 	private File dataFile;
+	private File outputPath;
 	private PerspectiveCamera camera;
 	private ModelBatch batch;
 	private Environment environment;
+	
+	private FrameBuffer screenshotBuffer;
 	
 	private List<Disposable> disposables;
 	private List<Point> dataPoints;
@@ -87,6 +105,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private Point selectedPoint;
 	private FollowMode followMode = FollowMode.Off;
 	
+	private boolean takeScreenshot = false;
 	private boolean showPyramidSides = false;
 	private boolean showPoints = true;
 	private boolean showVolumes = true;
@@ -95,9 +114,15 @@ public class TetraColourSpace extends ApplicationAdapter
 	private boolean hasHighlight = false;
 	private boolean cameraDirty = true;
 
-	public TetraColourSpace(File dataFile)
+	public TetraColourSpace(File dataFile, File outputPath)
 	{
+		if (outputPath == null)
+			outputPath = new File("output/");
+		else if (outputPath.exists() && !outputPath.isDirectory())
+			throw new IllegalArgumentException("outputPath must be a directory: \"" + outputPath.getPath() + "\"");
+		
 		this.dataFile = dataFile;
+		this.outputPath = outputPath;
 	}
 
 
@@ -131,14 +156,26 @@ public class TetraColourSpace extends ApplicationAdapter
 		environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.6f, 0.6f, 0.6f, 1.0f));
 		environment.add(light);
 		
+		createScreenshotBuffer();
 		createStaticModels();
 		loadData();
 	}
 
 
+	private void createScreenshotBuffer()
+	{
+		if (screenshotBuffer != null)
+			screenshotBuffer.dispose();
+		
+		float ratio = Gdx.graphics.getHeight() / (float)Gdx.graphics.getWidth();
+		int width = SCREENSHOT_SIZE*SCREENSHOT_SUPERSAMPLE;
+		int height = (int)(width * ratio);
+		screenshotBuffer = new FrameBuffer(Format.RGBA8888, width, height, true);
+	}
+
+
 	private void createStaticModels()
 	{
-
 		float pi = MathUtils.PI;
 		float circleThird = MathUtils.PI2/3;
 		float deg110 = (float) Math.toRadians(109.5);
@@ -658,7 +695,13 @@ public class TetraColourSpace extends ApplicationAdapter
 			camera.update();
 		}
 		
-		Gdx.gl.glClearColor(1, 1, 1, 1);
+		if (takeScreenshot)
+		{
+			Gdx.gl.glLineWidth(SCREENSHOT_SUPERSAMPLE);
+			screenshotBuffer.begin();
+		}
+		
+		Gdx.gl.glClearColor(1, 1, 1, 0);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
 		batch.begin(camera);
@@ -685,6 +728,14 @@ public class TetraColourSpace extends ApplicationAdapter
 		}
 		batch.end();
 		
+		if (takeScreenshot)
+		{
+			saveBufferToFile();
+			screenshotBuffer.end();
+			takeScreenshot = false;
+			Gdx.gl.glLineWidth(1);
+		}
+		
 		readInput(Gdx.graphics.getDeltaTime());
 		
 		if (showHighlight)
@@ -694,6 +745,40 @@ public class TetraColourSpace extends ApplicationAdapter
 		{
 			updateFollow();
 		}
+	}
+
+
+	private void saveBufferToFile()
+	{
+		int width = screenshotBuffer.getWidth();
+		int height = screenshotBuffer.getHeight();
+		byte[] pixels = ScreenUtils.getFrameBufferPixels(0, 0, width, height, false);
+		
+		Pixmap pixmapSS = new Pixmap(width, height, Format.RGBA8888);
+		BufferUtils.copy(pixels, 0, pixmapSS.getPixels(), pixels.length);
+		
+		Pixmap pixmap = new Pixmap(SCREENSHOT_SIZE, height / SCREENSHOT_SUPERSAMPLE, Format.RGBA8888);
+		pixmap.setFilter(Filter.BiLinear);
+		pixmapSS.setFilter(Filter.BiLinear);
+		pixmap.drawPixmap(pixmapSS, 0, 0, width, height, 0, 0, pixmap.getWidth(), pixmap.getHeight());
+		
+		DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.LONG);
+		String dateString = dateFormat.format(new Date()).replaceAll("[^\\s0-9]+", "").trim().replace(' ', '_');
+		String fileName = String.format("%s_%s.png", FileOperations.getNameWithoutExtension(dataFile), dateString);
+		FileHandle file = new FileHandle(new File(outputPath, fileName));
+		PNG png = new PNG((int)(width*height*1.5f));
+		
+		try
+		{
+			png.write(file, pixmap);
+		}
+		catch (IOException e)
+		{
+			System.err.println("Error writing file: " + file.path());
+			System.err.println("  Cause: " + e.getMessage());
+		}
+		
+		pixmap.dispose();
 	}
 
 
@@ -879,6 +964,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	@Override
 	public void dispose()
 	{
+		screenshotBuffer.dispose();
 		batch.dispose();
 		for (Disposable disposable : disposables)
 		{
@@ -945,6 +1031,10 @@ public class TetraColourSpace extends ApplicationAdapter
 				else
 					followMode = FollowMode.Off;
 				return true;
+			}
+			else if (keycode == Keys.F12)
+			{
+				takeScreenshot = true;
 			}
 			
 			
