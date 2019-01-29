@@ -413,8 +413,9 @@ public class TetraColourSpace extends ApplicationAdapter
 				}
 				
 				String position = positionAttr.getNodeValue();
-				Vector3 coords = getCoordinatesFromLine(position);
-				Point point = new Point(name, coords, activeMaterial);
+				Vector3 metrics = getColourSpaceMetricsFromLine(position);
+				Vector3 coords = createVectorFromAngles(metrics.x, metrics.y, metrics.z);
+				Point point = new Point(name, coords, metrics, activeMaterial);
 				dataPoints.add(point);
 			}
 			
@@ -615,6 +616,14 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private Vector3 getCoordinatesFromLine(String line)
 	{
+		Vector3 metrics = getColourSpaceMetricsFromLine(line);
+
+		return createVectorFromAngles(metrics.x, metrics.y, metrics.z);
+	}
+	
+	
+	private Vector3 getColourSpaceMetricsFromLine(String line)
+	{
 		String[] values = Regex.getMatches("-?\\d+\\.\\d+", line);
 		float[] floats = new float[values.length];
 		
@@ -625,7 +634,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		float phi = floats[1];
 		float magnitude = floats[2];
 		
-		return createVectorFromAngles(theta, phi, magnitude);
+		return new Vector3(theta, phi, magnitude);
 	}
 
 
@@ -1128,12 +1137,14 @@ public class TetraColourSpace extends ApplicationAdapter
 	{
 		String name;
 		Vector3 coordinates;
+		Vector3 metrics;
 		Material material;
 		
-		public Point(String name, Vector3 coordinates, Material material)
+		public Point(String name, Vector3 coordinates, Vector3 metrics, Material material)
 		{
 			this.name = name;
 			this.coordinates = coordinates;
+			this.metrics = metrics;
 			this.material = material;
 		}
 		
@@ -1142,7 +1153,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		public String toString()
 		{
 			ColorAttribute colour = (ColorAttribute) material.get(ColorAttribute.Diffuse);
-			return String.format("%s|(%.03f, %.03f, %.03f)[%s]", name, coordinates.x, coordinates.y, coordinates.z, colour.color);
+			return String.format("%s|(%.03f, %.03f, %.03f)[%s]", name, metrics.x, metrics.y, metrics.z, colour.color);
 		}
 	}
 	
