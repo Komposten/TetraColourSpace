@@ -857,6 +857,16 @@ public class TetraColourSpace extends ApplicationAdapter
 				movement.sub(calcVector);
 		}
 		
+		if (Gdx.input.isKeyPressed(Keys.E) || Gdx.input.isKeyPressed(Keys.Q))
+		{
+			calcVector.set(camera.direction).setLength(VELOCITY * deltaTime);
+			
+			if (Gdx.input.isKeyPressed(Keys.E))
+				movement.add(calcVector);
+			else
+				movement.sub(calcVector);
+		}
+		
 		if (Gdx.input.isKeyPressed(Keys.SPACE))
 		{
 			movement.y += VELOCITY * deltaTime;
