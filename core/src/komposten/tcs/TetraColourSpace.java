@@ -97,6 +97,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private Map<Point, ModelInstance> pointToModelMap;
 	private Renderable pyramidLines;
 	private Renderable pyramidSides;
+	private Renderable axisLines;
 	private ModelInstance selectedModel;
 	private ModelInstance highlightModel;
 	private Map<Color, Material> materials;
@@ -107,6 +108,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private boolean takeScreenshot = false;
 	private boolean showPyramidSides = false;
+	private boolean showAxes = false;
 	private boolean showPoints = true;
 	private boolean showVolumes = true;
 	private boolean showHighlight = true;
@@ -196,6 +198,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		createPyramidSides(redPos, greenPos, bluePos, uvPos, meshBuilder);
 		createPyramidEdges(redPos, greenPos, bluePos, uvPos, meshBuilder);
 		
+		createAxisLines(meshBuilder);
 	}
 
 
@@ -322,6 +325,25 @@ public class TetraColourSpace extends ApplicationAdapter
 		staticModels.add(achroSphere);
 
 		disposables.add(sphereModel);
+	}
+
+
+	private void createAxisLines(MeshBuilder meshBuilder)
+	{
+		meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_LINES);
+		
+		float length = 0.2f;
+		Vector3 start = new Vector3();
+		Vector3 end = new Vector3();
+		meshBuilder.line(start.set(-length, 0, 0), Color.BLUE, end.set(length, 0, 0), Color.RED);
+		meshBuilder.line(start.set(0, -length, 0), Color.WHITE, end.set(0, length, 0), Color.VIOLET);
+		meshBuilder.line(start.set(0, 0, -length), Color.GREEN, end.set(0, 0, length), Color.PURPLE);
+		
+		Mesh mesh = meshBuilder.end();
+		
+		axisLines = new Renderable();
+		axisLines.material = getMaterialForColour(Color.WHITE);
+		axisLines.meshPart.set("lines", mesh, 0, mesh.getNumVertices(), GL20.GL_LINES);
 	}
 
 
@@ -707,6 +729,8 @@ public class TetraColourSpace extends ApplicationAdapter
 		batch.begin(camera);
 		batch.render(showPyramidSides ? pyramidSides : pyramidLines);
 		batch.render(staticModels, environment);
+		if (showAxes)
+			batch.render(axisLines);
 		if (showPoints)
 		{
 			batch.render(dataModels, environment);
@@ -1007,6 +1031,11 @@ public class TetraColourSpace extends ApplicationAdapter
 			else if (keycode == Keys.T)
 			{
 				showPyramidSides = !showPyramidSides;
+				return true;
+			}
+			else if (keycode == Keys.Y)
+			{
+				showAxes = !showAxes;
 				return true;
 			}
 			else if (keycode == Keys.H)
