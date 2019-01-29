@@ -131,6 +131,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	@Override
 	public void create()
 	{
+		Gdx.graphics.setTitle("TetraColourSpace - " + dataFile.getName());
 		Gdx.input.setInputProcessor(inputProcessor);
 		
 		disposables = new ArrayList<>();
