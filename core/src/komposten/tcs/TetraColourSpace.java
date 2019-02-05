@@ -60,6 +60,7 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.github.quickhull3d.QuickHull3D;
 
 import komposten.utilities.tools.FileOperations;
+import komposten.utilities.tools.Geometry;
 import komposten.utilities.tools.MathOps;
 import komposten.utilities.tools.Regex;
 
@@ -98,6 +99,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private Renderable pyramidLines;
 	private Renderable pyramidSides;
 	private Renderable axisLines;
+	private Renderable pointMetrics;
 	private ModelInstance selectedModel;
 	private ModelInstance highlightModel;
 	private Map<Color, Material> materials;
@@ -112,6 +114,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private boolean showPoints = true;
 	private boolean showVolumes = true;
 	private boolean showHighlight = true;
+	private boolean showPointMetrics = false;
 	private boolean hasSelection = false;
 	private boolean hasHighlight = false;
 	private boolean cameraDirty = true;
@@ -146,6 +149,8 @@ public class TetraColourSpace extends ApplicationAdapter
 		batch = new ModelBatch();
 		
 		int distance = 2;
+		pointMetrics = new Renderable();
+		
 		updateViewport();
 		camera.translate(distance, distance, -0.3f*distance);
 		camera.near = 0.01f;
@@ -377,6 +382,54 @@ public class TetraColourSpace extends ApplicationAdapter
 		instance.transform.setTranslation(position);
 		setMaterial(material, instance);
 		return instance;
+	}
+	
+	
+	private void createPointMetricMesh(Point point)
+	{
+		Vector3 line = point.coordinates;
+		Vector3 lineInZX = new Vector3(line.x, 0, line.z);
+		
+		float arcRadius = lineInZX.len()*0.8f;
+		int segments = 200;
+		float segmentsPerRadian = segments / MathUtils.PI2;
+		float theta = point.metrics.x;
+		float phi = point.metrics.y;
+		int thetaSegments = MathUtils.ceil(Math.abs(theta)*segmentsPerRadian);
+		int phiSegments = MathUtils.ceil(Math.abs(phi)*segmentsPerRadian);
+		float[] thetaArc = Geometry.createArc(0, -theta, arcRadius, thetaSegments);
+		float[] phiArc = Geometry.createArc(0, phi, arcRadius, phiSegments);
+		
+		MeshBuilder builder = new MeshBuilder();
+		builder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_LINES);
+		builder.line(Vector3.Zero, line);
+		builder.line(Vector3.Zero, lineInZX);
+		
+		Vector3 start = new Vector3();
+		Vector3 end = new Vector3();
+		for (int i = 2; i < thetaArc.length; i+=2)
+		{
+			start.set(thetaArc[i-2], 0, thetaArc[i-1]);
+			end.set(thetaArc[i], 0, thetaArc[i+1]);
+			
+			builder.line(start, end);
+		}
+		
+		for (int i = 2; i < phiArc.length; i+=2)
+		{
+			start.set(phiArc[i-2], phiArc[i-1], 0);
+			end.set(phiArc[i], phiArc[i+1], 0);
+			
+			start.rotate(Vector3.Y, theta*MathUtils.radiansToDegrees);
+			end.rotate(Vector3.Y, theta*MathUtils.radiansToDegrees);
+			
+			builder.line(start, end);
+		}
+		
+		Mesh mesh = builder.end();
+		
+		pointMetrics.meshPart.set("mesh", mesh, 0, mesh.getNumVertices(), GL20.GL_LINES);
+		pointMetrics.material = getMaterialForColour(Color.WHITE);
 	}
 
 
@@ -739,7 +792,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		batch.begin(camera);
 		batch.render(showPyramidSides ? pyramidSides : pyramidLines);
 		batch.render(staticModels, environment);
-		if (showAxes)
+		if (showAxes || showPointMetrics)
 			batch.render(axisLines);
 		if (showPoints)
 		{
@@ -748,6 +801,8 @@ public class TetraColourSpace extends ApplicationAdapter
 			if (hasSelection)
 			{
 				batch.render(selectedModel, environment);
+				if (showPointMetrics)
+					batch.render(pointMetrics);
 			}
 			if (showHighlight && hasHighlight)
 			{
@@ -1063,6 +1118,11 @@ public class TetraColourSpace extends ApplicationAdapter
 				showHighlight = !showHighlight;
 				return true;
 			}
+			else if (keycode == Keys.M)
+			{
+				showPointMetrics = !showPointMetrics;
+				return true;
+			}
 			else if (keycode == Keys.NUM_1)
 			{
 				showPoints = !showPoints;
@@ -1126,6 +1186,7 @@ public class TetraColourSpace extends ApplicationAdapter
 				{
 					hasSelection = true;
 					selectedModel.transform.setTranslation(model.transform.getTranslation(calcVector));
+					createPointMetricMesh(selectedPoint);
 					System.out.println(selectedPoint);
 				}
 				else
