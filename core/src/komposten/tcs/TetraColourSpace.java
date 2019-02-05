@@ -625,7 +625,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private Vector3 getColourSpaceMetricsFromLine(String line)
 	{
-		String[] values = Regex.getMatches("-?\\d+\\.\\d+", line);
+		String[] values = Regex.getMatches("-?\\d+(\\.\\d+)?", line);
 		float[] floats = new float[values.length];
 		
 		for (int i = 0; i < floats.length; i++)
