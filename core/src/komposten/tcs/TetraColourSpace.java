@@ -147,8 +147,8 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		int distance = 2;
 		updateViewport();
-		camera.translate(distance, distance, 0);
-		camera.near = 0.1f;
+		camera.translate(distance, distance, -0.3f*distance);
+		camera.near = 0.01f;
 		camera.far = 300;
 		lookAt(Vector3.Zero);
 		
@@ -1084,6 +1084,24 @@ public class TetraColourSpace extends ApplicationAdapter
 			else if (keycode == Keys.F12)
 			{
 				takeScreenshot = true;
+			}
+			else if (keycode == Keys.NUMPAD_1)
+			{
+				camera.position.set(1, 1, -0.3f);
+				lookAt(Vector3.Zero);
+				cameraDirty = true;
+			}
+			else if (keycode == Keys.NUMPAD_2)
+			{
+				camera.position.set(0, -1.4f, 0.0001f);
+				lookAt(Vector3.Zero);
+				cameraDirty = true;
+			}
+			else if (keycode == Keys.NUMPAD_3)
+			{
+				camera.position.set(0, 1f, 0.0001f);
+				lookAt(Vector3.Zero);
+				cameraDirty = true;
 			}
 			
 			
