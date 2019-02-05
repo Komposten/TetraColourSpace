@@ -395,6 +395,10 @@ public class TetraColourSpace extends ApplicationAdapter
 		float segmentsPerRadian = segments / MathUtils.PI2;
 		float theta = point.metrics.x;
 		float phi = point.metrics.y;
+		
+		while (theta > MathUtils.PI) theta -= MathUtils.PI2;
+		while (theta < -MathUtils.PI) theta += MathUtils.PI2;
+		
 		int thetaSegments = MathUtils.ceil(Math.abs(theta)*segmentsPerRadian);
 		int phiSegments = MathUtils.ceil(Math.abs(phi)*segmentsPerRadian);
 		float[] thetaArc = Geometry.createArc(0, -theta, arcRadius, thetaSegments);
