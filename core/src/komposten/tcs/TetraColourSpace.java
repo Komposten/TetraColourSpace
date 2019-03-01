@@ -116,6 +116,16 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private FrameBuffer screenshotBuffer;
 	
+	private Color backgroundColour = new Color(.12f, .12f, .12f, 1f);
+	private Color longColour = Color.RED;
+	private Color mediumColour = Color.GREEN;
+	private Color shortColour = Color.BLUE;
+	private Color uvColour = Color.VIOLET;
+	private Color achroColour = Color.GRAY;
+	private Color lineColour = Color.WHITE;
+	private Color highlightColour = Color.CORAL;
+	private Color selectionColour = Color.DARK_GRAY;
+	
 	private List<Disposable> disposables;
 	private List<Point> dataPoints;
 	private List<Volume> dataVolumes;
@@ -145,7 +155,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private boolean hasSelection = false;
 	private boolean hasHighlight = false;
 	private boolean cameraDirty = true;
-
+	
 	public TetraColourSpace(File dataFile, File outputPath)
 	{
 		if (outputPath == null)
@@ -192,7 +202,6 @@ public class TetraColourSpace extends ApplicationAdapter
 		environment.add(light);
 		
 		createScreenshotBuffer();
-		createStaticModels();
 		loadData();
 	}
 
@@ -217,8 +226,8 @@ public class TetraColourSpace extends ApplicationAdapter
 		createPyramidCorners(tetrahedron, modelBuilder);
 
 		Model model = createSphere(modelBuilder, 0.025f, GL20.GL_LINES, 10);
-		selectedModel = createModelInstance(model, Vector3.Zero, Color.DARK_GRAY);
-		highlightModel = createModelInstance(model, Vector3.Zero, Color.CORAL);
+		selectedModel = createModelInstance(model, Vector3.Zero, selectionColour);
+		highlightModel = createModelInstance(model, Vector3.Zero, highlightColour);
 		
 		MeshBuilder meshBuilder = new MeshBuilder();
 		createTCSPyramid(meshBuilder);
@@ -266,62 +275,62 @@ public class TetraColourSpace extends ApplicationAdapter
 		Vector3 uvPos = tetrahedron.uvPos;
 
 		Vector3 normal = mediumPos.cpy().add(longPos).add(shortPos);
-		short corner1 = meshBuilder.vertex(mediumPos, normal, Color.GREEN, Vector2.Zero);
-		short corner2 = meshBuilder.vertex(longPos, normal, Color.RED, Vector2.Zero);
-		short corner3 = meshBuilder.vertex(shortPos, normal, Color.BLUE, Vector2.Zero);
+		short corner1 = meshBuilder.vertex(mediumPos, normal, mediumColour, Vector2.Zero);
+		short corner2 = meshBuilder.vertex(longPos, normal, longColour, Vector2.Zero);
+		short corner3 = meshBuilder.vertex(shortPos, normal, shortColour, Vector2.Zero);
 		meshBuilder.triangle(corner1, corner2, corner3);
 
 		if (doubleFaced)
 		{
 			normal = normal.scl(-1);
-			corner1 = meshBuilder.vertex(mediumPos, normal, Color.GREEN, Vector2.Zero);
-			corner2 = meshBuilder.vertex(longPos, normal, Color.RED, Vector2.Zero);
-			corner3 = meshBuilder.vertex(shortPos, normal, Color.BLUE, Vector2.Zero);
+			corner1 = meshBuilder.vertex(mediumPos, normal, mediumColour, Vector2.Zero);
+			corner2 = meshBuilder.vertex(longPos, normal, longColour, Vector2.Zero);
+			corner3 = meshBuilder.vertex(shortPos, normal, shortColour, Vector2.Zero);
 			meshBuilder.triangle(corner3, corner2, corner1);
 		}
 
 		normal = longPos.cpy().add(mediumPos).add(uvPos);
-		corner1 = meshBuilder.vertex(longPos, normal, Color.RED, Vector2.Zero);
-		corner2 = meshBuilder.vertex(mediumPos, normal, Color.GREEN, Vector2.Zero);
-		corner3 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
+		corner1 = meshBuilder.vertex(longPos, normal, longColour, Vector2.Zero);
+		corner2 = meshBuilder.vertex(mediumPos, normal, mediumColour, Vector2.Zero);
+		corner3 = meshBuilder.vertex(uvPos, normal, uvColour, Vector2.Zero);
 		meshBuilder.triangle(corner1, corner2, corner3);
 
 		if (doubleFaced)
 		{
 			normal = normal.scl(-1);
-			corner1 = meshBuilder.vertex(longPos, normal, Color.RED, Vector2.Zero);
-			corner2 = meshBuilder.vertex(mediumPos, normal, Color.GREEN, Vector2.Zero);
-			corner3 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
+			corner1 = meshBuilder.vertex(longPos, normal, longColour, Vector2.Zero);
+			corner2 = meshBuilder.vertex(mediumPos, normal, mediumColour, Vector2.Zero);
+			corner3 = meshBuilder.vertex(uvPos, normal, uvColour, Vector2.Zero);
 			meshBuilder.triangle(corner3, corner2, corner1);
 		}
 
 		normal = longPos.cpy().add(uvPos).add(shortPos);
-		corner1 = meshBuilder.vertex(longPos, normal, Color.RED, Vector2.Zero);
-		corner2 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
-		corner3 = meshBuilder.vertex(shortPos, normal, Color.BLUE, Vector2.Zero);
+		corner1 = meshBuilder.vertex(longPos, normal, longColour, Vector2.Zero);
+		corner2 = meshBuilder.vertex(uvPos, normal, uvColour, Vector2.Zero);
+		corner3 = meshBuilder.vertex(shortPos, normal, shortColour, Vector2.Zero);
 		meshBuilder.triangle(corner1, corner2, corner3);
 
 		if (doubleFaced)
 		{
 			normal = normal.scl(-1);
-			corner1 = meshBuilder.vertex(longPos, normal, Color.RED, Vector2.Zero);
-			corner2 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
-			corner3 = meshBuilder.vertex(shortPos, normal, Color.BLUE, Vector2.Zero);
+			corner1 = meshBuilder.vertex(longPos, normal, longColour, Vector2.Zero);
+			corner2 = meshBuilder.vertex(uvPos, normal, uvColour, Vector2.Zero);
+			corner3 = meshBuilder.vertex(shortPos, normal, shortColour, Vector2.Zero);
 			meshBuilder.triangle(corner3, corner2, corner1);
 		}
 
 		normal = uvPos.cpy().add(mediumPos).add(shortPos);
-		corner1 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
-		corner2 = meshBuilder.vertex(mediumPos, normal, Color.GREEN, Vector2.Zero);
-		corner3 = meshBuilder.vertex(shortPos, normal, Color.BLUE, Vector2.Zero);
+		corner1 = meshBuilder.vertex(uvPos, normal, uvColour, Vector2.Zero);
+		corner2 = meshBuilder.vertex(mediumPos, normal, mediumColour, Vector2.Zero);
+		corner3 = meshBuilder.vertex(shortPos, normal, shortColour, Vector2.Zero);
 		meshBuilder.triangle(corner1, corner2, corner3);
 
 		if (doubleFaced)
 		{
 			normal = normal.scl(-1);
-			corner1 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
-			corner2 = meshBuilder.vertex(mediumPos, normal, Color.GREEN, Vector2.Zero);
-			corner3 = meshBuilder.vertex(shortPos, normal, Color.BLUE, Vector2.Zero);
+			corner1 = meshBuilder.vertex(uvPos, normal, uvColour, Vector2.Zero);
+			corner2 = meshBuilder.vertex(mediumPos, normal, mediumColour, Vector2.Zero);
+			corner3 = meshBuilder.vertex(shortPos, normal, shortColour, Vector2.Zero);
 			meshBuilder.triangle(corner3, corner2, corner1);
 		}
 
@@ -334,11 +343,11 @@ public class TetraColourSpace extends ApplicationAdapter
 		float diameter = 0.03f;
 		Model sphereModel = createSphere(modelBuilder, diameter, GL20.GL_TRIANGLES);
 		
-		ModelInstance redSphere = createModelInstance(sphereModel, tetrahedron.longPos, Color.RED);
-		ModelInstance greenSphere = createModelInstance(sphereModel, tetrahedron.mediumPos, Color.GREEN);
-		ModelInstance blueSphere = createModelInstance(sphereModel, tetrahedron.shortPos, Color.BLUE);
-		ModelInstance uvSphere = createModelInstance(sphereModel, tetrahedron.uvPos, Color.VIOLET);
-		ModelInstance achroSphere = createModelInstance(sphereModel, tetrahedron.achroPos, Color.GRAY);
+		ModelInstance redSphere = createModelInstance(sphereModel, tetrahedron.longPos, longColour);
+		ModelInstance greenSphere = createModelInstance(sphereModel, tetrahedron.mediumPos, mediumColour);
+		ModelInstance blueSphere = createModelInstance(sphereModel, tetrahedron.shortPos, shortColour);
+		ModelInstance uvSphere = createModelInstance(sphereModel, tetrahedron.uvPos, uvColour);
+		ModelInstance achroSphere = createModelInstance(sphereModel, tetrahedron.achroPos, achroColour);
 		
 		staticModels.add(redSphere);
 		staticModels.add(greenSphere);
@@ -357,9 +366,9 @@ public class TetraColourSpace extends ApplicationAdapter
 		float length = 0.2f;
 		Vector3 start = new Vector3();
 		Vector3 end = new Vector3();
-		meshBuilder.line(start.set(-length, 0, 0), Color.BLUE, end.set(length, 0, 0), Color.RED);
-		meshBuilder.line(start.set(0, -length, 0), Color.WHITE, end.set(0, length, 0), Color.VIOLET);
-		meshBuilder.line(start.set(0, 0, -length), Color.GREEN, end.set(0, 0, length), Color.PURPLE);
+		meshBuilder.line(start.set(-length, 0, 0), shortColour, end.set(length, 0, 0), longColour);
+		meshBuilder.line(start.set(0, -length, 0), Color.WHITE, end.set(0, length, 0), uvColour);
+		meshBuilder.line(start.set(0, 0, -length), mediumColour, end.set(0, 0, length), longColour.cpy().lerp(shortColour, 0.5f));
 		
 		Mesh mesh = meshBuilder.end();
 		
@@ -481,6 +490,9 @@ public class TetraColourSpace extends ApplicationAdapter
 			Document document = docBuilder.parse(dataFile);
 			Element root = document.getDocumentElement();
 			
+			loadConfig(root);
+			createStaticModels();
+			
 			NodeList points = root.getElementsByTagName("point");
 			for (int i = 0; i < points.getLength(); i++)
 			{
@@ -515,7 +527,6 @@ public class TetraColourSpace extends ApplicationAdapter
 				{
 					shape = Shape.Sphere;
 				}
-					
 				
 				String position = positionAttr.getNodeValue();
 				Vector3 metrics = getColourSpaceMetricsFromLine(position);
@@ -739,6 +750,46 @@ public class TetraColourSpace extends ApplicationAdapter
 	}
 	
 	
+	private void loadConfig(Element root)
+	{
+		NodeList styleNodes = root.getElementsByTagName("style");
+		
+		for (int i = 0; i < styleNodes.getLength(); i++)
+		{
+			Node styleNode = styleNodes.item(i);
+			
+			NodeList childNodes = styleNode.getChildNodes();
+			
+			for (int j = 0; j < childNodes.getLength(); j++)
+			{
+				Node child = childNodes.item(j);
+
+				String name = child.getNodeName();
+				String value = child.getTextContent();
+
+				if (name.equalsIgnoreCase("background"))
+					backgroundColour = getColourFromHex(value);
+				else if (name.equalsIgnoreCase("colour_long"))
+					longColour = getColourFromHex(value);
+				else if (name.equalsIgnoreCase("colour_medium"))
+					mediumColour = getColourFromHex(value);
+				else if (name.equalsIgnoreCase("colour_short"))
+					shortColour = getColourFromHex(value);
+				else if (name.equalsIgnoreCase("colour_uv"))
+					uvColour = getColourFromHex(value);
+				else if (name.equalsIgnoreCase("colour_achro"))
+					achroColour = getColourFromHex(value);
+				else if (name.equalsIgnoreCase("colour_lines"))
+					lineColour = getColourFromHex(value);
+				else if (name.equalsIgnoreCase("colour_highlight"))
+					highlightColour = getColourFromHex(value);
+				else if (name.equalsIgnoreCase("colour_selection"))
+					selectionColour = getColourFromHex(value);
+			}
+		}
+	}
+
+
 	private Vector3 getCoordinatesFromLine(String line)
 	{
 		Vector3 metrics = getColourSpaceMetricsFromLine(line);
@@ -857,7 +908,7 @@ public class TetraColourSpace extends ApplicationAdapter
 			screenshotBuffer.begin();
 		}
 		
-		Gdx.gl.glClearColor(1, 1, 1, 0);
+		Gdx.gl.glClearColor(backgroundColour.r, backgroundColour.g, backgroundColour.b, backgroundColour.a);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
 		batch.begin(camera);
