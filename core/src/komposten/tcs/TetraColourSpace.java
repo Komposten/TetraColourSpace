@@ -48,6 +48,7 @@ import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
+import com.badlogic.gdx.graphics.g3d.model.MeshPart;
 import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
@@ -72,6 +73,13 @@ public class TetraColourSpace extends ApplicationAdapter
 		Selected,
 		Centre,
 		Off
+	}
+	
+	private enum Shape
+	{
+		Sphere,
+		Pyramid,
+		Box
 	}
 	
 	private static final float SENSITIVITY = -0.2f;
@@ -184,84 +192,24 @@ public class TetraColourSpace extends ApplicationAdapter
 
 	private void createStaticModels()
 	{
-		float pi = MathUtils.PI;
-		float circleThird = MathUtils.PI2/3;
-		float deg110 = (float) Math.toRadians(109.5);
-		Vector3 greenPos = createVectorFromAngles(pi/2, pi/2 - deg110, 0.75f);
-		Vector3 redPos = createVectorFromAngles(pi/2 - circleThird, pi/2 - deg110, 0.75f);
-		Vector3 bluePos = createVectorFromAngles(pi/2 + circleThird, pi/2 - deg110, 0.75f);
-		Vector3 uvPos = createVectorFromAngles(0, pi/2, 0.75f);
-		Vector3 achroPos = Vector3.Zero.cpy();
+		Tetrahedron tetrahedron = new Tetrahedron(1f);
 
 		ModelBuilder modelBuilder = new ModelBuilder();
-		createPyramidCorners(redPos, greenPos, bluePos, uvPos, achroPos, modelBuilder);
+		createPyramidCorners(tetrahedron, modelBuilder);
 
 		Model model = createSphere(modelBuilder, 0.025f, GL20.GL_LINES, 10);
 		selectedModel = createModelInstance(model, Vector3.Zero, Color.DARK_GRAY);
 		highlightModel = createModelInstance(model, Vector3.Zero, Color.CORAL);
 		
 		MeshBuilder meshBuilder = new MeshBuilder();
-		createPyramidSides(redPos, greenPos, bluePos, uvPos, meshBuilder);
-		createPyramidEdges(redPos, greenPos, bluePos, uvPos, meshBuilder);
-		
+		createTCSPyramid(meshBuilder);
 		createAxisLines(meshBuilder);
 	}
-
-
-	private void createPyramidSides(Vector3 redPos, Vector3 greenPos,
-			Vector3 bluePos, Vector3 uvPos, MeshBuilder meshBuilder)
+	
+	
+	private void createTCSPyramid(MeshBuilder meshBuilder)
 	{
-		meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_TRIANGLES);
-
-		Vector3 normal = greenPos.cpy().add(redPos).add(bluePos);
-		short corner1 = meshBuilder.vertex(greenPos, normal, Color.GREEN, Vector2.Zero);
-		short corner2 = meshBuilder.vertex(redPos, normal, Color.RED, Vector2.Zero);
-		short corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
-		meshBuilder.triangle(corner1, corner2, corner3);
-
-		normal = normal.scl(-1);
-		corner1 = meshBuilder.vertex(greenPos, normal, Color.GREEN, Vector2.Zero);
-		corner2 = meshBuilder.vertex(redPos, normal, Color.RED, Vector2.Zero);
-		corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
-		meshBuilder.triangle(corner3, corner2, corner1);
-		
-		normal = redPos.cpy().add(greenPos).add(uvPos);
-		corner1 = meshBuilder.vertex(redPos, normal, Color.RED, Vector2.Zero);
-		corner2 = meshBuilder.vertex(greenPos, normal, Color.GREEN, Vector2.Zero);
-		corner3 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
-		meshBuilder.triangle(corner1, corner2, corner3);
-		
-		normal = normal.scl(-1);
-		corner1 = meshBuilder.vertex(redPos, normal, Color.RED, Vector2.Zero);
-		corner2 = meshBuilder.vertex(greenPos, normal, Color.GREEN, Vector2.Zero);
-		corner3 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
-		meshBuilder.triangle(corner3, corner2, corner1);
-		
-		normal = redPos.cpy().add(uvPos).add(bluePos);
-		corner1 = meshBuilder.vertex(redPos, normal, Color.RED, Vector2.Zero);
-		corner2 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
-		corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
-		meshBuilder.triangle(corner1, corner2, corner3);
-
-		normal = normal.scl(-1);
-		corner1 = meshBuilder.vertex(redPos, normal, Color.RED, Vector2.Zero);
-		corner2 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
-		corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
-		meshBuilder.triangle(corner3, corner2, corner1);
-		
-		normal = uvPos.cpy().add(greenPos).add(bluePos);
-		corner1 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
-		corner2 = meshBuilder.vertex(greenPos, normal, Color.GREEN, Vector2.Zero);
-		corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
-		meshBuilder.triangle(corner1, corner2, corner3);
-
-		normal = normal.scl(-1);
-		corner1 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
-		corner2 = meshBuilder.vertex(greenPos, normal, Color.GREEN, Vector2.Zero);
-		corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
-		meshBuilder.triangle(corner3, corner2, corner1);
-
-		Mesh pyramidMesh = meshBuilder.end();
+		Mesh pyramidMesh = createPyramidMesh(1f, GL20.GL_TRIANGLES, meshBuilder);
 		
 		pyramidSides = new Renderable();
 		pyramidSides.material = new Material(getMaterialForColour(Color.WHITE));
@@ -269,60 +217,109 @@ public class TetraColourSpace extends ApplicationAdapter
 		pyramidSides.meshPart.set("pyramid", pyramidMesh, 0, pyramidMesh.getNumVertices(), GL20.GL_TRIANGLES);
 
 		disposables.add(pyramidMesh);
+
+		pyramidMesh = createPyramidMesh(1f, GL20.GL_LINES, meshBuilder);
+		
+		pyramidLines = new Renderable();
+		pyramidLines.material = new Material(getMaterialForColour(Color.WHITE));
+		pyramidLines.meshPart.set("pyramid", pyramidMesh, 0, pyramidMesh.getNumVertices(), GL20.GL_LINES);
+
+		disposables.add(pyramidMesh);
 	}
 	
 	
-	private void createPyramidEdges(Vector3 redPos, Vector3 greenPos,
-			Vector3 bluePos, Vector3 uvPos, MeshBuilder meshBuilder)
+	private Mesh createPyramidMesh(float size, int primitiveType, MeshBuilder meshBuilder)
+	{
+		Tetrahedron tetrahedron = new Tetrahedron(size);
+		
+		boolean triangleType = (primitiveType == GL20.GL_TRIANGLES);
+		return createPyramid(tetrahedron, meshBuilder, triangleType);
+	}
+
+
+	private Mesh createPyramid(Tetrahedron tetrahedron, MeshBuilder meshBuilder, boolean doubleFaced)
 	{
 		meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_TRIANGLES);
 		
-		Vector3 normal = greenPos.cpy().add(redPos).add(bluePos);
-		short corner1 = meshBuilder.vertex(greenPos, normal, Color.GREEN, Vector2.Zero);
-		short corner2 = meshBuilder.vertex(redPos, normal, Color.RED, Vector2.Zero);
-		short corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
+		Vector3 longPos = tetrahedron.longPos;
+		Vector3 mediumPos = tetrahedron.mediumPos;
+		Vector3 shortPos = tetrahedron.shortPos;
+		Vector3 uvPos = tetrahedron.uvPos;
+
+		Vector3 normal = mediumPos.cpy().add(longPos).add(shortPos);
+		short corner1 = meshBuilder.vertex(mediumPos, normal, Color.GREEN, Vector2.Zero);
+		short corner2 = meshBuilder.vertex(longPos, normal, Color.RED, Vector2.Zero);
+		short corner3 = meshBuilder.vertex(shortPos, normal, Color.BLUE, Vector2.Zero);
 		meshBuilder.triangle(corner1, corner2, corner3);
-		
-		normal = redPos.cpy().add(greenPos).add(uvPos);
-		corner1 = meshBuilder.vertex(redPos, normal, Color.RED, Vector2.Zero);
-		corner2 = meshBuilder.vertex(greenPos, normal, Color.GREEN, Vector2.Zero);
+
+		if (doubleFaced)
+		{
+			normal = normal.scl(-1);
+			corner1 = meshBuilder.vertex(mediumPos, normal, Color.GREEN, Vector2.Zero);
+			corner2 = meshBuilder.vertex(longPos, normal, Color.RED, Vector2.Zero);
+			corner3 = meshBuilder.vertex(shortPos, normal, Color.BLUE, Vector2.Zero);
+			meshBuilder.triangle(corner3, corner2, corner1);
+		}
+
+		normal = longPos.cpy().add(mediumPos).add(uvPos);
+		corner1 = meshBuilder.vertex(longPos, normal, Color.RED, Vector2.Zero);
+		corner2 = meshBuilder.vertex(mediumPos, normal, Color.GREEN, Vector2.Zero);
 		corner3 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
 		meshBuilder.triangle(corner1, corner2, corner3);
-		
-		normal = redPos.cpy().add(uvPos).add(bluePos);
-		corner1 = meshBuilder.vertex(redPos, normal, Color.RED, Vector2.Zero);
-		corner2 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
-		corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
-		meshBuilder.triangle(corner1, corner2, corner3);
-		
-		normal = uvPos.cpy().add(greenPos).add(bluePos);
-		corner1 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
-		corner2 = meshBuilder.vertex(greenPos, normal, Color.GREEN, Vector2.Zero);
-		corner3 = meshBuilder.vertex(bluePos, normal, Color.BLUE, Vector2.Zero);
-		meshBuilder.triangle(corner1, corner2, corner3);
-		
-		Mesh pyramidMesh = meshBuilder.end();
 
-		pyramidLines = new Renderable();
-		pyramidLines.material = new Material(getMaterialForColour(Color.WHITE));
-//		pyramidLines.environment = environment;
-		pyramidLines.meshPart.set("pyramid", pyramidMesh, 0, pyramidMesh.getNumVertices(), GL20.GL_LINES);
-		
-		disposables.add(pyramidMesh);
+		if (doubleFaced)
+		{
+			normal = normal.scl(-1);
+			corner1 = meshBuilder.vertex(longPos, normal, Color.RED, Vector2.Zero);
+			corner2 = meshBuilder.vertex(mediumPos, normal, Color.GREEN, Vector2.Zero);
+			corner3 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
+			meshBuilder.triangle(corner3, corner2, corner1);
+		}
+
+		normal = longPos.cpy().add(uvPos).add(shortPos);
+		corner1 = meshBuilder.vertex(longPos, normal, Color.RED, Vector2.Zero);
+		corner2 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
+		corner3 = meshBuilder.vertex(shortPos, normal, Color.BLUE, Vector2.Zero);
+		meshBuilder.triangle(corner1, corner2, corner3);
+
+		if (doubleFaced)
+		{
+			normal = normal.scl(-1);
+			corner1 = meshBuilder.vertex(longPos, normal, Color.RED, Vector2.Zero);
+			corner2 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
+			corner3 = meshBuilder.vertex(shortPos, normal, Color.BLUE, Vector2.Zero);
+			meshBuilder.triangle(corner3, corner2, corner1);
+		}
+
+		normal = uvPos.cpy().add(mediumPos).add(shortPos);
+		corner1 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
+		corner2 = meshBuilder.vertex(mediumPos, normal, Color.GREEN, Vector2.Zero);
+		corner3 = meshBuilder.vertex(shortPos, normal, Color.BLUE, Vector2.Zero);
+		meshBuilder.triangle(corner1, corner2, corner3);
+
+		if (doubleFaced)
+		{
+			normal = normal.scl(-1);
+			corner1 = meshBuilder.vertex(uvPos, normal, Color.VIOLET, Vector2.Zero);
+			corner2 = meshBuilder.vertex(mediumPos, normal, Color.GREEN, Vector2.Zero);
+			corner3 = meshBuilder.vertex(shortPos, normal, Color.BLUE, Vector2.Zero);
+			meshBuilder.triangle(corner3, corner2, corner1);
+		}
+
+		return meshBuilder.end();
 	}
 
 
-	private void createPyramidCorners(Vector3 redPos, Vector3 greenPos,
-			Vector3 bluePos, Vector3 uvPos, Vector3 achroPos, ModelBuilder modelBuilder)
+	private void createPyramidCorners(Tetrahedron tetrahedron, ModelBuilder modelBuilder)
 	{
 		float diameter = 0.03f;
 		Model sphereModel = createSphere(modelBuilder, diameter, GL20.GL_TRIANGLES);
 		
-		ModelInstance redSphere = createModelInstance(sphereModel, redPos, Color.RED);
-		ModelInstance greenSphere = createModelInstance(sphereModel, greenPos, Color.GREEN);
-		ModelInstance blueSphere = createModelInstance(sphereModel, bluePos, Color.BLUE);
-		ModelInstance uvSphere = createModelInstance(sphereModel, uvPos, Color.VIOLET);
-		ModelInstance achroSphere = createModelInstance(sphereModel, achroPos, Color.GRAY);
+		ModelInstance redSphere = createModelInstance(sphereModel, tetrahedron.longPos, Color.RED);
+		ModelInstance greenSphere = createModelInstance(sphereModel, tetrahedron.mediumPos, Color.GREEN);
+		ModelInstance blueSphere = createModelInstance(sphereModel, tetrahedron.shortPos, Color.BLUE);
+		ModelInstance uvSphere = createModelInstance(sphereModel, tetrahedron.uvPos, Color.VIOLET);
+		ModelInstance achroSphere = createModelInstance(sphereModel, tetrahedron.achroPos, Color.GRAY);
 		
 		staticModels.add(redSphere);
 		staticModels.add(greenSphere);
@@ -696,7 +693,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	}
 
 
-	private Vector3 createVectorFromAngles(float theta, float phi,
+	private static Vector3 createVectorFromAngles(float theta, float phi,
 			float magnitude)
 	{
 		Vector3 coords = new Vector3(1, 0, 0);
@@ -1253,6 +1250,29 @@ public class TetraColourSpace extends ApplicationAdapter
 			this.coordinates = coordinates;
 			this.faces = faces;
 			this.material = material;
+		}
+	}
+	
+	
+	private static class Tetrahedron
+	{
+		Vector3 mediumPos;
+		Vector3 longPos;
+		Vector3 shortPos;
+		Vector3 uvPos;
+		Vector3 achroPos;
+
+		public Tetrahedron(float size)
+		{
+			float pi = MathUtils.PI;
+			float circleThird = MathUtils.PI2/3;
+			float deg110 = (float) Math.toRadians(109.5);
+			float magnitude = 0.75f * size;
+			mediumPos = createVectorFromAngles(pi/2, pi/2 - deg110, magnitude);
+			longPos = createVectorFromAngles(pi/2 - circleThird, pi/2 - deg110, magnitude);
+			shortPos = createVectorFromAngles(pi/2 + circleThird, pi/2 - deg110, magnitude);
+			uvPos = createVectorFromAngles(0, pi/2, magnitude);
+			achroPos = Vector3.Zero.cpy();
 		}
 	}
 }
