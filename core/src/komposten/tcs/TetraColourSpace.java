@@ -77,9 +77,28 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private enum Shape
 	{
-		Sphere,
-		Pyramid,
-		Box
+		Sphere(16),
+		Pyramid(17),
+		Box(15);
+		
+		private int value;
+
+		private Shape(int value)
+		{
+			this.value = value;
+		}
+		
+		static Shape fromString(String string)
+		{
+			for (Shape shape : values())
+			{
+				if (string.equalsIgnoreCase(shape.name()) ||
+						string.equals(Integer.toString(shape.value)))
+					return shape;
+			}
+			
+			return null;
+		}
 	}
 	
 	private static final float SENSITIVITY = -0.2f;
@@ -365,6 +384,24 @@ public class TetraColourSpace extends ApplicationAdapter
 	}
 	
 	
+	private Model createBox(ModelBuilder modelBuilder, float size, int primitiveType)
+	{
+		Model boxModel = modelBuilder.createBox(size, size, size, primitiveType,
+				new Material(), Usage.Position | Usage.Normal);
+		return boxModel;
+	}
+	
+	
+	private Model createPyramid(ModelBuilder modelBuilder, float size, int primitiveType)
+	{
+		Mesh mesh = createPyramidMesh(size, primitiveType, new MeshBuilder());
+		
+		modelBuilder.begin();
+		modelBuilder.part("pyramid", mesh, primitiveType, new Material());
+		return modelBuilder.end();
+	}
+	
+	
 	private ModelInstance createModelInstance(Model model, Vector3 position, Color colour)
 	{
 		Material material = materials.get(colour);
@@ -453,8 +490,10 @@ public class TetraColourSpace extends ApplicationAdapter
 				Node colourAttr = attributes.getNamedItem("colour");
 				Node nameAttr = attributes.getNamedItem("name");
 				Node positionAttr = attributes.getNamedItem("position");
+				Node shapeAttr = attributes.getNamedItem("shape");
 				
 				String name = "Point " + (i+1);
+				Shape shape = null;
 				if (colourAttr != null)
 				{
 					String colourHex = colourAttr.getNodeValue().trim();
@@ -467,10 +506,21 @@ public class TetraColourSpace extends ApplicationAdapter
 					name = nameAttr.getNodeValue().trim();
 				}
 				
+				if (shapeAttr != null)
+				{
+					shape = Shape.fromString(shapeAttr.getNodeValue().trim());
+				}
+				
+				if (shape == null)
+				{
+					shape = Shape.Sphere;
+				}
+					
+				
 				String position = positionAttr.getNodeValue();
 				Vector3 metrics = getColourSpaceMetricsFromLine(position);
 				Vector3 coords = createVectorFromAngles(metrics.x, metrics.y, metrics.z);
-				Point point = new Point(name, coords, metrics, activeMaterial);
+				Point point = new Point(name, coords, metrics, activeMaterial, shape);
 				dataPoints.add(point);
 			}
 			
@@ -551,11 +601,31 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		ModelBuilder builder = new ModelBuilder();
 		float diameter = 0.02f;
-		Model model = createSphere(builder, diameter, GL20.GL_TRIANGLES);
-		disposables.add(model);
+		Model modelSphere = createSphere(builder, diameter, GL20.GL_TRIANGLES);
+		Model modelBox = createBox(builder, diameter, GL20.GL_TRIANGLES);
+		Model modelPyramid = createPyramid(builder, diameter, GL20.GL_TRIANGLES);
+		disposables.add(modelSphere);
+		disposables.add(modelBox);
+		disposables.add(modelPyramid);
 		
 		for (Point point : dataPoints)
 		{
+			Model model;
+			
+			switch (point.shape)
+			{
+				case Box :
+					model = modelBox;
+					break;
+				case Pyramid :
+					model = modelPyramid;
+					break;
+				case Sphere :
+				default :
+					model = modelSphere;
+					break;
+			}
+			
 			ModelInstance instance = new ModelInstance(model);
 			instance.transform.translate(point.coordinates);
 			setMaterial(point.material, instance);
@@ -1220,13 +1290,15 @@ public class TetraColourSpace extends ApplicationAdapter
 		Vector3 coordinates;
 		Vector3 metrics;
 		Material material;
+		Shape shape;		
 		
-		public Point(String name, Vector3 coordinates, Vector3 metrics, Material material)
+		public Point(String name, Vector3 coordinates, Vector3 metrics, Material material, Shape shape)
 		{
 			this.name = name;
 			this.coordinates = coordinates;
 			this.metrics = metrics;
 			this.material = material;
+			this.shape = shape;
 		}
 		
 		
