@@ -100,7 +100,8 @@ public class TetraColourSpace extends ApplicationAdapter
 			return null;
 		}
 	}
-	
+
+	private static final float MAX_ZOOM = 0.025f;
 	private static final float SENSITIVITY = -0.2f;
 	private static final int SPHERE_SEGMENTS = 25;
 	private static final int LINEAR_VELOCITY = 2;
@@ -1113,19 +1114,23 @@ public class TetraColourSpace extends ApplicationAdapter
 	private boolean rotationMovement(float deltaTime)
 	{
 		Vector3 movement = new Vector3();
+		Vector3 focalPoint = (followMode == FollowMode.Centre ? Vector3.Zero : selectedPoint.coordinates);
 		
 		if (Gdx.input.isKeyPressed(Keys.W) || Gdx.input.isKeyPressed(Keys.S) ||
 				Gdx.input.isKeyPressed(Keys.E) || Gdx.input.isKeyPressed(Keys.Q))
 		{
-			calcVector.set(camera.direction).setLength(LINEAR_VELOCITY * deltaTime);
+			boolean moveForward = Gdx.input.isKeyPressed(Keys.E) || Gdx.input.isKeyPressed(Keys.W);
+			float distanceToPoint = calcVector.set(camera.position).sub(focalPoint).len();
+			float velocity = LINEAR_VELOCITY * deltaTime * (moveForward ? 1 : -1);
+			if (distanceToPoint - velocity < MAX_ZOOM)
+				velocity = distanceToPoint - MAX_ZOOM;
+				
+			calcVector.set(camera.direction).setLength(velocity);
+			if (velocity < 0)
+				calcVector.scl(-1);
 			
-			if (Gdx.input.isKeyPressed(Keys.E) || Gdx.input.isKeyPressed(Keys.W))
-				movement.add(calcVector);
-			else
-				movement.sub(calcVector);
+			movement.add(calcVector);
 		}
-		
-		Vector3 rotationPoint = (followMode == FollowMode.Centre ? Vector3.Zero : selectedPoint.coordinates);
 		
 		float rotX = 0;
 		float rotY = 0;
@@ -1156,22 +1161,22 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		if (!MathOps.equals(rotX, 0, 0.0001f))
 		{
-			Vector3 vectorFromCentre = camera.position.cpy().sub(rotationPoint);
+			Vector3 vectorFromCentre = camera.position.cpy().sub(focalPoint);
 			vectorFromCentre.rotate(Vector3.Y, rotX);
-			vectorFromCentre.add(rotationPoint);
+			vectorFromCentre.add(focalPoint);
 
 			movement.add(vectorFromCentre.sub(camera.position));
 		}
 		
 		if (!MathOps.equals(rotY, 0, 0.0001f))
 		{
-			Vector3 vectorFromCentre = camera.position.cpy().sub(rotationPoint);
+			Vector3 vectorFromCentre = camera.position.cpy().sub(focalPoint);
 			
 			float rotationY = -clampYRotation(-rotY);
 
 			calcVector.set(vectorFromCentre.z, 0, -vectorFromCentre.x);
 			vectorFromCentre.rotate(calcVector, rotationY);
-			vectorFromCentre.add(rotationPoint);
+			vectorFromCentre.add(focalPoint);
 
 			movement.add(vectorFromCentre.sub(camera.position));
 		}
