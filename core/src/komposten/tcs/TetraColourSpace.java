@@ -105,6 +105,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private static final float SENSITIVITY = -0.2f;
 	private static final int SPHERE_SEGMENTS = 25;
 	private static final int LINEAR_VELOCITY = 2;
+	private static final int SCROLL_VELOCITY = 5;
 	private static final int ANGULAR_VELOCITY = 50;
 	private static final int MAX_DISTANCE = 5;
 	private static final int SCREENSHOT_SIZE = 1080;
@@ -146,6 +147,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private Point highlightPoint;
 	private Point selectedPoint;
 	private FollowMode followMode = FollowMode.Off;
+	private int scrollDelta = 0;
 	
 	private boolean takeScreenshot = false;
 	private boolean showPyramidSides = false;
@@ -1116,25 +1118,14 @@ public class TetraColourSpace extends ApplicationAdapter
 		Vector3 movement = new Vector3();
 		Vector3 focalPoint = (followMode == FollowMode.Centre ? Vector3.Zero : selectedPoint.coordinates);
 		
-		if (Gdx.input.isKeyPressed(Keys.W) || Gdx.input.isKeyPressed(Keys.S) ||
-				Gdx.input.isKeyPressed(Keys.E) || Gdx.input.isKeyPressed(Keys.Q))
-		{
-			boolean moveForward = Gdx.input.isKeyPressed(Keys.E) || Gdx.input.isKeyPressed(Keys.W);
-			float distanceToPoint = calcVector.set(camera.position).sub(focalPoint).len();
-			float velocity = LINEAR_VELOCITY * deltaTime * (moveForward ? 1 : -1);
-			if (distanceToPoint - velocity < MAX_ZOOM)
-				velocity = distanceToPoint - MAX_ZOOM;
-				
-			calcVector.set(camera.direction).setLength(velocity);
-			if (velocity < 0)
-				calcVector.scl(-1);
-			
-			movement.add(calcVector);
-		}
-		
 		float rotX = 0;
 		float rotY = 0;
+		float zoom = 0;
 
+		if (Gdx.input.isKeyPressed(Keys.W) || Gdx.input.isKeyPressed(Keys.E))
+			zoom += LINEAR_VELOCITY * deltaTime;
+		if (Gdx.input.isKeyPressed(Keys.S) || Gdx.input.isKeyPressed(Keys.Q))
+			zoom -= LINEAR_VELOCITY * deltaTime;
 		if (Gdx.input.isKeyPressed(Keys.A))
 			rotX -= ANGULAR_VELOCITY * deltaTime;
 		if (Gdx.input.isKeyPressed(Keys.D))
@@ -1143,6 +1134,12 @@ public class TetraColourSpace extends ApplicationAdapter
 			rotY -= ANGULAR_VELOCITY * deltaTime;
 		if (Gdx.input.isKeyPressed(Keys.CONTROL_LEFT))
 			rotY += ANGULAR_VELOCITY * deltaTime;
+		
+		if (scrollDelta != 0)
+		{
+			zoom -= scrollDelta * SCROLL_VELOCITY * deltaTime;
+			scrollDelta = 0;
+		}
 		
 		if (Gdx.input.isButtonPressed(Buttons.RIGHT))
 		{
@@ -1157,6 +1154,20 @@ public class TetraColourSpace extends ApplicationAdapter
 			{
 				rotY += mouseDY * SENSITIVITY;
 			}
+		}
+		
+		if (!MathOps.equals(zoom, 0, 0.0001f))
+		{
+			float distanceToPoint = calcVector.set(camera.position).sub(focalPoint).len();
+			float velocity = zoom;
+			if (distanceToPoint - velocity < MAX_ZOOM)
+				velocity = distanceToPoint - MAX_ZOOM;
+				
+			calcVector.set(camera.direction).setLength(velocity);
+			if (velocity < 0)
+				calcVector.scl(-1);
+			
+			movement.add(calcVector);
 		}
 		
 		if (!MathOps.equals(rotX, 0, 0.0001f))
@@ -1433,8 +1444,21 @@ public class TetraColourSpace extends ApplicationAdapter
 			
 			return false;
 		}
+		
+		
+		@Override
+		public boolean scrolled(int amount)
+		{
+			if (Gdx.input.isButtonPressed(Buttons.RIGHT) && followMode != FollowMode.Off)
+			{
+				scrollDelta += amount;
+				return true;
+			}
+
+			return false;
+		}
 	};
-	
+
 	
 	private static class Point
 	{
