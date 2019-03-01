@@ -103,7 +103,8 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private static final float SENSITIVITY = -0.2f;
 	private static final int SPHERE_SEGMENTS = 25;
-	private static final int VELOCITY = 2;
+	private static final int LINEAR_VELOCITY = 2;
+	private static final int ANGULAR_VELOCITY = 50;
 	private static final int MAX_DISTANCE = 5;
 	private static final int SCREENSHOT_SIZE = 1080;
 	private static final int SCREENSHOT_SUPERSAMPLE = 10;
@@ -1022,11 +1023,20 @@ public class TetraColourSpace extends ApplicationAdapter
 	private Vector3 calcVector = new Vector3();
 	private boolean readCameraInput(float deltaTime)
 	{
+		if (followMode != FollowMode.Off)
+			return rotationMovement(deltaTime);
+		else 
+			return translationMovement(deltaTime);
+	}
+
+
+	private boolean translationMovement(float deltaTime)
+	{
 		Vector3 movement = new Vector3();
 		
 		if (Gdx.input.isKeyPressed(Keys.W) || Gdx.input.isKeyPressed(Keys.S))
 		{
-			calcVector.set(camera.direction.x, 0, camera.direction.z).setLength(VELOCITY * deltaTime);
+			calcVector.set(camera.direction.x, 0, camera.direction.z).setLength(LINEAR_VELOCITY * deltaTime);
 			
 			if (Gdx.input.isKeyPressed(Keys.W))
 				movement.add(calcVector);
@@ -1036,7 +1046,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		if (Gdx.input.isKeyPressed(Keys.A) || Gdx.input.isKeyPressed(Keys.D))
 		{
-			calcVector.set(camera.direction.z, 0, -camera.direction.x).setLength(VELOCITY * deltaTime);
+			calcVector.set(camera.direction.z, 0, -camera.direction.x).setLength(LINEAR_VELOCITY * deltaTime);
 			
 			if (Gdx.input.isKeyPressed(Keys.A))
 				movement.add(calcVector);
@@ -1046,7 +1056,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		if (Gdx.input.isKeyPressed(Keys.E) || Gdx.input.isKeyPressed(Keys.Q))
 		{
-			calcVector.set(camera.direction).setLength(VELOCITY * deltaTime);
+			calcVector.set(camera.direction).setLength(LINEAR_VELOCITY * deltaTime);
 			
 			if (Gdx.input.isKeyPressed(Keys.E))
 				movement.add(calcVector);
@@ -1056,11 +1066,11 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		if (Gdx.input.isKeyPressed(Keys.SPACE))
 		{
-			movement.y += VELOCITY * deltaTime;
+			movement.y += LINEAR_VELOCITY * deltaTime;
 		}
 		else if (Gdx.input.isKeyPressed(Keys.CONTROL_LEFT))
 		{
-			movement.y -= VELOCITY * deltaTime;
+			movement.y -= LINEAR_VELOCITY * deltaTime;
 		}
 		
 		boolean needsUpdate = false;
@@ -1087,13 +1097,7 @@ public class TetraColourSpace extends ApplicationAdapter
 				
 				calcVector.set(camera.direction.x, 0, camera.direction.z);
 				
-				double currentAngle = Math.toDegrees(Math.atan2(calcVector.y - camera.direction.y, calcVector.len()));
-				double maxAngle = 89;
-				
-				if (currentAngle + rotationY > maxAngle)
-					rotationY = (float) (maxAngle - currentAngle);
-				else if (currentAngle + rotationY < -maxAngle)
-					rotationY = (float) -(maxAngle + currentAngle);
+				rotationY = clampYRotation(rotationY);
 				
 				calcVector.set(camera.direction.z, 0, -camera.direction.x);
 				camera.rotate(calcVector, rotationY);
@@ -1103,6 +1107,99 @@ public class TetraColourSpace extends ApplicationAdapter
 		}
 		
 		return needsUpdate;
+	}
+
+
+	private boolean rotationMovement(float deltaTime)
+	{
+		Vector3 movement = new Vector3();
+		
+		if (Gdx.input.isKeyPressed(Keys.W) || Gdx.input.isKeyPressed(Keys.S) ||
+				Gdx.input.isKeyPressed(Keys.E) || Gdx.input.isKeyPressed(Keys.Q))
+		{
+			calcVector.set(camera.direction).setLength(LINEAR_VELOCITY * deltaTime);
+			
+			if (Gdx.input.isKeyPressed(Keys.E) || Gdx.input.isKeyPressed(Keys.W))
+				movement.add(calcVector);
+			else
+				movement.sub(calcVector);
+		}
+		
+		Vector3 rotationPoint = (followMode == FollowMode.Centre ? Vector3.Zero : selectedPoint.coordinates);
+		
+		float rotX = 0;
+		float rotY = 0;
+
+		if (Gdx.input.isKeyPressed(Keys.A))
+			rotX -= ANGULAR_VELOCITY * deltaTime;
+		if (Gdx.input.isKeyPressed(Keys.D))
+			rotX += ANGULAR_VELOCITY * deltaTime;
+		if (Gdx.input.isKeyPressed(Keys.SPACE))
+			rotY -= ANGULAR_VELOCITY * deltaTime;
+		if (Gdx.input.isKeyPressed(Keys.CONTROL_LEFT))
+			rotY += ANGULAR_VELOCITY * deltaTime;
+		
+		if (Gdx.input.isButtonPressed(Buttons.RIGHT))
+		{
+			int mouseDX = Gdx.input.getDeltaX();
+			int mouseDY = Gdx.input.getDeltaY();
+			
+			if (mouseDX != 0)
+			{
+				rotX += mouseDX * SENSITIVITY;
+			}
+			if (mouseDY != 0)
+			{
+				rotY += mouseDY * SENSITIVITY;
+			}
+		}
+		
+		if (!MathOps.equals(rotX, 0, 0.0001f))
+		{
+			Vector3 vectorFromCentre = camera.position.cpy().sub(rotationPoint);
+			vectorFromCentre.rotate(Vector3.Y, rotX);
+			vectorFromCentre.add(rotationPoint);
+
+			movement.add(vectorFromCentre.sub(camera.position));
+		}
+		
+		if (!MathOps.equals(rotY, 0, 0.0001f))
+		{
+			Vector3 vectorFromCentre = camera.position.cpy().sub(rotationPoint);
+			
+			float rotationY = -clampYRotation(-rotY);
+
+			calcVector.set(vectorFromCentre.z, 0, -vectorFromCentre.x);
+			vectorFromCentre.rotate(calcVector, rotationY);
+			vectorFromCentre.add(rotationPoint);
+
+			movement.add(vectorFromCentre.sub(camera.position));
+		}
+		
+		boolean needsUpdate = false;
+		if (!movement.epsilonEquals(Vector3.Zero))
+		{
+			camera.position.x = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.x + movement.x);
+			camera.position.y = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.y + movement.y);
+			camera.position.z = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.z + movement.z);
+			needsUpdate = true;
+		}
+		
+		return needsUpdate;
+	}
+
+
+	private float clampYRotation(float rotationY)
+	{
+		calcVector.set(camera.direction.x, 0, camera.direction.z);
+		double currentAngle = Math.toDegrees(Math.atan2(calcVector.y - camera.direction.y, calcVector.len()));
+		double maxAngle = 89;
+		
+		if (currentAngle + rotationY > maxAngle)
+			rotationY = (float) (maxAngle - currentAngle);
+		else if (currentAngle + rotationY < -maxAngle)
+			rotationY = (float) -(maxAngle + currentAngle);
+		return rotationY;
 	}
 
 
@@ -1297,7 +1394,6 @@ public class TetraColourSpace extends ApplicationAdapter
 			if (button == Buttons.RIGHT)
 			{
 				Gdx.input.setCursorCatched(true);
-				followMode = FollowMode.Off;
 				return true;
 			}
 			else if (button == Buttons.LEFT && showPoints)
