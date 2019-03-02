@@ -38,7 +38,10 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Pixmap.Filter;
 import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.PixmapIO.PNG;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
@@ -116,10 +119,15 @@ public class TetraColourSpace extends ApplicationAdapter
 	private PerspectiveCamera camera;
 	private ModelBatch batch;
 	private Environment environment;
+	private SpriteBatch spriteBatch;
+	
+	private Sprite crosshair;
+	private Texture crosshairTexture;
 	
 	private FrameBuffer screenshotBuffer;
 	
 	private Color backgroundColour = new Color(.12f, .12f, .12f, 1f);
+	private Color crosshairColour = null;
 	private Color longColour = Color.RED;
 	private Color mediumColour = Color.GREEN;
 	private Color shortColour = Color.BLUE;
@@ -156,6 +164,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private boolean showVolumes = true;
 	private boolean showHighlight = true;
 	private boolean showPointMetrics = false;
+	private boolean showCrosshair = true;
 	private boolean hasSelection = false;
 	private boolean hasHighlight = false;
 	private boolean cameraDirty = true;
@@ -188,11 +197,11 @@ public class TetraColourSpace extends ApplicationAdapter
 		pointToModelMap = new HashMap<>();
 		camera = new PerspectiveCamera(67, 1, 1);
 		batch = new ModelBatch();
+		spriteBatch = new SpriteBatch();
 		
 		int distance = 2;
 		pointMetrics = new Renderable();
 		
-		updateViewport();
 		camera.translate(distance, distance, -0.3f*distance);
 		camera.near = 0.01f;
 		camera.far = 300;
@@ -207,6 +216,24 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		createScreenshotBuffer();
 		loadData();
+		updateViewport();
+	}
+
+
+	private void createCrosshair()
+	{
+		crosshairTexture = new Texture(Gdx.files.internal("crosshair.png"));
+		crosshair = new Sprite(crosshairTexture);
+		
+		if (crosshairColour == null)
+		{
+			crosshairColour = Color.WHITE.cpy().sub(backgroundColour);
+			crosshairColour.a = 1f;
+		}
+		
+		crosshair.setColor(crosshairColour);
+		crosshair.getColor().a = 1f;
+		disposables.add(crosshairTexture);
 	}
 
 
@@ -496,6 +523,7 @@ public class TetraColourSpace extends ApplicationAdapter
 			
 			loadConfig(root);
 			createStaticModels();
+			createCrosshair();
 			
 			NodeList points = root.getElementsByTagName("point");
 			for (int i = 0; i < points.getLength(); i++)
@@ -951,6 +979,13 @@ public class TetraColourSpace extends ApplicationAdapter
 			Gdx.gl.glLineWidth(1);
 		}
 		
+		if (showCrosshair)
+		{
+			spriteBatch.begin();
+			crosshair.draw(spriteBatch);
+			spriteBatch.end();
+		}
+		
 		readInput(Gdx.graphics.getDeltaTime());
 		
 		if (showHighlight)
@@ -1231,6 +1266,9 @@ public class TetraColourSpace extends ApplicationAdapter
 		float ratio = Gdx.graphics.getHeight() / (float)Gdx.graphics.getWidth();
 		camera.viewportHeight = ratio;
 		cameraDirty = true;
+		
+		if (crosshair != null)
+			crosshair.setCenter(Gdx.graphics.getWidth()/2, Gdx.graphics.getHeight()/2);
 	}
 	
 	
@@ -1330,12 +1368,17 @@ public class TetraColourSpace extends ApplicationAdapter
 				followMode = FollowMode.Off;
 				return true;
 			}
-			else if (keycode == Keys.C)
+			else if (keycode == Keys.G)
 			{
 				if (followMode != FollowMode.Centre)
 					followMode = FollowMode.Centre;
 				else
 					followMode = FollowMode.Off;
+				return true;
+			}
+			else if (keycode == Keys.C)
+			{
+				showCrosshair = !showCrosshair;
 				return true;
 			}
 			else if (keycode == Keys.T)
