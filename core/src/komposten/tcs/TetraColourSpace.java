@@ -110,6 +110,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private static final int LINEAR_VELOCITY = 2;
 	private static final int SCROLL_VELOCITY = 5;
 	private static final int ANGULAR_VELOCITY = 50;
+	private static final int ANGULAR_AUTO_VELOCITY = 20;
 	private static final int MAX_DISTANCE = 5;
 	private static final int SCREENSHOT_SIZE = 1080;
 	private static final int SCREENSHOT_SUPERSAMPLE = 10;
@@ -168,6 +169,8 @@ public class TetraColourSpace extends ApplicationAdapter
 	private boolean hasSelection = false;
 	private boolean hasHighlight = false;
 	private boolean cameraDirty = true;
+	private boolean autoRotate = false;
+	private int autoRotation = 1;
 	
 	public TetraColourSpace(File dataFile, File outputPath)
 	{
@@ -1176,6 +1179,11 @@ public class TetraColourSpace extends ApplicationAdapter
 			scrollDelta = 0;
 		}
 		
+		if (autoRotate)
+		{
+			rotX += ANGULAR_AUTO_VELOCITY * deltaTime * autoRotation;
+		}
+		
 		if (Gdx.input.isButtonPressed(Buttons.RIGHT))
 		{
 			int mouseDX = Gdx.input.getDeltaX();
@@ -1347,6 +1355,8 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private InputProcessor inputProcessor = new InputAdapter()
 	{
+		boolean nonRPressed = false;
+		
 		@Override
 		public boolean keyDown(int keycode)
 		{
@@ -1354,6 +1364,10 @@ public class TetraColourSpace extends ApplicationAdapter
 			{
 				followMode = FollowMode.Centre;
 				return true;
+			}
+			else if (keycode == Keys.R)
+			{
+				nonRPressed = false;
 			}
 			
 			return false;
@@ -1423,6 +1437,41 @@ public class TetraColourSpace extends ApplicationAdapter
 			{
 				takeScreenshot = true;
 			}
+			else if (keycode == Keys.R)
+			{
+				if (!nonRPressed)
+					autoRotate = !autoRotate;
+			}
+			else if (Gdx.input.isKeyPressed(Keys.R))
+			{
+				if (keycode >= Keys.NUMPAD_1 && keycode <= Keys.NUMPAD_9)
+				{
+					int sign = (autoRotation > 0 ? 1 : -1);
+					autoRotation = sign * (keycode - Keys.NUMPAD_0);
+					nonRPressed = true;
+				}
+				else if (keycode == Keys.STAR)
+				{
+					autoRotation = -autoRotation;
+					nonRPressed = true;
+				}
+				else if (keycode == Keys.MINUS)
+				{
+					if (autoRotation < -1)
+						autoRotation += 1;
+					else if (autoRotation > 1)
+						autoRotation -= 1;
+					
+					nonRPressed = true;
+				}
+				else if (keycode == Keys.PLUS)
+				{
+					autoRotation += (autoRotation < 0 ? -1 : 1);
+					nonRPressed = true;
+				}
+				
+				return true;
+			}
 			else if (keycode == Keys.NUMPAD_1)
 			{
 				camera.position.set(1, 1, -0.3f);
@@ -1441,7 +1490,6 @@ public class TetraColourSpace extends ApplicationAdapter
 				lookAt(Vector3.Zero);
 				cameraDirty = true;
 			}
-			
 			
 			return false;
 		}
