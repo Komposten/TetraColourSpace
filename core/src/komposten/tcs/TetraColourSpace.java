@@ -271,7 +271,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private void createTCSPyramid(MeshBuilder meshBuilder)
 	{
-		Mesh pyramidMesh = createPyramidMesh(1f, GL20.GL_TRIANGLES, meshBuilder);
+		Mesh pyramidMesh = createPyramidMesh(1f, GL20.GL_TRIANGLES, meshBuilder, true);
 		
 		pyramidSides = new Renderable();
 		pyramidSides.material = new Material(getMaterialForColour(Color.WHITE));
@@ -280,7 +280,7 @@ public class TetraColourSpace extends ApplicationAdapter
 
 		disposables.add(pyramidMesh);
 
-		pyramidMesh = createPyramidMesh(1f, GL20.GL_LINES, meshBuilder);
+		pyramidMesh = createPyramidMesh(1f, GL20.GL_LINES, meshBuilder, true);
 		
 		pyramidLines = new Renderable();
 		pyramidLines.material = new Material(getMaterialForColour(Color.WHITE));
@@ -290,16 +290,16 @@ public class TetraColourSpace extends ApplicationAdapter
 	}
 	
 	
-	private Mesh createPyramidMesh(float size, int primitiveType, MeshBuilder meshBuilder)
+	private Mesh createPyramidMesh(float size, int primitiveType, MeshBuilder meshBuilder, boolean applyColours)
 	{
 		Tetrahedron tetrahedron = new Tetrahedron(size);
 		
 		boolean triangleType = (primitiveType == GL20.GL_TRIANGLES);
-		return createPyramid(tetrahedron, meshBuilder, triangleType);
+		return createPyramid(tetrahedron, meshBuilder, triangleType, applyColours);
 	}
 
 
-	private Mesh createPyramid(Tetrahedron tetrahedron, MeshBuilder meshBuilder, boolean doubleFaced)
+	private Mesh createPyramid(Tetrahedron tetrahedron, MeshBuilder meshBuilder, boolean doubleFaced, boolean applyColours)
 	{
 		meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_TRIANGLES);
 		
@@ -307,6 +307,11 @@ public class TetraColourSpace extends ApplicationAdapter
 		Vector3 mediumPos = tetrahedron.mediumPos;
 		Vector3 shortPos = tetrahedron.shortPos;
 		Vector3 uvPos = tetrahedron.uvPos;
+		
+		Color longColour = (applyColours ? this.longColour : Color.WHITE);
+		Color mediumColour = (applyColours ? this.mediumColour : Color.WHITE);
+		Color shortColour = (applyColours ? this.shortColour : Color.WHITE);
+		Color uvColour = (applyColours ? this.uvColour : Color.WHITE);
 
 		Vector3 normal = mediumPos.cpy().add(longPos).add(shortPos);
 		short corner1 = meshBuilder.vertex(mediumPos, normal, mediumColour, Vector2.Zero);
@@ -437,7 +442,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private Model createPyramid(ModelBuilder modelBuilder, float size, int primitiveType)
 	{
-		Mesh mesh = createPyramidMesh(size, primitiveType, new MeshBuilder());
+		Mesh mesh = createPyramidMesh(size, primitiveType, new MeshBuilder(), false);
 		
 		modelBuilder.begin();
 		modelBuilder.part("pyramid", mesh, primitiveType, new Material());
