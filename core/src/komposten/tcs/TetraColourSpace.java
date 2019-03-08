@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -145,8 +146,8 @@ public class TetraColourSpace extends ApplicationAdapter
 	private List<ModelInstance> dataModels;
 	private List<Renderable> dataMeshes;
 	private Map<Point, ModelInstance> pointToModelMap;
+	private TetrahedronSide[] pyramidSides;
 	private Renderable pyramidLines;
-	private Renderable pyramidSides;
 	private Renderable axisLines;
 	private Renderable pointMetrics;
 	private ModelInstance selectedModel;
@@ -271,37 +272,57 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private void createTCSPyramid(MeshBuilder meshBuilder)
 	{
-		Mesh pyramidMesh = createPyramidMesh(1f, GL20.GL_TRIANGLES, meshBuilder, true);
+		Mesh[] pyramidMesh = createPyramidMeshSeparate(1f, GL20.GL_TRIANGLES, meshBuilder, true);
 		
-		pyramidSides = new Renderable();
-		pyramidSides.material = new Material(getMaterialForColour(Color.WHITE));
-		pyramidSides.material.set(new BlendingAttribute(0.5f));
-		pyramidSides.meshPart.set("pyramid", pyramidMesh, 0, pyramidMesh.getNumVertices(), GL20.GL_TRIANGLES);
+		pyramidSides = new TetrahedronSide[4];
+		
+		for (int i = 0; i < pyramidMesh.length; i++)
+		{
+			pyramidSides[i] = new TetrahedronSide();
+			pyramidSides[i].renderable = new Renderable();
+			pyramidSides[i].renderable.material = new Material(getMaterialForColour(Color.WHITE));
+			pyramidSides[i].renderable.material.set(new BlendingAttribute(0.5f));
+			pyramidSides[i].renderable.meshPart.set("pyramid", pyramidMesh[i], 0, pyramidMesh[i].getNumVertices(), GL20.GL_TRIANGLES);
+			disposables.add(pyramidMesh[i]);
 
-		disposables.add(pyramidMesh);
+			pyramidSides[i].centre = getMeshCentre(pyramidMesh[i]);
+		}
 
-		pyramidMesh = createPyramidMesh(1f, GL20.GL_LINES, meshBuilder, true);
+		Mesh pyramidMeshSingle = createPyramidMesh(1f, GL20.GL_LINES, meshBuilder, true);
 		
 		pyramidLines = new Renderable();
 		pyramidLines.material = new Material(getMaterialForColour(Color.WHITE));
-		pyramidLines.meshPart.set("pyramid", pyramidMesh, 0, pyramidMesh.getNumVertices(), GL20.GL_LINES);
+		pyramidLines.meshPart.set("pyramid", pyramidMeshSingle, 0, pyramidMeshSingle.getNumVertices(), GL20.GL_LINES);
+		disposables.add(pyramidMeshSingle);
+	}
 
-		disposables.add(pyramidMesh);
+
+	private Mesh createPyramidMesh(float size, int primitiveType, MeshBuilder meshBuilder, boolean applyColours)
+	{
+		Mesh[] sides = createPyramidMeshSeparate(size, primitiveType, meshBuilder, applyColours);
+		
+		meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_TRIANGLES);
+		for (Mesh side : sides)
+			meshBuilder.addMesh(side);
+		
+		return meshBuilder.end();
 	}
 	
 	
-	private Mesh createPyramidMesh(float size, int primitiveType, MeshBuilder meshBuilder, boolean applyColours)
+	private Mesh[] createPyramidMeshSeparate(float size, int primitiveType, MeshBuilder meshBuilder, boolean applyColours)
 	{
 		Tetrahedron tetrahedron = new Tetrahedron(size);
 		
 		boolean triangleType = (primitiveType == GL20.GL_TRIANGLES);
-		return createPyramid(tetrahedron, meshBuilder, triangleType, applyColours);
+		return createPyramidSeparate(tetrahedron, meshBuilder, triangleType, applyColours);
 	}
 
 
-	private Mesh createPyramid(Tetrahedron tetrahedron, MeshBuilder meshBuilder, boolean doubleFaced, boolean applyColours)
+	private Mesh[] createPyramidSeparate(Tetrahedron tetrahedron, MeshBuilder meshBuilder, boolean doubleFaced, boolean applyColours)
 	{
-		meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_TRIANGLES);
+		Mesh[] meshes = new Mesh[4];
+		int meshAttributes = Usage.Position | Usage.Normal | Usage.ColorUnpacked;
+		meshBuilder.begin(meshAttributes, GL20.GL_TRIANGLES);
 		
 		Vector3 longPos = tetrahedron.longPos;
 		Vector3 mediumPos = tetrahedron.mediumPos;
@@ -327,7 +348,10 @@ public class TetraColourSpace extends ApplicationAdapter
 			corner3 = meshBuilder.vertex(shortPos, normal, shortColour, Vector2.Zero);
 			meshBuilder.triangle(corner3, corner2, corner1);
 		}
-
+		
+		meshes[0] = meshBuilder.end();
+		meshBuilder.begin(meshAttributes, GL20.GL_TRIANGLES);
+		
 		normal = longPos.cpy().add(mediumPos).add(uvPos);
 		corner1 = meshBuilder.vertex(longPos, normal, longColour, Vector2.Zero);
 		corner2 = meshBuilder.vertex(mediumPos, normal, mediumColour, Vector2.Zero);
@@ -342,6 +366,9 @@ public class TetraColourSpace extends ApplicationAdapter
 			corner3 = meshBuilder.vertex(uvPos, normal, uvColour, Vector2.Zero);
 			meshBuilder.triangle(corner3, corner2, corner1);
 		}
+		
+		meshes[1] = meshBuilder.end();
+		meshBuilder.begin(meshAttributes, GL20.GL_TRIANGLES);
 
 		normal = longPos.cpy().add(uvPos).add(shortPos);
 		corner1 = meshBuilder.vertex(longPos, normal, longColour, Vector2.Zero);
@@ -357,6 +384,9 @@ public class TetraColourSpace extends ApplicationAdapter
 			corner3 = meshBuilder.vertex(shortPos, normal, shortColour, Vector2.Zero);
 			meshBuilder.triangle(corner3, corner2, corner1);
 		}
+		
+		meshes[2] = meshBuilder.end();
+		meshBuilder.begin(meshAttributes, GL20.GL_TRIANGLES);
 
 		normal = uvPos.cpy().add(mediumPos).add(shortPos);
 		corner1 = meshBuilder.vertex(uvPos, normal, uvColour, Vector2.Zero);
@@ -372,8 +402,31 @@ public class TetraColourSpace extends ApplicationAdapter
 			corner3 = meshBuilder.vertex(shortPos, normal, shortColour, Vector2.Zero);
 			meshBuilder.triangle(corner3, corner2, corner1);
 		}
+		
+		meshes[3] = meshBuilder.end();
 
-		return meshBuilder.end();
+		return meshes;
+	}
+	
+	
+	private Vector3 getMeshCentre(Mesh mesh)
+	{
+		int vertexSize = mesh.getVertexSize() / 4;
+		int vertexCount = mesh.getNumVertices();
+		float[] vertices = mesh.getVertices(new float[vertexCount * vertexSize]);
+		
+		float avgX = 0;
+		float avgY = 0;
+		float avgZ = 0;
+		
+		for (int i = 0; i < vertexCount; i++)
+		{
+			avgX += vertices[i*vertexSize];
+			avgY += vertices[i*vertexSize+1];
+			avgZ += vertices[i*vertexSize+2];
+		}
+		
+		return new Vector3(avgX / vertexCount, avgY / vertexCount, avgZ / vertexCount);
 	}
 
 
@@ -940,6 +993,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		{
 			cameraDirty = false;
 			camera.update();
+			Arrays.sort(pyramidSides, pyramidSideComparator);
 		}
 		
 		if (takeScreenshot)
@@ -952,7 +1006,17 @@ public class TetraColourSpace extends ApplicationAdapter
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
 		batch.begin(camera);
-		batch.render(showPyramidSides ? pyramidSides : pyramidLines);
+		if (showPyramidSides)
+		{
+			for (TetrahedronSide side : pyramidSides)
+			{
+				batch.render(side.renderable);
+			}
+		}
+		else
+		{
+			batch.render(pyramidLines);
+		}
 		batch.render(staticModels, environment);
 		if (showAxes || showPointMetrics)
 			batch.render(axisLines);
@@ -1554,6 +1618,18 @@ public class TetraColourSpace extends ApplicationAdapter
 			return false;
 		}
 	};
+	
+	
+	private Comparator<TetrahedronSide> pyramidSideComparator = new Comparator<TetrahedronSide>()
+	{
+		@Override
+		public int compare(TetrahedronSide o1, TetrahedronSide o2)
+		{
+			float length1 = calcVector.set(camera.position).sub(o1.centre).len2();
+			float length2 = calcVector.set(camera.position).sub(o2.centre).len2();
+			return -Float.compare(length1, length2);
+		}
+	};
 
 	
 	private static class Point
@@ -1595,6 +1671,13 @@ public class TetraColourSpace extends ApplicationAdapter
 			this.faces = faces;
 			this.material = material;
 		}
+	}
+	
+	
+	private static class TetrahedronSide
+	{
+		Renderable renderable;
+		Vector3 centre;
 	}
 	
 	
