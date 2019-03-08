@@ -41,6 +41,7 @@ import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.PixmapIO.PNG;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.Environment;
@@ -135,6 +136,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private Sprite crosshair;
 	private Texture crosshairTexture;
+	private BitmapFont font;
 	
 	private FrameBuffer screenshotBuffer;
 	
@@ -216,6 +218,8 @@ public class TetraColourSpace extends ApplicationAdapter
 		camera = new PerspectiveCamera(67, 1, 1);
 		batch = new ModelBatch();
 		spriteBatch = new SpriteBatch();
+		font = new BitmapFont();
+		font.getData().markupEnabled = true;
 		
 		int distance = 1;
 		camera.translate(distance, distance, -0.3f*distance);
@@ -1137,12 +1141,23 @@ public class TetraColourSpace extends ApplicationAdapter
 			Gdx.gl.glLineWidth(1);
 		}
 		
+		spriteBatch.begin();
 		if (showCrosshair)
 		{
-			spriteBatch.begin();
 			crosshair.draw(spriteBatch);
-			spriteBatch.end();
 		}
+		if (hasSelection)
+		{
+			String metrics = String.format(
+					"%s\n  Theta: %.02f\n  Phi: %.02f\n  r: %.02f",
+					selectedPoint.name,
+					selectedPoint.metrics.x,
+					selectedPoint.metrics.y,
+					selectedPoint.metrics.z);
+			
+			font.draw(spriteBatch, metrics, 5, Gdx.graphics.getHeight()-10);
+		}
+		spriteBatch.end();
 		
 		readInput(Gdx.graphics.getDeltaTime());
 		
