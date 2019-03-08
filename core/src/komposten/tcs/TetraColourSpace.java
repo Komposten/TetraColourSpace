@@ -13,6 +13,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -78,16 +79,16 @@ public class TetraColourSpace extends ApplicationAdapter
 {
 	private enum FollowMode
 	{
-		Selected,
-		Centre,
-		Off
+		SELECTED,
+		CENTRE,
+		OFF
 	}
 	
 	private enum Shape
 	{
-		Sphere(16),
-		Pyramid(17),
-		Box(15);
+		SPHERE(16),
+		PYRAMID(17),
+		BOX(15);
 		
 		private int value;
 
@@ -121,8 +122,9 @@ public class TetraColourSpace extends ApplicationAdapter
 	private static final int SCREENSHOT_SIZE = 1080;
 	private static final int SCREENSHOT_SUPERSAMPLE = 10;
 	
-	private static final int POINT_METRIC_LINES = 1;
+	private static final int POINT_METRIC_HIDE = 0;
 	private static final int POINT_METRIC_FILLED = 2;
+	private static final int POINT_METRIC_OPTIONS = 3;
 	
 	private Logger logger;
 	private List<Point> selectionLog;
@@ -135,7 +137,6 @@ public class TetraColourSpace extends ApplicationAdapter
 	private SpriteBatch spriteBatch;
 	
 	private Sprite crosshair;
-	private Texture crosshairTexture;
 	private BitmapFont font;
 	
 	private FrameBuffer screenshotBuffer;
@@ -170,7 +171,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private Point highlightPoint;
 	private Point selectedPoint;
-	private FollowMode followMode = FollowMode.Off;
+	private FollowMode followMode = FollowMode.OFF;
 	private int scrollDelta = 0;
 	
 	private boolean takeScreenshot = false;
@@ -248,7 +249,7 @@ public class TetraColourSpace extends ApplicationAdapter
 
 	private void createCrosshair()
 	{
-		crosshairTexture = new Texture(Gdx.files.internal("crosshair.png"));
+		Texture crosshairTexture = new Texture(Gdx.files.internal("crosshair.png"));
 		crosshair = new Sprite(crosshairTexture);
 		
 		if (crosshairColour == null)
@@ -304,7 +305,7 @@ public class TetraColourSpace extends ApplicationAdapter
 			pyramidSides[i].renderable = new Renderable();
 			pyramidSides[i].renderable.material = new Material(getMaterialForColour(Color.WHITE));
 			pyramidSides[i].renderable.material.set(new BlendingAttribute(0.5f));
-			pyramidSides[i].renderable.meshPart.set("pyramid", pyramidMesh[i], 0, pyramidMesh[i].getNumVertices(), GL20.GL_TRIANGLES);
+			pyramidSides[i].renderable.meshPart.set("pyramid_side_" + i, pyramidMesh[i], 0, pyramidMesh[i].getNumVertices(), GL20.GL_TRIANGLES);
 			disposables.add(pyramidMesh[i]);
 
 			pyramidSides[i].centre = getMeshCentre(pyramidMesh[i]);
@@ -314,7 +315,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		pyramidLines = new Renderable();
 		pyramidLines.material = new Material(getMaterialForColour(Color.WHITE));
-		pyramidLines.meshPart.set("pyramid", pyramidMeshSingle, 0, pyramidMeshSingle.getNumVertices(), GL20.GL_LINES);
+		pyramidLines.meshPart.set("pyramid_lines", pyramidMeshSingle, 0, pyramidMeshSingle.getNumVertices(), GL20.GL_LINES);
 		disposables.add(pyramidMeshSingle);
 	}
 
@@ -351,23 +352,23 @@ public class TetraColourSpace extends ApplicationAdapter
 		Vector3 shortPos = tetrahedron.shortPos;
 		Vector3 uvPos = tetrahedron.uvPos;
 		
-		Color longColour = (applyColours ? this.longColour : Color.WHITE);
-		Color mediumColour = (applyColours ? this.mediumColour : Color.WHITE);
-		Color shortColour = (applyColours ? this.shortColour : Color.WHITE);
-		Color uvColour = (applyColours ? this.uvColour : Color.WHITE);
+		Color longColourActive = (applyColours ? this.longColour : Color.WHITE);
+		Color mediumColourActive = (applyColours ? this.mediumColour : Color.WHITE);
+		Color shortColourActive = (applyColours ? this.shortColour : Color.WHITE);
+		Color uvColourActive = (applyColours ? this.uvColour : Color.WHITE);
 
 		Vector3 normal = mediumPos.cpy().add(longPos).add(shortPos);
-		short corner1 = meshBuilder.vertex(mediumPos, normal, mediumColour, Vector2.Zero);
-		short corner2 = meshBuilder.vertex(longPos, normal, longColour, Vector2.Zero);
-		short corner3 = meshBuilder.vertex(shortPos, normal, shortColour, Vector2.Zero);
+		short corner1 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
+		short corner2 = meshBuilder.vertex(longPos, normal, longColourActive, Vector2.Zero);
+		short corner3 = meshBuilder.vertex(shortPos, normal, shortColourActive, Vector2.Zero);
 		meshBuilder.triangle(corner1, corner2, corner3);
 
 		if (doubleFaced)
 		{
 			normal = normal.scl(-1);
-			corner1 = meshBuilder.vertex(mediumPos, normal, mediumColour, Vector2.Zero);
-			corner2 = meshBuilder.vertex(longPos, normal, longColour, Vector2.Zero);
-			corner3 = meshBuilder.vertex(shortPos, normal, shortColour, Vector2.Zero);
+			corner1 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
+			corner2 = meshBuilder.vertex(longPos, normal, longColourActive, Vector2.Zero);
+			corner3 = meshBuilder.vertex(shortPos, normal, shortColourActive, Vector2.Zero);
 			meshBuilder.triangle(corner3, corner2, corner1);
 		}
 		
@@ -375,17 +376,17 @@ public class TetraColourSpace extends ApplicationAdapter
 		meshBuilder.begin(meshAttributes, GL20.GL_TRIANGLES);
 		
 		normal = longPos.cpy().add(mediumPos).add(uvPos);
-		corner1 = meshBuilder.vertex(longPos, normal, longColour, Vector2.Zero);
-		corner2 = meshBuilder.vertex(mediumPos, normal, mediumColour, Vector2.Zero);
-		corner3 = meshBuilder.vertex(uvPos, normal, uvColour, Vector2.Zero);
+		corner1 = meshBuilder.vertex(longPos, normal, longColourActive, Vector2.Zero);
+		corner2 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
+		corner3 = meshBuilder.vertex(uvPos, normal, uvColourActive, Vector2.Zero);
 		meshBuilder.triangle(corner1, corner2, corner3);
 
 		if (doubleFaced)
 		{
 			normal = normal.scl(-1);
-			corner1 = meshBuilder.vertex(longPos, normal, longColour, Vector2.Zero);
-			corner2 = meshBuilder.vertex(mediumPos, normal, mediumColour, Vector2.Zero);
-			corner3 = meshBuilder.vertex(uvPos, normal, uvColour, Vector2.Zero);
+			corner1 = meshBuilder.vertex(longPos, normal, longColourActive, Vector2.Zero);
+			corner2 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
+			corner3 = meshBuilder.vertex(uvPos, normal, uvColourActive, Vector2.Zero);
 			meshBuilder.triangle(corner3, corner2, corner1);
 		}
 		
@@ -393,17 +394,17 @@ public class TetraColourSpace extends ApplicationAdapter
 		meshBuilder.begin(meshAttributes, GL20.GL_TRIANGLES);
 
 		normal = longPos.cpy().add(uvPos).add(shortPos);
-		corner1 = meshBuilder.vertex(longPos, normal, longColour, Vector2.Zero);
-		corner2 = meshBuilder.vertex(uvPos, normal, uvColour, Vector2.Zero);
-		corner3 = meshBuilder.vertex(shortPos, normal, shortColour, Vector2.Zero);
+		corner1 = meshBuilder.vertex(longPos, normal, longColourActive, Vector2.Zero);
+		corner2 = meshBuilder.vertex(uvPos, normal, uvColourActive, Vector2.Zero);
+		corner3 = meshBuilder.vertex(shortPos, normal, shortColourActive, Vector2.Zero);
 		meshBuilder.triangle(corner1, corner2, corner3);
 
 		if (doubleFaced)
 		{
 			normal = normal.scl(-1);
-			corner1 = meshBuilder.vertex(longPos, normal, longColour, Vector2.Zero);
-			corner2 = meshBuilder.vertex(uvPos, normal, uvColour, Vector2.Zero);
-			corner3 = meshBuilder.vertex(shortPos, normal, shortColour, Vector2.Zero);
+			corner1 = meshBuilder.vertex(longPos, normal, longColourActive, Vector2.Zero);
+			corner2 = meshBuilder.vertex(uvPos, normal, uvColourActive, Vector2.Zero);
+			corner3 = meshBuilder.vertex(shortPos, normal, shortColourActive, Vector2.Zero);
 			meshBuilder.triangle(corner3, corner2, corner1);
 		}
 		
@@ -411,17 +412,17 @@ public class TetraColourSpace extends ApplicationAdapter
 		meshBuilder.begin(meshAttributes, GL20.GL_TRIANGLES);
 
 		normal = uvPos.cpy().add(mediumPos).add(shortPos);
-		corner1 = meshBuilder.vertex(uvPos, normal, uvColour, Vector2.Zero);
-		corner2 = meshBuilder.vertex(mediumPos, normal, mediumColour, Vector2.Zero);
-		corner3 = meshBuilder.vertex(shortPos, normal, shortColour, Vector2.Zero);
+		corner1 = meshBuilder.vertex(uvPos, normal, uvColourActive, Vector2.Zero);
+		corner2 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
+		corner3 = meshBuilder.vertex(shortPos, normal, shortColourActive, Vector2.Zero);
 		meshBuilder.triangle(corner1, corner2, corner3);
 
 		if (doubleFaced)
 		{
 			normal = normal.scl(-1);
-			corner1 = meshBuilder.vertex(uvPos, normal, uvColour, Vector2.Zero);
-			corner2 = meshBuilder.vertex(mediumPos, normal, mediumColour, Vector2.Zero);
-			corner3 = meshBuilder.vertex(shortPos, normal, shortColour, Vector2.Zero);
+			corner1 = meshBuilder.vertex(uvPos, normal, uvColourActive, Vector2.Zero);
+			corner2 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
+			corner3 = meshBuilder.vertex(shortPos, normal, shortColourActive, Vector2.Zero);
 			meshBuilder.triangle(corner3, corner2, corner1);
 		}
 		
@@ -500,18 +501,16 @@ public class TetraColourSpace extends ApplicationAdapter
 
 	private Model createSphere(ModelBuilder modelBuilder, float diameter, int primitiveType, int segments)
 	{
-		Model sphereModel = modelBuilder.createSphere(
+		return modelBuilder.createSphere(
 				diameter, diameter, diameter, segments, segments,
 				primitiveType, new Material(), Usage.Position | Usage.Normal);
-		return sphereModel;
 	}
 	
 	
 	private Model createBox(ModelBuilder modelBuilder, float size, int primitiveType)
 	{
-		Model boxModel = modelBuilder.createBox(size, size, size, primitiveType,
+		return modelBuilder.createBox(size, size, size, primitiveType,
 				new Material(), Usage.Position | Usage.Normal);
-		return boxModel;
 	}
 	
 	
@@ -662,7 +661,9 @@ public class TetraColourSpace extends ApplicationAdapter
 		{
 			Material activeMaterial = getMaterialForColour(Color.BLACK);
 			
-			DocumentBuilder docBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+			DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+			docBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+			DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
 			Document document = docBuilder.parse(dataFile);
 			Element root = document.getDocumentElement();
 			
@@ -702,7 +703,7 @@ public class TetraColourSpace extends ApplicationAdapter
 				
 				if (shape == null)
 				{
-					shape = Shape.Sphere;
+					shape = Shape.SPHERE;
 				}
 				
 				String position = positionAttr.getNodeValue();
@@ -802,13 +803,13 @@ public class TetraColourSpace extends ApplicationAdapter
 			
 			switch (point.shape)
 			{
-				case Box :
+				case BOX :
 					model = modelBox;
 					break;
-				case Pyramid :
+				case PYRAMID :
 					model = modelPyramid;
 					break;
-				case Sphere :
+				case SPHERE :
 				default :
 					model = modelSphere;
 					break;
@@ -888,20 +889,12 @@ public class TetraColourSpace extends ApplicationAdapter
 				Mesh mesh = meshBuilder.end();
 				
 				Renderable renderable = new Renderable();
-				renderable.meshPart.set("volume", mesh, 0, mesh.getNumVertices(), GL20.GL_TRIANGLES);
+				renderable.meshPart.set("volume_polygon", mesh, 0, mesh.getNumVertices(), GL20.GL_TRIANGLES);
 				renderable.material = volume.material.copy();
 				renderable.material.set(new BlendingAttribute(0.5f));
 				renderable.environment = environment;
 				
 				dataMeshes.add(renderable);
-				
-	//			renderable = new Renderable();
-	//			renderable.meshPart.set("volume_lines", mesh, 0, mesh.getNumVertices(), GL20.GL_LINES);
-	//			renderable.material = volume.material.copy();
-	//			renderable.material.set(new BlendingAttribute(0.7f));
-	//			renderable.environment = environment;
-	//			
-	//			dataMeshes.add(renderable);
 			}
 			else if (volume.coordinates.length == 6)
 			{
@@ -917,7 +910,7 @@ public class TetraColourSpace extends ApplicationAdapter
 				Mesh mesh = meshBuilder.end();
 				
 				Renderable renderable = new Renderable();
-				renderable.meshPart.set("volume", mesh, 0, mesh.getNumVertices(), GL20.GL_LINES);
+				renderable.meshPart.set("volume_line", mesh, 0, mesh.getNumVertices(), GL20.GL_LINES);
 				renderable.material = volume.material.copy();
 				renderable.environment = environment;
 				
@@ -1039,12 +1032,13 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		if (hexColour.length() == 3 || hexColour.length() == 4)
 		{
-			r = String.format("%1$s%1$s", hexColour.charAt(0));
-			g = String.format("%1$s%1$s", hexColour.charAt(1));
-			b = String.format("%1$s%1$s", hexColour.charAt(2));
+			String twoCharFormat = "%1$s%1$s";
+			r = String.format(twoCharFormat, hexColour.charAt(0));
+			g = String.format(twoCharFormat, hexColour.charAt(1));
+			b = String.format(twoCharFormat, hexColour.charAt(2));
 			
 			if (hexColour.length() == 4)
-				a = String.format("%1$s%1$s", hexColour.charAt(3));
+				a = String.format(twoCharFormat, hexColour.charAt(3));
 		}
 		else if (hexColour.length() == 6 || hexColour.length() == 8)
 		{
@@ -1104,7 +1098,7 @@ public class TetraColourSpace extends ApplicationAdapter
 			batch.render(pyramidLines);
 		}
 		batch.render(staticModels, environment);
-		if (showAxes || showPointMetrics > 0)
+		if (showAxes || showPointMetrics != POINT_METRIC_HIDE)
 			batch.render(axisLines);
 		if (showPoints)
 		{
@@ -1113,16 +1107,15 @@ public class TetraColourSpace extends ApplicationAdapter
 			if (hasSelection)
 			{
 				batch.render(selectedModel, environment);
-				if (showPointMetrics > 0)
+				if (showPointMetrics != POINT_METRIC_HIDE)
 				{
 					if (showPointMetrics == POINT_METRIC_FILLED)
 						batch.render(pointMetricsArcs);
 					batch.render(pointMetricsLines);
 				}
 			}
-			if (showHighlight && hasHighlight)
+			if (showHighlight && hasHighlight && (!hasSelection || selectedPoint != highlightPoint))
 			{
-				if (!hasSelection || selectedPoint != highlightPoint)
 					batch.render(highlightModel, environment);
 			}
 		}
@@ -1149,13 +1142,13 @@ public class TetraColourSpace extends ApplicationAdapter
 		if (hasSelection)
 		{
 			String metrics = String.format(
-					"%s\n  Theta: %.02f\n  Phi: %.02f\n  r: %.02f",
+					"%s%n  Theta: %.02f%n  Phi: %.02f%n  r: %.02f",
 					selectedPoint.name,
 					selectedPoint.metrics.x,
 					selectedPoint.metrics.y,
 					selectedPoint.metrics.z);
 			
-			font.draw(spriteBatch, metrics, 5, Gdx.graphics.getHeight()-10);
+			font.draw(spriteBatch, metrics, 5, Gdx.graphics.getHeight()-10f);
 		}
 		spriteBatch.end();
 		
@@ -1164,7 +1157,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		if (showHighlight)
 			updateHighlight();
 		
-		if (followMode != FollowMode.Off)
+		if (followMode != FollowMode.OFF)
 		{
 			updateFollow();
 		}
@@ -1209,15 +1202,15 @@ public class TetraColourSpace extends ApplicationAdapter
 	{
 		switch (followMode)
 		{
-			case Centre :
+			case CENTRE :
 				lookAt(Vector3.Zero);
 				cameraDirty = true;
 				break;
-			case Selected :
+			case SELECTED :
 				lookAt(selectedPoint.coordinates);
 				cameraDirty = true;
 				break;
-			case Off :
+			case OFF :
 			default :
 				break;
 		}
@@ -1234,7 +1227,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private Vector3 calcVector = new Vector3();
 	private boolean readCameraInput(float deltaTime)
 	{
-		if (followMode != FollowMode.Off)
+		if (followMode != FollowMode.OFF)
 			return rotationMovement(deltaTime);
 		else 
 			return translationMovement(deltaTime);
@@ -1327,7 +1320,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private boolean rotationMovement(float deltaTime)
 	{
 		Vector3 movement = new Vector3();
-		Vector3 focalPoint = (followMode == FollowMode.Centre ? Vector3.Zero : selectedPoint.coordinates);
+		Vector3 focalPoint = (followMode == FollowMode.CENTRE ? Vector3.Zero : selectedPoint.coordinates);
 		
 		float rotX = 0;
 		float rotY = 0;
@@ -1449,7 +1442,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		cameraDirty = true;
 		
 		if (crosshair != null)
-			crosshair.setCenter(Gdx.graphics.getWidth()/2, Gdx.graphics.getHeight()/2);
+			crosshair.setCenter(Gdx.graphics.getWidth()/2f, Gdx.graphics.getHeight()/2f);
 	}
 	
 	
@@ -1542,7 +1535,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		{
 			if (keycode == Keys.HOME)
 			{
-				followMode = FollowMode.Centre;
+				followMode = FollowMode.CENTRE;
 				return true;
 			}
 			else if (keycode == Keys.R)
@@ -1557,17 +1550,17 @@ public class TetraColourSpace extends ApplicationAdapter
 		@Override
 		public boolean keyUp(int keycode)
 		{
-			if (keycode == Keys.HOME && followMode == FollowMode.Centre)
+			if (keycode == Keys.HOME && followMode == FollowMode.CENTRE)
 			{
-				followMode = FollowMode.Off;
+				followMode = FollowMode.OFF;
 				return true;
 			}
 			else if (keycode == Keys.G)
 			{
-				if (followMode != FollowMode.Centre)
-					followMode = FollowMode.Centre;
+				if (followMode != FollowMode.CENTRE)
+					followMode = FollowMode.CENTRE;
 				else
-					followMode = FollowMode.Off;
+					followMode = FollowMode.OFF;
 				return true;
 			}
 			else if (keycode == Keys.C)
@@ -1592,7 +1585,7 @@ public class TetraColourSpace extends ApplicationAdapter
 			}
 			else if (keycode == Keys.M)
 			{
-				showPointMetrics = (showPointMetrics + 1) % 3;
+				showPointMetrics = (showPointMetrics + 1) % POINT_METRIC_OPTIONS;
 				return true;
 			}
 			else if (keycode == Keys.NUM_1)
@@ -1607,10 +1600,10 @@ public class TetraColourSpace extends ApplicationAdapter
 			}
 			else if (keycode == Keys.F && hasSelection)
 			{
-				if (followMode != FollowMode.Selected)
-					followMode = FollowMode.Selected;
+				if (followMode != FollowMode.SELECTED)
+					followMode = FollowMode.SELECTED;
 				else
-					followMode = FollowMode.Off;
+					followMode = FollowMode.OFF;
 				return true;
 			}
 			else if (keycode == Keys.F12)
@@ -1720,7 +1713,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		@Override
 		public boolean scrolled(int amount)
 		{
-			if (Gdx.input.isButtonPressed(Buttons.RIGHT) && followMode != FollowMode.Off)
+			if (Gdx.input.isButtonPressed(Buttons.RIGHT) && followMode != FollowMode.OFF)
 			{
 				scrollDelta += amount;
 				return true;
@@ -1731,15 +1724,11 @@ public class TetraColourSpace extends ApplicationAdapter
 	};
 	
 	
-	private Comparator<TetrahedronSide> pyramidSideComparator = new Comparator<TetrahedronSide>()
+	private Comparator<TetrahedronSide> pyramidSideComparator = (side1, side2) -> 
 	{
-		@Override
-		public int compare(TetrahedronSide o1, TetrahedronSide o2)
-		{
-			float length1 = calcVector.set(camera.position).sub(o1.centre).len2();
-			float length2 = calcVector.set(camera.position).sub(o2.centre).len2();
+			float length1 = calcVector.set(camera.position).sub(side1.centre).len2();
+			float length2 = calcVector.set(camera.position).sub(side2.centre).len2();
 			return -Float.compare(length1, length2);
-		}
 	};
 
 	
