@@ -108,8 +108,9 @@ public class TetraColourSpace extends ApplicationAdapter
 
 	private static final float MAX_ZOOM = 0.025f;
 	private static final float SENSITIVITY = -0.2f;
+	private static final float SLOW_MODIFIER = .33f;
 	private static final int SPHERE_SEGMENTS = 25;
-	private static final int LINEAR_VELOCITY = 2;
+	private static final int LINEAR_VELOCITY = 1;
 	private static final int SCROLL_VELOCITY = 5;
 	private static final int ANGULAR_VELOCITY = 50;
 	private static final int ANGULAR_AUTO_VELOCITY = 20;
@@ -209,7 +210,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		batch = new ModelBatch();
 		spriteBatch = new SpriteBatch();
 		
-		int distance = 2;
+		int distance = 1;
 		camera.translate(distance, distance, -0.3f*distance);
 		camera.near = 0.01f;
 		camera.far = 300;
@@ -1264,6 +1265,9 @@ public class TetraColourSpace extends ApplicationAdapter
 		boolean needsUpdate = false;
 		if (!movement.epsilonEquals(Vector3.Zero))
 		{
+			if (Gdx.input.isKeyPressed(Keys.SHIFT_LEFT))
+				movement.scl(SLOW_MODIFIER);
+			
 			camera.position.x = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.x + movement.x);
 			camera.position.y = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.y + movement.y);
 			camera.position.z = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.z + movement.z);
