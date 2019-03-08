@@ -54,6 +54,7 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.model.MeshPart;
 import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
+import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder.VertexInfo;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.math.MathUtils;
@@ -116,6 +117,9 @@ public class TetraColourSpace extends ApplicationAdapter
 	private static final int SCREENSHOT_SIZE = 1080;
 	private static final int SCREENSHOT_SUPERSAMPLE = 10;
 	
+	private static final int POINT_METRIC_LINES = 1;
+	private static final int POINT_METRIC_FILLED = 2;
+	
 	private File dataFile;
 	private File outputPath;
 	private PerspectiveCamera camera;
@@ -135,7 +139,8 @@ public class TetraColourSpace extends ApplicationAdapter
 	private Color shortColour = Color.BLUE;
 	private Color uvColour = Color.VIOLET;
 	private Color achroColour = Color.GRAY;
-	private Color lineColour = Color.WHITE;
+	private Color metricLineColour = new Color(.89f, .89f, .89f, 1f);
+	private Color metricFillColour = metricLineColour.cpy().mul(.5f);
 	private Color highlightColour = Color.CORAL;
 	private Color selectionColour = Color.DARK_GRAY;
 	
@@ -149,7 +154,8 @@ public class TetraColourSpace extends ApplicationAdapter
 	private TetrahedronSide[] pyramidSides;
 	private Renderable pyramidLines;
 	private Renderable axisLines;
-	private Renderable pointMetrics;
+	private Renderable pointMetricsLines;
+	private Renderable pointMetricsArcs;
 	private ModelInstance selectedModel;
 	private ModelInstance highlightModel;
 	private Map<Color, Material> materials;
@@ -165,7 +171,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private boolean showPoints = true;
 	private boolean showVolumes = true;
 	private boolean showHighlight = true;
-	private boolean showPointMetrics = false;
+	private int showPointMetrics = 0;
 	private boolean showCrosshair = true;
 	private boolean hasSelection = false;
 	private boolean hasHighlight = false;
@@ -204,8 +210,6 @@ public class TetraColourSpace extends ApplicationAdapter
 		spriteBatch = new SpriteBatch();
 		
 		int distance = 2;
-		pointMetrics = new Renderable();
-		
 		camera.translate(distance, distance, -0.3f*distance);
 		camera.near = 0.01f;
 		camera.far = 300;
@@ -217,6 +221,12 @@ public class TetraColourSpace extends ApplicationAdapter
 		environment = new Environment();
 		environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.6f, 0.6f, 0.6f, 1.0f));
 		environment.add(light);
+		
+		pointMetricsLines = new Renderable();
+		pointMetricsArcs = new Renderable();
+		pointMetricsLines.material = getMaterialForColour(metricLineColour);
+		pointMetricsArcs.material = getMaterialForColour(metricFillColour);
+		pointMetricsArcs.environment = environment;
 		
 		createScreenshotBuffer();
 		loadData();
@@ -533,6 +543,8 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		while (theta > MathUtils.PI) theta -= MathUtils.PI2;
 		while (theta < -MathUtils.PI) theta += MathUtils.PI2;
+
+		float thetaDeg = theta*MathUtils.radiansToDegrees;
 		
 		int thetaSegments = MathUtils.ceil(Math.abs(theta)*segmentsPerRadian);
 		int phiSegments = MathUtils.ceil(Math.abs(phi)*segmentsPerRadian);
@@ -541,9 +553,13 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		MeshBuilder builder = new MeshBuilder();
 		builder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_LINES);
+		
+		//Create the lines from origin
+		MeshPart lines = builder.part("lines", GL20.GL_LINES);
 		builder.line(Vector3.Zero, line);
 		builder.line(Vector3.Zero, lineInZX);
 		
+		//Create the arc outlines
 		Vector3 start = new Vector3();
 		Vector3 end = new Vector3();
 		for (int i = 2; i < thetaArc.length; i+=2)
@@ -551,6 +567,10 @@ public class TetraColourSpace extends ApplicationAdapter
 			start.set(thetaArc[i-2], 0, thetaArc[i-1]);
 			end.set(thetaArc[i], 0, thetaArc[i+1]);
 			
+			if (i == 2)
+				builder.line(Vector3.Zero, start);
+			else if (i/2 == (thetaArc.length-1)/2)
+				builder.line(end, Vector3.Zero);
 			builder.line(start, end);
 		}
 		
@@ -559,16 +579,68 @@ public class TetraColourSpace extends ApplicationAdapter
 			start.set(phiArc[i-2], phiArc[i-1], 0);
 			end.set(phiArc[i], phiArc[i+1], 0);
 			
-			start.rotate(Vector3.Y, theta*MathUtils.radiansToDegrees);
-			end.rotate(Vector3.Y, theta*MathUtils.radiansToDegrees);
-			
+			start.rotate(Vector3.Y, thetaDeg);
+			end.rotate(Vector3.Y, thetaDeg);
+
+			if (i == 2)
+				builder.line(Vector3.Zero, start);
+			else if (i/2 == (phiArc.length-1)/2)
+				builder.line(end, Vector3.Zero);
 			builder.line(start, end);
 		}
 		
-		Mesh mesh = builder.end();
+		//Create the filled arcs
+		MeshPart arcFill = builder.part("arc_fill", GL20.GL_TRIANGLES);
+		Vector3 normal = new Vector3();
+		Vector3 normalInv = new Vector3();
+		VertexInfo startVertex = new VertexInfo();
+		VertexInfo endVertex = new VertexInfo();
+		VertexInfo zeroVertex = new VertexInfo().setPos(Vector3.Zero);
+
+		normal.set(0, -1, 0);
+		normalInv.set(normal).scl(-1);
+		for (int i = 2; i < thetaArc.length; i+=2)
+		{
+			startVertex.setPos(thetaArc[i-2], 0, thetaArc[i-1]);
+			endVertex.setPos(thetaArc[i], 0, thetaArc[i+1]);
+			
+			startVertex.setNor(normal);
+			endVertex.setNor(normal);
+			zeroVertex.setNor(normal);
+			builder.triangle(startVertex, endVertex, zeroVertex);
+			
+			startVertex.setNor(normalInv);
+			endVertex.setNor(normalInv);
+			zeroVertex.setNor(normalInv);
+			builder.triangle(startVertex, zeroVertex, endVertex);
+		}
 		
-		pointMetrics.meshPart.set("mesh", mesh, 0, mesh.getNumVertices(), GL20.GL_LINES);
-		pointMetrics.material = getMaterialForColour(Color.WHITE);
+		normal.set(0, 0, -1).rotate(Vector3.Y, thetaDeg);
+		normalInv.set(normal).scl(-1);
+		for (int i = 2; i < phiArc.length; i+=2)
+		{
+			startVertex.setPos(phiArc[i-2], phiArc[i-1], 0);
+			endVertex.setPos(phiArc[i], phiArc[i+1], 0);
+			
+			startVertex.position.rotate(Vector3.Y, thetaDeg);
+			endVertex.position.rotate(Vector3.Y, thetaDeg);
+			
+			startVertex.setNor(normal);
+			endVertex.setNor(normal);
+			zeroVertex.setNor(normal);
+			builder.triangle(startVertex, endVertex, zeroVertex);
+
+			startVertex.setNor(normalInv);
+			endVertex.setNor(normalInv);
+			zeroVertex.setNor(normalInv);
+			builder.triangle(startVertex, zeroVertex, endVertex);
+		}
+		
+		Mesh mesh = builder.end();
+		pointMetricsLines.meshPart.set(lines);
+		pointMetricsArcs.meshPart.set(arcFill);
+		
+		disposables.add(mesh);
 	}
 
 
@@ -872,8 +944,10 @@ public class TetraColourSpace extends ApplicationAdapter
 					uvColour = getColourFromHex(value);
 				else if (name.equalsIgnoreCase("colour_achro"))
 					achroColour = getColourFromHex(value);
-				else if (name.equalsIgnoreCase("colour_lines"))
-					lineColour = getColourFromHex(value);
+				else if (name.equalsIgnoreCase("colour_arc_lines"))
+					metricLineColour = getColourFromHex(value);
+				else if (name.equalsIgnoreCase("colour_arc_fill"))
+					metricFillColour = getColourFromHex(value);
 				else if (name.equalsIgnoreCase("colour_highlight"))
 					highlightColour = getColourFromHex(value);
 				else if (name.equalsIgnoreCase("colour_selection"))
@@ -1018,7 +1092,7 @@ public class TetraColourSpace extends ApplicationAdapter
 			batch.render(pyramidLines);
 		}
 		batch.render(staticModels, environment);
-		if (showAxes || showPointMetrics)
+		if (showAxes || showPointMetrics > 0)
 			batch.render(axisLines);
 		if (showPoints)
 		{
@@ -1027,8 +1101,12 @@ public class TetraColourSpace extends ApplicationAdapter
 			if (hasSelection)
 			{
 				batch.render(selectedModel, environment);
-				if (showPointMetrics)
-					batch.render(pointMetrics);
+				if (showPointMetrics > 0)
+				{
+					if (showPointMetrics == POINT_METRIC_FILLED)
+						batch.render(pointMetricsArcs);
+					batch.render(pointMetricsLines);
+				}
 			}
 			if (showHighlight && hasHighlight)
 			{
@@ -1481,7 +1559,7 @@ public class TetraColourSpace extends ApplicationAdapter
 			}
 			else if (keycode == Keys.M)
 			{
-				showPointMetrics = !showPointMetrics;
+				showPointMetrics = (showPointMetrics + 1) % 3;
 				return true;
 			}
 			else if (keycode == Keys.NUM_1)
