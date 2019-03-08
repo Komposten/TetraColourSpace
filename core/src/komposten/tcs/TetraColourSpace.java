@@ -65,6 +65,8 @@ import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.github.quickhull3d.QuickHull3D;
 
+import komposten.utilities.logging.Level;
+import komposten.utilities.logging.Logger;
 import komposten.utilities.tools.FileOperations;
 import komposten.utilities.tools.Geometry;
 import komposten.utilities.tools.MathOps;
@@ -120,6 +122,9 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private static final int POINT_METRIC_LINES = 1;
 	private static final int POINT_METRIC_FILLED = 2;
+	
+	private Logger logger;
+	private List<Point> selectionLog;
 	
 	private File dataFile;
 	private File outputPath;
@@ -189,6 +194,8 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		this.dataFile = dataFile;
 		this.outputPath = outputPath;
+		this.logger = new Logger("log.txt");
+		this.selectionLog = new LinkedList<>();
 	}
 
 
@@ -762,18 +769,18 @@ public class TetraColourSpace extends ApplicationAdapter
 		}
 		catch (IOException e)
 		{
-			System.err.println("Error reading file: " + dataFile.getPath());
-			System.err.println("  Cause: " + e.getMessage());
+			String msg = "Error reading data file: " + dataFile.getPath();
+			logger.log(Level.FATAL, getClass().getSimpleName(), msg, e, false);
 		}
 		catch (ParserConfigurationException e)
 		{
-			System.err.println("Error creating the XML parser!");
-			System.err.println("  Cause: " + e.getMessage());
+			String msg = "Error creating the XML parser!";
+			logger.log(Level.FATAL, getClass().getSimpleName(), msg, e, false);
 		}
 		catch (SAXException e)
 		{
-			System.err.println("Error parsing file: " + dataFile.getPath());
-			System.err.println("  Cause: " + e.getMessage());
+			String msg = "Error parsing data file: " + dataFile.getPath();
+			logger.log(Level.FATAL, getClass().getSimpleName(), msg, e, false);
 		}
 		
 		ModelBuilder builder = new ModelBuilder();
@@ -1175,8 +1182,8 @@ public class TetraColourSpace extends ApplicationAdapter
 		}
 		catch (IOException e)
 		{
-			System.err.println("Error writing file: " + file.path());
-			System.err.println("  Cause: " + e.getMessage());
+			String msg = "Error saving screenshot to " + file.path();
+			logger.log(Level.ERROR, getClass().getSimpleName(), msg, e, false);
 		}
 		
 		pixmap.dispose();
@@ -1501,6 +1508,13 @@ public class TetraColourSpace extends ApplicationAdapter
 		{
 			disposable.dispose();
 		}
+		
+		StringBuilder builder = new StringBuilder();
+		builder.append("Point selections:");
+		for (Point point : selectionLog)
+			builder.append('\n').append(point);
+		
+		logger.log(Level.INFO, builder.toString());
 	}
 	
 	
@@ -1663,7 +1677,7 @@ public class TetraColourSpace extends ApplicationAdapter
 					hasSelection = true;
 					selectedModel.transform.setTranslation(model.transform.getTranslation(calcVector));
 					createPointMetricMesh(selectedPoint);
-					System.out.println(selectedPoint);
+					selectionLog.add(selectedPoint);
 				}
 				else
 				{
