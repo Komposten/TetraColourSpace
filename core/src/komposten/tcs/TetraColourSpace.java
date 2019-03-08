@@ -141,17 +141,17 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private FrameBuffer screenshotBuffer;
 	
-	private Color backgroundColour = new Color(.12f, .12f, .12f, 1f);
-	private Color crosshairColour = null;
-	private Color longColour = Color.RED;
-	private Color mediumColour = Color.GREEN;
-	private Color shortColour = Color.BLUE;
-	private Color uvColour = Color.VIOLET;
-	private Color achroColour = Color.GRAY;
-	private Color metricLineColour = new Color(.89f, .89f, .89f, 1f);
-	private Color metricFillColour = metricLineColour.cpy().mul(.5f);
-	private Color highlightColour = Color.CORAL;
-	private Color selectionColour = Color.DARK_GRAY;
+	private Color colourBackground = new Color(.12f, .12f, .12f, 1f);
+	private Color colourCrosshair = null;
+	private Color colourCong = Color.RED;
+	private Color colourMedium = Color.GREEN;
+	private Color colourShort = Color.BLUE;
+	private Color colourUv = Color.VIOLET;
+	private Color colourAchro = Color.GRAY;
+	private Color colourMetricLine = new Color(.89f, .89f, .89f, 1f);
+	private Color colourMetricFill = colourMetricLine.cpy().mul(.5f);
+	private Color colourHighlight = Color.CORAL;
+	private Color colourSelection = Color.DARK_GRAY;
 	
 	private List<Disposable> disposables;
 	private List<Point> dataPoints;
@@ -237,8 +237,8 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		pointMetricsLines = new Renderable();
 		pointMetricsArcs = new Renderable();
-		pointMetricsLines.material = getMaterialForColour(metricLineColour);
-		pointMetricsArcs.material = getMaterialForColour(metricFillColour);
+		pointMetricsLines.material = getMaterialForColour(colourMetricLine);
+		pointMetricsArcs.material = getMaterialForColour(colourMetricFill);
 		pointMetricsArcs.environment = environment;
 		
 		createScreenshotBuffer();
@@ -252,13 +252,13 @@ public class TetraColourSpace extends ApplicationAdapter
 		Texture crosshairTexture = new Texture(Gdx.files.internal("crosshair.png"));
 		crosshair = new Sprite(crosshairTexture);
 		
-		if (crosshairColour == null)
+		if (colourCrosshair == null)
 		{
-			crosshairColour = Color.WHITE.cpy().sub(backgroundColour);
-			crosshairColour.a = 1f;
+			colourCrosshair = Color.WHITE.cpy().sub(colourBackground);
+			colourCrosshair.a = 1f;
 		}
 		
-		crosshair.setColor(crosshairColour);
+		crosshair.setColor(colourCrosshair);
 		crosshair.getColor().a = 1f;
 		disposables.add(crosshairTexture);
 	}
@@ -284,8 +284,8 @@ public class TetraColourSpace extends ApplicationAdapter
 		createPyramidCorners(tetrahedron, modelBuilder);
 
 		Model model = createSphere(modelBuilder, 0.025f, GL20.GL_LINES, 10);
-		selectedModel = createModelInstance(model, Vector3.Zero, selectionColour);
-		highlightModel = createModelInstance(model, Vector3.Zero, highlightColour);
+		selectedModel = createModelInstance(model, Vector3.Zero, colourSelection);
+		highlightModel = createModelInstance(model, Vector3.Zero, colourHighlight);
 		
 		MeshBuilder meshBuilder = new MeshBuilder();
 		createTCSPyramid(meshBuilder);
@@ -352,10 +352,10 @@ public class TetraColourSpace extends ApplicationAdapter
 		Vector3 shortPos = tetrahedron.shortPos;
 		Vector3 uvPos = tetrahedron.uvPos;
 		
-		Color longColourActive = (applyColours ? this.longColour : Color.WHITE);
-		Color mediumColourActive = (applyColours ? this.mediumColour : Color.WHITE);
-		Color shortColourActive = (applyColours ? this.shortColour : Color.WHITE);
-		Color uvColourActive = (applyColours ? this.uvColour : Color.WHITE);
+		Color longColourActive = (applyColours ? this.colourCong : Color.WHITE);
+		Color mediumColourActive = (applyColours ? this.colourMedium : Color.WHITE);
+		Color shortColourActive = (applyColours ? this.colourShort : Color.WHITE);
+		Color uvColourActive = (applyColours ? this.colourUv : Color.WHITE);
 
 		Vector3 normal = mediumPos.cpy().add(longPos).add(shortPos);
 		short corner1 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
@@ -458,11 +458,11 @@ public class TetraColourSpace extends ApplicationAdapter
 		float diameter = 0.03f;
 		Model sphereModel = createSphere(modelBuilder, diameter, GL20.GL_TRIANGLES);
 		
-		ModelInstance redSphere = createModelInstance(sphereModel, tetrahedron.longPos, longColour);
-		ModelInstance greenSphere = createModelInstance(sphereModel, tetrahedron.mediumPos, mediumColour);
-		ModelInstance blueSphere = createModelInstance(sphereModel, tetrahedron.shortPos, shortColour);
-		ModelInstance uvSphere = createModelInstance(sphereModel, tetrahedron.uvPos, uvColour);
-		ModelInstance achroSphere = createModelInstance(sphereModel, tetrahedron.achroPos, achroColour);
+		ModelInstance redSphere = createModelInstance(sphereModel, tetrahedron.longPos, colourCong);
+		ModelInstance greenSphere = createModelInstance(sphereModel, tetrahedron.mediumPos, colourMedium);
+		ModelInstance blueSphere = createModelInstance(sphereModel, tetrahedron.shortPos, colourShort);
+		ModelInstance uvSphere = createModelInstance(sphereModel, tetrahedron.uvPos, colourUv);
+		ModelInstance achroSphere = createModelInstance(sphereModel, tetrahedron.achroPos, colourAchro);
 		
 		staticModels.add(redSphere);
 		staticModels.add(greenSphere);
@@ -481,9 +481,9 @@ public class TetraColourSpace extends ApplicationAdapter
 		float length = 0.2f;
 		Vector3 start = new Vector3();
 		Vector3 end = new Vector3();
-		meshBuilder.line(start.set(-length, 0, 0), shortColour, end.set(length, 0, 0), longColour);
-		meshBuilder.line(start.set(0, -length, 0), Color.WHITE, end.set(0, length, 0), uvColour);
-		meshBuilder.line(start.set(0, 0, -length), mediumColour, end.set(0, 0, length), longColour.cpy().lerp(shortColour, 0.5f));
+		meshBuilder.line(start.set(-length, 0, 0), colourShort, end.set(length, 0, 0), colourCong);
+		meshBuilder.line(start.set(0, -length, 0), Color.WHITE, end.set(0, length, 0), colourUv);
+		meshBuilder.line(start.set(0, 0, -length), colourMedium, end.set(0, 0, length), colourCong.cpy().lerp(colourShort, 0.5f));
 		
 		Mesh mesh = meshBuilder.end();
 		
@@ -938,25 +938,25 @@ public class TetraColourSpace extends ApplicationAdapter
 				String value = child.getTextContent();
 
 				if (name.equalsIgnoreCase("background"))
-					backgroundColour = getColourFromHex(value);
+					colourBackground = getColourFromHex(value);
 				else if (name.equalsIgnoreCase("colour_long"))
-					longColour = getColourFromHex(value);
+					colourCong = getColourFromHex(value);
 				else if (name.equalsIgnoreCase("colour_medium"))
-					mediumColour = getColourFromHex(value);
+					colourMedium = getColourFromHex(value);
 				else if (name.equalsIgnoreCase("colour_short"))
-					shortColour = getColourFromHex(value);
+					colourShort = getColourFromHex(value);
 				else if (name.equalsIgnoreCase("colour_uv"))
-					uvColour = getColourFromHex(value);
+					colourUv = getColourFromHex(value);
 				else if (name.equalsIgnoreCase("colour_achro"))
-					achroColour = getColourFromHex(value);
+					colourAchro = getColourFromHex(value);
 				else if (name.equalsIgnoreCase("colour_arc_lines"))
-					metricLineColour = getColourFromHex(value);
+					colourMetricLine = getColourFromHex(value);
 				else if (name.equalsIgnoreCase("colour_arc_fill"))
-					metricFillColour = getColourFromHex(value);
+					colourMetricFill = getColourFromHex(value);
 				else if (name.equalsIgnoreCase("colour_highlight"))
-					highlightColour = getColourFromHex(value);
+					colourHighlight = getColourFromHex(value);
 				else if (name.equalsIgnoreCase("colour_selection"))
-					selectionColour = getColourFromHex(value);
+					colourSelection = getColourFromHex(value);
 			}
 		}
 	}
@@ -1082,7 +1082,7 @@ public class TetraColourSpace extends ApplicationAdapter
 			screenshotBuffer.begin();
 		}
 		
-		Gdx.gl.glClearColor(backgroundColour.r, backgroundColour.g, backgroundColour.b, backgroundColour.a);
+		Gdx.gl.glClearColor(colourBackground.r, colourBackground.g, colourBackground.b, colourBackground.a);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
 		batch.begin(camera);
