@@ -35,6 +35,7 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Mesh;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Pixmap.Filter;
@@ -132,6 +133,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private File dataFile;
 	private File outputPath;
 	private PerspectiveCamera camera;
+	private OrthographicCamera spriteCamera;
 	private ModelBatch batch;
 	private Environment environment;
 	private SpriteBatch spriteBatch;
@@ -183,6 +185,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private boolean showHighlight = true;
 	private int showPointMetrics = 0;
 	private boolean showCrosshair = true;
+	private boolean showLegend = false;
 	private boolean hasSelection = false;
 	private boolean hasHighlight = false;
 	private boolean cameraDirty = true;
@@ -219,6 +222,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		materials = new HashMap<>();
 		pointToModelMap = new HashMap<>();
 		camera = new PerspectiveCamera(67, 1, 1);
+		spriteCamera = new OrthographicCamera();
 		batch = new ModelBatch();
 		spriteBatch = new SpriteBatch();
 		font = new BitmapFont();
@@ -686,12 +690,13 @@ public class TetraColourSpace extends ApplicationAdapter
 				Node nameAttr = attributes.getNamedItem("name");
 				Node positionAttr = attributes.getNamedItem("position");
 				Node shapeAttr = attributes.getNamedItem("shape");
+				String colourHex = "";
 				
 				String name = "Point " + (i+1);
 				Shape shape = null;
 				if (colourAttr != null)
 				{
-					String colourHex = colourAttr.getNodeValue().trim();
+					colourHex = colourAttr.getNodeValue().trim();
 					Color colour = getColourFromHex(colourHex);
 					activeMaterial = getMaterialForColour(colour);
 				}
@@ -714,7 +719,7 @@ public class TetraColourSpace extends ApplicationAdapter
 				String position = positionAttr.getNodeValue();
 				Vector3 metrics = getColourSpaceMetricsFromLine(position);
 				Vector3 coords = createVectorFromAngles(metrics.x, metrics.y, metrics.z);
-				Point point = new Point(name, coords, metrics, activeMaterial, shape);
+				Point point = new Point(name, coords, metrics, activeMaterial, shape, colourHex);
 				dataPoints.add(point);
 			}
 			
@@ -1157,6 +1162,16 @@ public class TetraColourSpace extends ApplicationAdapter
 			
 			font.draw(spriteBatch, metrics, 5, Gdx.graphics.getHeight()-10f);
 		}
+		if (showLegend)
+		{
+			StringBuilder legend = new StringBuilder();
+			for (Point point : dataPoints)
+			{
+				legend.append('[').append(point.colour).append(']').append(point.name).append('\n');
+			}
+			
+			font.draw(spriteBatch, legend, 5, Gdx.graphics.getHeight()-10f);
+		}
 		spriteBatch.end();
 		
 		readInput(Gdx.graphics.getDeltaTime());
@@ -1448,6 +1463,9 @@ public class TetraColourSpace extends ApplicationAdapter
 		camera.viewportHeight = ratio;
 		cameraDirty = true;
 		
+		spriteCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+		spriteBatch.setProjectionMatrix(spriteCamera.combined);
+		
 		if (crosshair != null)
 			crosshair.setCenter(Gdx.graphics.getWidth()/2f, Gdx.graphics.getHeight()/2f);
 	}
@@ -1584,6 +1602,10 @@ public class TetraColourSpace extends ApplicationAdapter
 			{
 				showCrosshair = !showCrosshair;
 				return true;
+			}
+			else if (keycode == Keys.L)
+			{
+				showLegend = !showLegend;
 			}
 			else if (keycode == Keys.T)
 			{
@@ -1755,15 +1777,17 @@ public class TetraColourSpace extends ApplicationAdapter
 		Vector3 coordinates;
 		Vector3 metrics;
 		Material material;
-		Shape shape;		
+		Shape shape;
+		String colour;		
 		
-		public Point(String name, Vector3 coordinates, Vector3 metrics, Material material, Shape shape)
+		public Point(String name, Vector3 coordinates, Vector3 metrics, Material material, Shape shape, String colourHex)
 		{
 			this.name = name;
 			this.coordinates = coordinates;
 			this.metrics = metrics;
 			this.material = material;
 			this.shape = shape;
+			this.colour = colourHex;
 		}
 		
 		
