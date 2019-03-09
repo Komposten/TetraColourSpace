@@ -154,11 +154,12 @@ public class TetraColourSpace extends ApplicationAdapter
 	private Color colourSelection = Color.DARK_GRAY;
 	
 	private List<Disposable> disposables;
+	private List<Disposable> volumeMeshes;
 	private List<Point> dataPoints;
 	private List<Volume> dataVolumes;
 	private List<ModelInstance> staticModels;
-	private List<ModelInstance> dataModels;
-	private List<Renderable> dataMeshes;
+	private List<ModelInstance> pointModelInstances;
+	private List<Renderable> volumeRenderables;
 	private Map<Point, ModelInstance> pointToModelMap;
 	private TetrahedronSide[] pyramidSides;
 	private Renderable pyramidLines;
@@ -209,11 +210,12 @@ public class TetraColourSpace extends ApplicationAdapter
 		Gdx.input.setInputProcessor(inputProcessor);
 		
 		disposables = new ArrayList<>();
+		volumeMeshes = new ArrayList<>();
 		dataPoints = new ArrayList<>();
 		dataVolumes = new ArrayList<>();
 		staticModels = new ArrayList<>();
-		dataModels = new ArrayList<>();
-		dataMeshes = new ArrayList<>();
+		pointModelInstances = new ArrayList<>();
+		volumeRenderables = new ArrayList<>();
 		materials = new HashMap<>();
 		pointToModelMap = new HashMap<>();
 		camera = new PerspectiveCamera(67, 1, 1);
@@ -326,7 +328,10 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_TRIANGLES);
 		for (Mesh side : sides)
+		{
 			meshBuilder.addMesh(side);
+			side.dispose();
+		}
 		
 		return meshBuilder.end();
 	}
@@ -818,7 +823,7 @@ public class TetraColourSpace extends ApplicationAdapter
 			ModelInstance instance = new ModelInstance(model);
 			instance.transform.translate(point.coordinates);
 			setMaterial(point.material, instance);
-			dataModels.add(instance);
+			pointModelInstances.add(instance);
 			pointToModelMap.put(point, instance);
 		}
 		
@@ -894,7 +899,8 @@ public class TetraColourSpace extends ApplicationAdapter
 				renderable.material.set(new BlendingAttribute(0.5f));
 				renderable.environment = environment;
 				
-				dataMeshes.add(renderable);
+				volumeRenderables.add(renderable);
+				volumeMeshes.add(mesh);
 			}
 			else if (volume.coordinates.length == 6)
 			{
@@ -914,7 +920,8 @@ public class TetraColourSpace extends ApplicationAdapter
 				renderable.material = volume.material.copy();
 				renderable.environment = environment;
 				
-				dataMeshes.add(renderable);
+				volumeRenderables.add(renderable);
+				volumeMeshes.add(mesh);
 			}
 		}
 	}
@@ -1102,7 +1109,7 @@ public class TetraColourSpace extends ApplicationAdapter
 			batch.render(axisLines);
 		if (showPoints)
 		{
-			batch.render(dataModels, environment);
+			batch.render(pointModelInstances, environment);
 			
 			if (hasSelection)
 			{
@@ -1121,7 +1128,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		}
 		if (showVolumes)
 		{
-			for (Renderable mesh : dataMeshes)
+			for (Renderable mesh : volumeRenderables)
 				batch.render(mesh);
 		}
 		batch.end();
@@ -1512,10 +1519,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	{
 		screenshotBuffer.dispose();
 		batch.dispose();
-		for (Disposable disposable : disposables)
-		{
-			disposable.dispose();
-		}
+		disposeObjects();
 		
 		StringBuilder builder = new StringBuilder();
 		builder.append("Point selections:");
@@ -1523,6 +1527,19 @@ public class TetraColourSpace extends ApplicationAdapter
 			builder.append('\n').append(point);
 		
 		logger.log(Level.INFO, builder.toString());
+	}
+
+
+	private void disposeObjects()
+	{
+		for (Disposable disposable : disposables)
+		{
+			disposable.dispose();
+		}
+		for (Disposable mesh : volumeMeshes)
+		{
+			mesh.dispose();
+		}
 	}
 	
 	
