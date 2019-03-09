@@ -691,7 +691,15 @@ public class TetraColourSpace extends ApplicationAdapter
 				Element group = (Element) groups.item(g);
 				
 				Node groupNameAttr = group.getAttributeNode("name");
+				Node groupShapeAttr = group.getAttributeNode("shape");
+				
 				String groupName = (groupNameAttr != null ? groupNameAttr.getNodeValue().trim() : Integer.toString(g));
+				Shape shape = Shape.SPHERE;
+				if (groupShapeAttr != null)
+				{
+					Shape attrShape = Shape.fromString(groupShapeAttr.getNodeValue().trim());
+					shape = (attrShape != null ? attrShape : shape);
+				}
 				
 				List<Point> pointList = new LinkedList<>();
 				
@@ -704,11 +712,9 @@ public class TetraColourSpace extends ApplicationAdapter
 					Node colourAttr = attributes.getNamedItem("colour");
 					Node nameAttr = attributes.getNamedItem("name");
 					Node positionAttr = attributes.getNamedItem("position");
-					Node shapeAttr = attributes.getNamedItem("shape");
 					String colourHex = "";
 					
 					String name = "Point " + (i+1);
-					Shape shape = null;
 					if (colourAttr != null)
 					{
 						colourHex = colourAttr.getNodeValue().trim();
@@ -721,24 +727,14 @@ public class TetraColourSpace extends ApplicationAdapter
 						name = nameAttr.getNodeValue().trim();
 					}
 					
-					if (shapeAttr != null)
-					{
-						shape = Shape.fromString(shapeAttr.getNodeValue().trim());
-					}
-					
-					if (shape == null)
-					{
-						shape = Shape.SPHERE;
-					}
-					
 					String position = positionAttr.getNodeValue();
 					Vector3 metrics = getColourSpaceMetricsFromLine(position);
 					Vector3 coords = createVectorFromAngles(metrics.x, metrics.y, metrics.z);
-					Point point = new Point(name, coords, metrics, activeMaterial, shape, colourHex);
+					Point point = new Point(name, coords, metrics, activeMaterial, colourHex);
 					pointList.add(point);
 				}
 				
-				dataGroups.add(new PointGroup(groupName, pointList));
+				dataGroups.add(new PointGroup(groupName, pointList, shape));
 			}
 			
 			NodeList volumes = root.getElementsByTagName("volume");
@@ -827,23 +823,24 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		for (PointGroup group : dataGroups)
 		{
+			Model model;
+			
+			switch (group.shape)
+			{
+				case BOX :
+					model = modelBox;
+					break;
+				case PYRAMID :
+					model = modelPyramid;
+					break;
+				case SPHERE :
+				default :
+					model = modelSphere;
+					break;
+			}
+			
 			for (Point point : group.points)
 			{
-				Model model;
-				
-				switch (point.shape)
-				{
-					case BOX :
-						model = modelBox;
-						break;
-					case PYRAMID :
-						model = modelPyramid;
-						break;
-					case SPHERE :
-					default :
-						model = modelSphere;
-						break;
-				}
 				
 				ModelInstance instance = new ModelInstance(model);
 				instance.transform.translate(point.coordinates);
@@ -1813,11 +1810,13 @@ public class TetraColourSpace extends ApplicationAdapter
 	{
 		String name;
 		List<Point> points;
+		Shape shape;
 		
-		public PointGroup(String name, List<Point> points)
+		public PointGroup(String name, List<Point> points, Shape shape)
 		{
 			this.name = name;
 			this.points = points;
+			this.shape = shape;
 		}
 	}
 
@@ -1828,16 +1827,14 @@ public class TetraColourSpace extends ApplicationAdapter
 		Vector3 coordinates;
 		Vector3 metrics;
 		Material material;
-		Shape shape;
 		String colour;		
 		
-		public Point(String name, Vector3 coordinates, Vector3 metrics, Material material, Shape shape, String colourHex)
+		public Point(String name, Vector3 coordinates, Vector3 metrics, Material material, String colourHex)
 		{
 			this.name = name;
 			this.coordinates = coordinates;
 			this.metrics = metrics;
 			this.material = material;
-			this.shape = shape;
 			this.colour = colourHex;
 		}
 		
