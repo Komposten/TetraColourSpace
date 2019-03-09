@@ -157,7 +157,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private List<Disposable> disposables;
 	private List<Disposable> volumeMeshes;
-	private List<Point> dataPoints;
+	private List<PointGroup> dataGroups;
 	private List<Volume> dataVolumes;
 	private List<ModelInstance> staticModels;
 	private List<ModelInstance> pointModelInstances;
@@ -214,7 +214,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		disposables = new ArrayList<>();
 		volumeMeshes = new ArrayList<>();
-		dataPoints = new ArrayList<>();
+		dataGroups = new ArrayList<>();
 		dataVolumes = new ArrayList<>();
 		staticModels = new ArrayList<>();
 		pointModelInstances = new ArrayList<>();
@@ -680,47 +680,60 @@ public class TetraColourSpace extends ApplicationAdapter
 			createStaticModels();
 			createCrosshair();
 			
-			NodeList points = root.getElementsByTagName("point");
-			for (int i = 0; i < points.getLength(); i++)
+			NodeList groups = root.getElementsByTagName("group");
+			for (int g = 0; g < groups.getLength(); g++)
 			{
-				Node pointNode = points.item(i);
+				Element group = (Element) groups.item(g);
 				
-				NamedNodeMap attributes = pointNode.getAttributes();
-				Node colourAttr = attributes.getNamedItem("colour");
-				Node nameAttr = attributes.getNamedItem("name");
-				Node positionAttr = attributes.getNamedItem("position");
-				Node shapeAttr = attributes.getNamedItem("shape");
-				String colourHex = "";
+				Node groupNameAttr = group.getAttributeNode("name");
+				String groupName = (groupNameAttr != null ? groupNameAttr.getNodeValue().trim() : Integer.toString(g));
 				
-				String name = "Point " + (i+1);
-				Shape shape = null;
-				if (colourAttr != null)
+				List<Point> pointList = new LinkedList<>();
+				
+				NodeList points = group.getElementsByTagName("point");
+				for (int i = 0; i < points.getLength(); i++)
 				{
-					colourHex = colourAttr.getNodeValue().trim();
-					Color colour = getColourFromHex(colourHex);
-					activeMaterial = getMaterialForColour(colour);
+					Node pointNode = points.item(i);
+					
+					NamedNodeMap attributes = pointNode.getAttributes();
+					Node colourAttr = attributes.getNamedItem("colour");
+					Node nameAttr = attributes.getNamedItem("name");
+					Node positionAttr = attributes.getNamedItem("position");
+					Node shapeAttr = attributes.getNamedItem("shape");
+					String colourHex = "";
+					
+					String name = "Point " + (i+1);
+					Shape shape = null;
+					if (colourAttr != null)
+					{
+						colourHex = colourAttr.getNodeValue().trim();
+						Color colour = getColourFromHex(colourHex);
+						activeMaterial = getMaterialForColour(colour);
+					}
+					
+					if (nameAttr != null)
+					{
+						name = nameAttr.getNodeValue().trim();
+					}
+					
+					if (shapeAttr != null)
+					{
+						shape = Shape.fromString(shapeAttr.getNodeValue().trim());
+					}
+					
+					if (shape == null)
+					{
+						shape = Shape.SPHERE;
+					}
+					
+					String position = positionAttr.getNodeValue();
+					Vector3 metrics = getColourSpaceMetricsFromLine(position);
+					Vector3 coords = createVectorFromAngles(metrics.x, metrics.y, metrics.z);
+					Point point = new Point(name, coords, metrics, activeMaterial, shape, colourHex);
+					pointList.add(point);
 				}
 				
-				if (nameAttr != null)
-				{
-					name = nameAttr.getNodeValue().trim();
-				}
-				
-				if (shapeAttr != null)
-				{
-					shape = Shape.fromString(shapeAttr.getNodeValue().trim());
-				}
-				
-				if (shape == null)
-				{
-					shape = Shape.SPHERE;
-				}
-				
-				String position = positionAttr.getNodeValue();
-				Vector3 metrics = getColourSpaceMetricsFromLine(position);
-				Vector3 coords = createVectorFromAngles(metrics.x, metrics.y, metrics.z);
-				Point point = new Point(name, coords, metrics, activeMaterial, shape, colourHex);
-				dataPoints.add(point);
+				dataGroups.add(new PointGroup(groupName, pointList));
 			}
 			
 			NodeList volumes = root.getElementsByTagName("volume");
@@ -807,29 +820,32 @@ public class TetraColourSpace extends ApplicationAdapter
 		disposables.add(modelBox);
 		disposables.add(modelPyramid);
 		
-		for (Point point : dataPoints)
+		for (PointGroup group : dataGroups)
 		{
-			Model model;
-			
-			switch (point.shape)
+			for (Point point : group.points)
 			{
-				case BOX :
-					model = modelBox;
-					break;
-				case PYRAMID :
-					model = modelPyramid;
-					break;
-				case SPHERE :
-				default :
-					model = modelSphere;
-					break;
+				Model model;
+				
+				switch (point.shape)
+				{
+					case BOX :
+						model = modelBox;
+						break;
+					case PYRAMID :
+						model = modelPyramid;
+						break;
+					case SPHERE :
+					default :
+						model = modelSphere;
+						break;
+				}
+				
+				ModelInstance instance = new ModelInstance(model);
+				instance.transform.translate(point.coordinates);
+				setMaterial(point.material, instance);
+				pointModelInstances.add(instance);
+				pointToModelMap.put(point, instance);
 			}
-			
-			ModelInstance instance = new ModelInstance(model);
-			instance.transform.translate(point.coordinates);
-			setMaterial(point.material, instance);
-			pointModelInstances.add(instance);
-			pointToModelMap.put(point, instance);
 		}
 		
 		MeshBuilder meshBuilder = new MeshBuilder();
@@ -1165,9 +1181,12 @@ public class TetraColourSpace extends ApplicationAdapter
 		if (showLegend)
 		{
 			StringBuilder legend = new StringBuilder();
-			for (Point point : dataPoints)
+			for (PointGroup group : dataGroups)
 			{
-				legend.append('[').append(point.colour).append(']').append(point.name).append('\n');
+				for (Point point : group.points)
+				{
+					legend.append('[').append(point.colour).append(']').append(point.name).append('\n');
+				}
 			}
 			
 			font.draw(spriteBatch, legend, 5, Gdx.graphics.getHeight()-10f);
@@ -1499,20 +1518,23 @@ public class TetraColourSpace extends ApplicationAdapter
 		Vector3 calc2 = new Vector3();
 		Vector3 calc3 = new Vector3();
 		
-		for (Point point : dataPoints)
+		for (PointGroup group : dataGroups)
 		{
-			calc1.set(point.coordinates).sub(point1);
-			calc2.set(point.coordinates).sub(point2);
-			calc1.crs(calc2);
-			
-			calc3.set(point2).sub(point1);
-			
-			float dist = calc1.len() / calc3.len();
-			
-			if (dist < closestDist)
+			for (Point point : group.points)
 			{
-				closest = point;
-				closestDist = dist;
+				calc1.set(point.coordinates).sub(point1);
+				calc2.set(point.coordinates).sub(point2);
+				calc1.crs(calc2);
+				
+				calc3.set(point2).sub(point1);
+				
+				float dist = calc1.len() / calc3.len();
+				
+				if (dist < closestDist)
+				{
+					closest = point;
+					closestDist = dist;
+				}
 			}
 		}
 		
@@ -1772,6 +1794,19 @@ public class TetraColourSpace extends ApplicationAdapter
 			float length2 = calcVector.set(camera.position).sub(side2.centre).len2();
 			return -Float.compare(length1, length2);
 	};
+	
+	
+	private static class PointGroup
+	{
+		String name;
+		List<Point> points;
+		
+		public PointGroup(String name, List<Point> points)
+		{
+			this.name = name;
+			this.points = points;
+		}
+	}
 
 	
 	private static class Point
