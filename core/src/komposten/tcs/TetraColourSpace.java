@@ -122,10 +122,15 @@ public class TetraColourSpace extends ApplicationAdapter
 	private static final int MAX_DISTANCE = 5;
 	private static final int SCREENSHOT_SIZE = 1080;
 	private static final int SCREENSHOT_SUPERSAMPLE = 10;
-	
+
 	private static final int POINT_METRIC_HIDE = 0;
 	private static final int POINT_METRIC_FILLED = 2;
 	private static final int POINT_METRIC_OPTIONS = 3;
+	
+	private static final int LEGEND_HIDE = 0;
+	private static final int LEGEND_GROUPS = 1;
+	private static final int LEGEND_POINTS = 2;
+	private static final int LEGEND_OPTIONS = 3;
 	
 	private Logger logger;
 	private List<Point> selectionLog;
@@ -185,7 +190,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private boolean showHighlight = true;
 	private int showPointMetrics = 0;
 	private boolean showCrosshair = true;
-	private boolean showLegend = false;
+	private int showLegend = 0;
 	private boolean hasSelection = false;
 	private boolean hasHighlight = false;
 	private boolean cameraDirty = true;
@@ -1178,14 +1183,22 @@ public class TetraColourSpace extends ApplicationAdapter
 			
 			font.draw(spriteBatch, metrics, 5, Gdx.graphics.getHeight()-10f);
 		}
-		if (showLegend)
+		if (showLegend != LEGEND_HIDE)
 		{
 			StringBuilder legend = new StringBuilder();
+			
 			for (PointGroup group : dataGroups)
 			{
-				for (Point point : group.points)
+				if (showLegend == LEGEND_POINTS)
 				{
-					legend.append('[').append(point.colour).append(']').append(point.name).append('\n');
+					for (Point point : group.points)
+					{
+						legend.append('[').append(point.colour).append(']').append(point.name).append('\n');
+					}
+				}
+				else
+				{
+					legend.append('[').append(group.points.get(0).colour).append(']').append(group.name).append('\n');
 				}
 			}
 			
@@ -1630,7 +1643,7 @@ public class TetraColourSpace extends ApplicationAdapter
 			}
 			else if (keycode == Keys.L)
 			{
-				showLegend = !showLegend;
+				showLegend = (showLegend + 1) % LEGEND_OPTIONS;
 			}
 			else if (keycode == Keys.T)
 			{
