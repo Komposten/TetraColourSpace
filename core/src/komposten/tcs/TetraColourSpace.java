@@ -1539,12 +1539,15 @@ public class TetraColourSpace extends ApplicationAdapter
 		batch.dispose();
 		disposeObjects();
 		
-		StringBuilder builder = new StringBuilder();
-		builder.append("Point selections:");
-		for (Point point : selectionLog)
-			builder.append('\n').append(point);
-		
-		logger.log(Level.INFO, builder.toString());
+		if (!selectionLog.isEmpty())
+		{
+			StringBuilder builder = new StringBuilder();
+			builder.append("Point selections:");
+			for (Point point : selectionLog)
+				builder.append('\n').append(point);
+			
+			logger.log(Level.INFO, builder.toString());
+		}
 	}
 
 
