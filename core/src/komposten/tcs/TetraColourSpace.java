@@ -63,6 +63,7 @@ import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.BufferUtils;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -1180,27 +1181,7 @@ public class TetraColourSpace extends ApplicationAdapter
 			
 			font.draw(spriteBatch, metrics, 5, Gdx.graphics.getHeight()-10f);
 		}
-		if (showLegend != LEGEND_HIDE)
-		{
-			StringBuilder legend = new StringBuilder();
-			
-			for (PointGroup group : dataGroups)
-			{
-				if (showLegend == LEGEND_POINTS)
-				{
-					for (Point point : group.points)
-					{
-						legend.append('[').append(point.colour).append(']').append(point.name).append('\n');
-					}
-				}
-				else
-				{
-					legend.append('[').append(group.points.get(0).colour).append(']').append(group.name).append('\n');
-				}
-			}
-			
-			font.draw(spriteBatch, legend, 5, Gdx.graphics.getHeight()-10f);
-		}
+		renderLegend();
 		spriteBatch.end();
 		
 		readInput(Gdx.graphics.getDeltaTime());
@@ -1211,6 +1192,36 @@ public class TetraColourSpace extends ApplicationAdapter
 		if (followMode != FollowMode.OFF)
 		{
 			updateFollow();
+		}
+	}
+
+
+	private void renderLegend()
+	{
+		if (showLegend != LEGEND_HIDE)
+		{
+			float x = 5;
+			float y = Gdx.graphics.getHeight()-10f;
+			float lineHeight = font.getLineHeight();
+			
+			for (PointGroup group : dataGroups)
+			{
+				if (showLegend == LEGEND_POINTS)
+				{
+					for (Point point : group.points)
+					{
+						String line = String.format("[%s]%s", point.colour, point.name);
+						font.draw(spriteBatch, line, x, y, 0, Align.left, false);
+						y -= lineHeight;
+					}
+				}
+				else if (showLegend == LEGEND_GROUPS)
+				{
+					String line = String.format("[%s]%s", group.points.get(0).colour, group.name);
+					font.draw(spriteBatch, line, x, y, 0, Align.left, false);
+					y -= lineHeight;
+				}
+			}
 		}
 	}
 
