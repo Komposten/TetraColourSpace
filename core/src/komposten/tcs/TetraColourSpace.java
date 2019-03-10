@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -41,6 +42,7 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Pixmap.Filter;
 import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.PixmapIO.PNG;
+import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -147,6 +149,8 @@ public class TetraColourSpace extends ApplicationAdapter
 	private Sprite crosshair;
 	private BitmapFont font;
 	
+	private EnumMap<Shape, Texture> shapeSprites;
+	
 	private FrameBuffer screenshotBuffer;
 	
 	private Color colourBackground = new Color(.12f, .12f, .12f, 1f);
@@ -234,6 +238,11 @@ public class TetraColourSpace extends ApplicationAdapter
 		font = new BitmapFont();
 		font.getData().markupEnabled = true;
 		
+		shapeSprites = new EnumMap<>(Shape.class);
+		shapeSprites.put(Shape.SPHERE, createLinearTexture("circle.png"));
+		shapeSprites.put(Shape.PYRAMID, createLinearTexture("triangle.png"));
+		shapeSprites.put(Shape.BOX, createLinearTexture("square.png"));
+		
 		int distance = 1;
 		camera.translate(distance, distance, -0.3f*distance);
 		camera.near = 0.01f;
@@ -256,6 +265,14 @@ public class TetraColourSpace extends ApplicationAdapter
 		createScreenshotBuffer();
 		loadData();
 		updateViewport();
+	}
+
+
+	private Texture createLinearTexture(String path)
+	{
+		Texture texture = new Texture(Gdx.files.internal(path));
+		texture.setFilter(TextureFilter.Linear, TextureFilter.Linear);
+		return texture;
 	}
 
 
@@ -1200,25 +1217,36 @@ public class TetraColourSpace extends ApplicationAdapter
 	{
 		if (showLegend != LEGEND_HIDE)
 		{
-			float x = 5;
-			float y = Gdx.graphics.getHeight()-10f;
-			float lineHeight = font.getLineHeight();
+			float shapeSize = 12;
+			float padding = 5;
+			float lineHeight = Math.max(font.getLineHeight(), shapeSize);
+			float x = padding;
+			float xText = x + shapeSize + 5;
+			float y = Gdx.graphics.getHeight() - (padding + lineHeight/2);
 			
 			for (PointGroup group : dataGroups)
 			{
+				Texture shapeTexture = shapeSprites.get(group.shape);
+				
 				if (showLegend == LEGEND_POINTS)
 				{
 					for (Point point : group.points)
 					{
+						spriteBatch.setColor(getColourFromHex(point.colour));
+						spriteBatch.draw(shapeTexture, x, y - shapeSize/2 , shapeSize, shapeSize);
+						spriteBatch.setColor(Color.WHITE);
 						String line = String.format("[%s]%s", point.colour, point.name);
-						font.draw(spriteBatch, line, x, y, 0, Align.left, false);
+						font.draw(spriteBatch, line, xText, y + font.getCapHeight()/2, 0, Align.left, false);
 						y -= lineHeight;
 					}
 				}
 				else if (showLegend == LEGEND_GROUPS)
 				{
+					spriteBatch.setColor(getColourFromHex(group.points.get(0).colour));
+					spriteBatch.draw(shapeTexture, x, y - shapeSize/2 , shapeSize, shapeSize);
+					spriteBatch.setColor(Color.WHITE);
 					String line = String.format("[%s]%s", group.points.get(0).colour, group.name);
-					font.draw(spriteBatch, line, x, y, 0, Align.left, false);
+					font.draw(spriteBatch, line, xText, y + font.getCapHeight()/2, 0, Align.left, false);
 					y -= lineHeight;
 				}
 			}
@@ -1581,6 +1609,11 @@ public class TetraColourSpace extends ApplicationAdapter
 		screenshotBuffer.dispose();
 		batch.dispose();
 		disposeObjects();
+		
+		for (Texture texture : shapeSprites.values())
+		{
+			texture.dispose();
+		}
 		
 		if (!selectionLog.isEmpty())
 		{
