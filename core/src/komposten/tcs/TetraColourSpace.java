@@ -154,6 +154,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private FrameBuffer screenshotBuffer;
 	
 	private Color colourBackground = new Color(.12f, .12f, .12f, 1f);
+	private Color colourText = new Color(.89f, .89f, .89f, 1f);
 	private Color colourCrosshair = null;
 	private Color colourCong = Color.RED;
 	private Color colourMedium = Color.GREEN;
@@ -720,6 +721,7 @@ public class TetraColourSpace extends ApplicationAdapter
 				}
 				
 				List<Point> pointList = new LinkedList<>();
+				PointGroup pointGroup = new PointGroup(groupName, pointList, shape);
 				
 				NodeList points = group.getElementsByTagName("point");
 				for (int i = 0; i < points.getLength(); i++)
@@ -748,11 +750,11 @@ public class TetraColourSpace extends ApplicationAdapter
 					String position = positionAttr.getNodeValue();
 					Vector3 metrics = getColourSpaceMetricsFromLine(position);
 					Vector3 coords = createVectorFromAngles(metrics.x, metrics.y, metrics.z);
-					Point point = new Point(name, coords, metrics, activeMaterial, colourHex);
+					Point point = new Point(name, coords, metrics, activeMaterial, colourHex, pointGroup);
 					pointList.add(point);
 				}
 				
-				dataGroups.add(new PointGroup(groupName, pointList, shape));
+				dataGroups.add(pointGroup);
 			}
 			
 			NodeList volumes = root.getElementsByTagName("volume");
@@ -987,6 +989,8 @@ public class TetraColourSpace extends ApplicationAdapter
 
 				if (name.equalsIgnoreCase("background"))
 					colourBackground = getColourFromHex(value);
+				else if (name.equalsIgnoreCase("colour_text"))
+					colourText = getColourFromHex(value);
 				else if (name.equalsIgnoreCase("colour_long"))
 					colourCong = getColourFromHex(value);
 				else if (name.equalsIgnoreCase("colour_medium"))
@@ -1189,14 +1193,18 @@ public class TetraColourSpace extends ApplicationAdapter
 		}
 		if (hasSelection)
 		{
+			renderTextWithSymbol(selectedPoint.name,
+					shapeSprites.get(selectedPoint.group.shape), 5, Gdx.graphics.getHeight() - 15f,
+					5, 12, selectedPoint.colour);
 			String metrics = String.format(
-					"%s%n  Theta: %.02f%n  Phi: %.02f%n  r: %.02f",
-					selectedPoint.name,
+					"%n  Theta: %.02f%n  Phi: %.02f%n  r: %.02f",
 					selectedPoint.metrics.x,
 					selectedPoint.metrics.y,
 					selectedPoint.metrics.z);
 			
+			spriteBatch.setColor(colourText);
 			font.draw(spriteBatch, metrics, 5, Gdx.graphics.getHeight()-10f);
+			spriteBatch.setColor(Color.WHITE);
 		}
 		renderLegend();
 		spriteBatch.end();
@@ -1221,7 +1229,6 @@ public class TetraColourSpace extends ApplicationAdapter
 			float padding = 5;
 			float lineHeight = Math.max(font.getLineHeight(), shapeSize);
 			float x = padding;
-			float xText = x + shapeSize + 5;
 			float y = Gdx.graphics.getHeight() - (padding + lineHeight/2);
 			
 			for (PointGroup group : dataGroups)
@@ -1232,25 +1239,28 @@ public class TetraColourSpace extends ApplicationAdapter
 				{
 					for (Point point : group.points)
 					{
-						spriteBatch.setColor(getColourFromHex(point.colour));
-						spriteBatch.draw(shapeTexture, x, y - shapeSize/2 , shapeSize, shapeSize);
-						spriteBatch.setColor(Color.WHITE);
-						String line = String.format("[%s]%s", point.colour, point.name);
-						font.draw(spriteBatch, line, xText, y + font.getCapHeight()/2, 0, Align.left, false);
+						renderTextWithSymbol(point.name, shapeTexture, x, y, padding, shapeSize, point.colour);
 						y -= lineHeight;
 					}
 				}
 				else if (showLegend == LEGEND_GROUPS)
 				{
-					spriteBatch.setColor(getColourFromHex(group.points.get(0).colour));
-					spriteBatch.draw(shapeTexture, x, y - shapeSize/2 , shapeSize, shapeSize);
-					spriteBatch.setColor(Color.WHITE);
-					String line = String.format("[%s]%s", group.points.get(0).colour, group.name);
-					font.draw(spriteBatch, line, xText, y + font.getCapHeight()/2, 0, Align.left, false);
+					renderTextWithSymbol(group.name, shapeTexture, x, y, padding, shapeSize, group.points.get(0).colour);
 					y -= lineHeight;
 				}
 			}
 		}
+	}
+
+
+	private void renderTextWithSymbol(String text, Texture shapeTexture, float x, float y,
+			float padding, float shapeSize, String colourHex)
+	{
+		spriteBatch.setColor(getColourFromHex(colourHex));
+		spriteBatch.draw(shapeTexture, x, y - shapeSize/2 , shapeSize, shapeSize);
+		spriteBatch.setColor(Color.WHITE);
+		String line = String.format("[%s]%s", colourHex, text);
+		font.draw(spriteBatch, line, x + shapeSize + padding, y + font.getCapHeight()/2, 0, Align.left, false);
 	}
 
 
@@ -1867,14 +1877,16 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private static class Point
 	{
+		PointGroup group;
 		String name;
 		Vector3 coordinates;
 		Vector3 metrics;
 		Material material;
 		String colour;		
 		
-		public Point(String name, Vector3 coordinates, Vector3 metrics, Material material, String colourHex)
+		public Point(String name, Vector3 coordinates, Vector3 metrics, Material material, String colourHex, PointGroup group)
 		{
+			this.group = group;
 			this.name = name;
 			this.coordinates = coordinates;
 			this.metrics = metrics;
