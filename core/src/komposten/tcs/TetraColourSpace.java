@@ -156,7 +156,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private Color colourBackground = new Color(.12f, .12f, .12f, 1f);
 	private Color colourText = new Color(.89f, .89f, .89f, 1f);
 	private Color colourCrosshair = null;
-	private Color colourCong = Color.RED;
+	private Color colourLong = Color.RED;
 	private Color colourMedium = Color.GREEN;
 	private Color colourShort = Color.BLUE;
 	private Color colourUv = Color.VIOLET;
@@ -385,7 +385,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		Vector3 shortPos = tetrahedron.shortPos;
 		Vector3 uvPos = tetrahedron.uvPos;
 		
-		Color longColourActive = (applyColours ? this.colourCong : Color.WHITE);
+		Color longColourActive = (applyColours ? this.colourLong : Color.WHITE);
 		Color mediumColourActive = (applyColours ? this.colourMedium : Color.WHITE);
 		Color shortColourActive = (applyColours ? this.colourShort : Color.WHITE);
 		Color uvColourActive = (applyColours ? this.colourUv : Color.WHITE);
@@ -491,7 +491,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		float diameter = 0.03f;
 		Model sphereModel = createSphere(modelBuilder, diameter, GL20.GL_TRIANGLES);
 		
-		ModelInstance redSphere = createModelInstance(sphereModel, tetrahedron.longPos, colourCong);
+		ModelInstance redSphere = createModelInstance(sphereModel, tetrahedron.longPos, colourLong);
 		ModelInstance greenSphere = createModelInstance(sphereModel, tetrahedron.mediumPos, colourMedium);
 		ModelInstance blueSphere = createModelInstance(sphereModel, tetrahedron.shortPos, colourShort);
 		ModelInstance uvSphere = createModelInstance(sphereModel, tetrahedron.uvPos, colourUv);
@@ -514,9 +514,9 @@ public class TetraColourSpace extends ApplicationAdapter
 		float length = 0.2f;
 		Vector3 start = new Vector3();
 		Vector3 end = new Vector3();
-		meshBuilder.line(start.set(-length, 0, 0), colourShort, end.set(length, 0, 0), colourCong);
+		meshBuilder.line(start.set(-length, 0, 0), colourShort, end.set(length, 0, 0), colourLong);
 		meshBuilder.line(start.set(0, -length, 0), Color.WHITE, end.set(0, length, 0), colourUv);
-		meshBuilder.line(start.set(0, 0, -length), colourMedium, end.set(0, 0, length), colourCong.cpy().lerp(colourShort, 0.5f));
+		meshBuilder.line(start.set(0, 0, -length), colourMedium, end.set(0, 0, length), colourLong.cpy().lerp(colourShort, 0.5f));
 		
 		Mesh mesh = meshBuilder.end();
 		
@@ -992,7 +992,7 @@ public class TetraColourSpace extends ApplicationAdapter
 				else if (name.equalsIgnoreCase("colour_text"))
 					colourText = getColourFromHex(value);
 				else if (name.equalsIgnoreCase("colour_long"))
-					colourCong = getColourFromHex(value);
+					colourLong = getColourFromHex(value);
 				else if (name.equalsIgnoreCase("colour_medium"))
 					colourMedium = getColourFromHex(value);
 				else if (name.equalsIgnoreCase("colour_short"))
