@@ -1,5 +1,6 @@
 package komposten.tcs.backend.data;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -11,6 +12,12 @@ public class PointGroup
 	private String name;
 	private List<Point> points;
 	private Shape shape;
+	
+	
+	public PointGroup(String name, Shape shape)
+	{
+		this(name, new ArrayList<>(), shape);
+	}
 	
 	
 	/**
@@ -40,6 +47,11 @@ public class PointGroup
 	public Shape getShape()
 	{
 		return shape;
+	}
+	
+	public void setPoints(List<Point> points)
+	{
+		this.points = points;
 	}
 	
 	/**
