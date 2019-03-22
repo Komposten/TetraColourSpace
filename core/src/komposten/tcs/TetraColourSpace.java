@@ -42,8 +42,8 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Pixmap.Filter;
 import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.PixmapIO.PNG;
-import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
@@ -71,6 +71,12 @@ import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.github.quickhull3d.QuickHull3D;
 
+import komposten.tcs.backend.data.Point;
+import komposten.tcs.backend.data.PointGroup;
+import komposten.tcs.backend.data.Shape;
+import komposten.tcs.backend.data.Volume;
+import komposten.tcs.util.TCSUtils;
+import komposten.tcs.util.Tetrahedron;
 import komposten.utilities.logging.Level;
 import komposten.utilities.logging.Logger;
 import komposten.utilities.tools.FileOperations;
@@ -88,32 +94,6 @@ public class TetraColourSpace extends ApplicationAdapter
 		OFF
 	}
 	
-	private enum Shape
-	{
-		SPHERE(16),
-		PYRAMID(17),
-		BOX(15);
-		
-		private int value;
-
-		private Shape(int value)
-		{
-			this.value = value;
-		}
-		
-		static Shape fromString(String string)
-		{
-			for (Shape shape : values())
-			{
-				if (string.equalsIgnoreCase(shape.name()) ||
-						string.equals(Integer.toString(shape.value)))
-					return shape;
-			}
-			
-			return null;
-		}
-	}
-
 	private static final float MAX_ZOOM = 0.025f;
 	private static final float SENSITIVITY = -0.2f;
 	private static final float SLOW_MODIFIER = .33f;
@@ -576,14 +556,14 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private void createPointMetricMesh(Point point)
 	{
-		Vector3 line = point.coordinates;
+		Vector3 line = point.getCoordinates();
 		Vector3 lineInZX = new Vector3(line.x, 0, line.z);
 		
 		float arcRadius = lineInZX.len()*0.8f;
 		int segments = 200;
 		float segmentsPerRadian = segments / MathUtils.PI2;
-		float theta = point.metrics.x;
-		float phi = point.metrics.y;
+		float theta = point.getMetrics().x;
+		float phi = point.getMetrics().y;
 		
 		while (theta > MathUtils.PI) theta -= MathUtils.PI2;
 		while (theta < -MathUtils.PI) theta += MathUtils.PI2;
@@ -749,7 +729,7 @@ public class TetraColourSpace extends ApplicationAdapter
 					
 					String position = positionAttr.getNodeValue();
 					Vector3 metrics = getColourSpaceMetricsFromLine(position);
-					Vector3 coords = createVectorFromAngles(metrics.x, metrics.y, metrics.z);
+					Vector3 coords = TCSUtils.createVectorFromAngles(metrics.x, metrics.y, metrics.z);
 					Point point = new Point(name, coords, metrics, activeMaterial, colourHex, pointGroup);
 					pointList.add(point);
 				}
@@ -845,7 +825,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		{
 			Model model;
 			
-			switch (group.shape)
+			switch (group.getShape())
 			{
 				case BOX :
 					model = modelBox;
@@ -859,12 +839,12 @@ public class TetraColourSpace extends ApplicationAdapter
 					break;
 			}
 			
-			for (Point point : group.points)
+			for (Point point : group.getPoints())
 			{
 				
 				ModelInstance instance = new ModelInstance(model);
-				instance.transform.translate(point.coordinates);
-				setMaterial(point.material, instance);
+				instance.transform.translate(point.getCoordinates());
+				setMaterial(point.getMaterial(), instance);
 				pointModelInstances.add(instance);
 				pointToModelMap.put(point, instance);
 			}
@@ -881,24 +861,26 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		for (Volume volume : dataVolumes)
 		{
-			int vertexCount = volume.coordinates.length / 3;
+			double[] volumeCoords = volume.getCoordinates();
+			
+			int vertexCount = volumeCoords.length / 3;
 			if (vertexCount >= 3)
 			{
 				meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_TRIANGLES);
-				for (int[] face : volume.faces)
+				for (int[] face : volume.getFaces())
 				{
 					int vertex1Index = face[0]*3;
 					int vertex2Index = face[1]*3;
 					int vertex3Index = face[2]*3;
-					vector1.set((float) volume.coordinates[vertex1Index],
-							(float) volume.coordinates[vertex1Index + 1],
-							(float) volume.coordinates[vertex1Index + 2]);
-					vector2.set((float) volume.coordinates[vertex2Index],
-							(float) volume.coordinates[vertex2Index + 1],
-							(float) volume.coordinates[vertex2Index + 2]);
-					vector3.set((float) volume.coordinates[vertex3Index],
-							(float) volume.coordinates[vertex3Index + 1],
-							(float) volume.coordinates[vertex3Index + 2]);
+					vector1.set((float) volumeCoords[vertex1Index],
+							(float) volumeCoords[vertex1Index + 1],
+							(float) volumeCoords[vertex1Index + 2]);
+					vector2.set((float) volumeCoords[vertex2Index],
+							(float) volumeCoords[vertex2Index + 1],
+							(float) volumeCoords[vertex2Index + 2]);
+					vector3.set((float) volumeCoords[vertex3Index],
+							(float) volumeCoords[vertex3Index + 1],
+							(float) volumeCoords[vertex3Index + 2]);
 					
 					edge1.set(vector2).sub(vector1);
 					edge2.set(vector3).sub(vector1);
@@ -914,13 +896,13 @@ public class TetraColourSpace extends ApplicationAdapter
 						// 1) Find any point not in the current face.
 						// 2) Check if adding or subtracting the normal takes us away from said point.
 						
-						int vertex4Index = (vertex1Index + 3) % volume.coordinates.length;
+						int vertex4Index = (vertex1Index + 3) % volumeCoords.length;
 						while (vertex4Index == vertex2Index || vertex4Index == vertex3Index)
-							vertex4Index = (vertex4Index + 3) % volume.coordinates.length;
+							vertex4Index = (vertex4Index + 3) % volumeCoords.length;
 						
-						vector4.set((float) volume.coordinates[vertex4Index],
-							(float) volume.coordinates[vertex4Index + 1],
-							(float) volume.coordinates[vertex4Index + 2]);
+						vector4.set((float) volumeCoords[vertex4Index],
+							(float) volumeCoords[vertex4Index + 1],
+							(float) volumeCoords[vertex4Index + 2]);
 						
 						float length1 = calcVector.set(vector1).add(normal).sub(vector4).len2();
 						float length2 = calcVector.set(vector1).sub(normal).sub(vector4).len2();
@@ -938,21 +920,21 @@ public class TetraColourSpace extends ApplicationAdapter
 				
 				Renderable renderable = new Renderable();
 				renderable.meshPart.set("volume_polygon", mesh, 0, mesh.getNumVertices(), GL20.GL_TRIANGLES);
-				renderable.material = volume.material.copy();
+				renderable.material = volume.getMaterial().copy();
 				renderable.material.set(new BlendingAttribute(0.5f));
 				renderable.environment = environment;
 				
 				volumeRenderables.add(renderable);
 				volumeMeshes.add(mesh);
 			}
-			else if (volume.coordinates.length == 6)
+			else if (volumeCoords.length == 6)
 			{
-				vector1.set((float) volume.coordinates[0],
-						(float) volume.coordinates[1],
-						(float) volume.coordinates[2]);
-				vector2.set((float) volume.coordinates[3],
-						(float) volume.coordinates[4],
-						(float) volume.coordinates[5]);
+				vector1.set((float) volumeCoords[0],
+						(float) volumeCoords[1],
+						(float) volumeCoords[2]);
+				vector2.set((float) volumeCoords[3],
+						(float) volumeCoords[4],
+						(float) volumeCoords[5]);
 				
 				meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_LINES);
 				meshBuilder.line(vector1, vector2);
@@ -960,7 +942,7 @@ public class TetraColourSpace extends ApplicationAdapter
 				
 				Renderable renderable = new Renderable();
 				renderable.meshPart.set("volume_line", mesh, 0, mesh.getNumVertices(), GL20.GL_LINES);
-				renderable.material = volume.material.copy();
+				renderable.material = volume.getMaterial().copy();
 				renderable.environment = environment;
 				
 				volumeRenderables.add(renderable);
@@ -1018,7 +1000,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	{
 		Vector3 metrics = getColourSpaceMetricsFromLine(line);
 
-		return createVectorFromAngles(metrics.x, metrics.y, metrics.z);
+		return TCSUtils.createVectorFromAngles(metrics.x, metrics.y, metrics.z);
 	}
 	
 	
@@ -1035,17 +1017,6 @@ public class TetraColourSpace extends ApplicationAdapter
 		float magnitude = floats[2];
 		
 		return new Vector3(theta, phi, magnitude);
-	}
-
-
-	private static Vector3 createVectorFromAngles(float theta, float phi,
-			float magnitude)
-	{
-		Vector3 coords = new Vector3(1, 0, 0);
-		coords.rotateRad(Vector3.Y, theta);
-		coords.rotateRad(new Vector3(-coords.z, 0, coords.x), phi);
-		coords.setLength(magnitude);
-		return coords;
 	}
 
 
@@ -1193,14 +1164,14 @@ public class TetraColourSpace extends ApplicationAdapter
 		}
 		if (hasSelection)
 		{
-			renderTextWithSymbol(selectedPoint.name,
-					shapeSprites.get(selectedPoint.group.shape), 5, Gdx.graphics.getHeight() - 15f,
-					5, 12, selectedPoint.colour);
+			renderTextWithSymbol(selectedPoint.getName(),
+					shapeSprites.get(selectedPoint.getGroup().getShape()), 5, Gdx.graphics.getHeight() - 15f,
+					5, 12, selectedPoint.getColour());
 			String metrics = String.format(
 					"%n  Theta: %.02f%n  Phi: %.02f%n  r: %.02f",
-					selectedPoint.metrics.x,
-					selectedPoint.metrics.y,
-					selectedPoint.metrics.z);
+					selectedPoint.getMetrics().x,
+					selectedPoint.getMetrics().y,
+					selectedPoint.getMetrics().z);
 			
 			spriteBatch.setColor(colourText);
 			font.draw(spriteBatch, metrics, 5, Gdx.graphics.getHeight()-10f);
@@ -1233,19 +1204,19 @@ public class TetraColourSpace extends ApplicationAdapter
 			
 			for (PointGroup group : dataGroups)
 			{
-				Texture shapeTexture = shapeSprites.get(group.shape);
+				Texture shapeTexture = shapeSprites.get(group.getShape());
 				
 				if (showLegend == LEGEND_POINTS)
 				{
-					for (Point point : group.points)
+					for (Point point : group.getPoints())
 					{
-						renderTextWithSymbol(point.name, shapeTexture, x, y, padding, shapeSize, point.colour);
+						renderTextWithSymbol(point.getName(), shapeTexture, x, y, padding, shapeSize, point.getColour());
 						y -= lineHeight;
 					}
 				}
 				else if (showLegend == LEGEND_GROUPS)
 				{
-					renderTextWithSymbol(group.name, shapeTexture, x, y, padding, shapeSize, group.points.get(0).colour);
+					renderTextWithSymbol(group.getName(), shapeTexture, x, y, padding, shapeSize, group.getColour());
 					y -= lineHeight;
 				}
 			}
@@ -1307,7 +1278,7 @@ public class TetraColourSpace extends ApplicationAdapter
 				cameraDirty = true;
 				break;
 			case SELECTED :
-				lookAt(selectedPoint.coordinates);
+				lookAt(selectedPoint.getCoordinates());
 				cameraDirty = true;
 				break;
 			case OFF :
@@ -1420,7 +1391,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private boolean rotationMovement(float deltaTime)
 	{
 		Vector3 movement = new Vector3();
-		Vector3 focalPoint = (followMode == FollowMode.CENTRE ? Vector3.Zero : selectedPoint.coordinates);
+		Vector3 focalPoint = (followMode == FollowMode.CENTRE ? Vector3.Zero : selectedPoint.getCoordinates());
 		
 		float rotX = 0;
 		float rotY = 0;
@@ -1579,10 +1550,10 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		for (PointGroup group : dataGroups)
 		{
-			for (Point point : group.points)
+			for (Point point : group.getPoints())
 			{
-				calc1.set(point.coordinates).sub(point1);
-				calc2.set(point.coordinates).sub(point2);
+				calc1.set(point.getCoordinates()).sub(point1);
+				calc2.set(point.getCoordinates()).sub(point2);
 				calc1.crs(calc2);
 				
 				calc3.set(point2).sub(point1);
@@ -1860,91 +1831,9 @@ public class TetraColourSpace extends ApplicationAdapter
 	};
 	
 	
-	private static class PointGroup
-	{
-		String name;
-		List<Point> points;
-		Shape shape;
-		
-		public PointGroup(String name, List<Point> points, Shape shape)
-		{
-			this.name = name;
-			this.points = points;
-			this.shape = shape;
-		}
-	}
-
-	
-	private static class Point
-	{
-		PointGroup group;
-		String name;
-		Vector3 coordinates;
-		Vector3 metrics;
-		Material material;
-		String colour;		
-		
-		public Point(String name, Vector3 coordinates, Vector3 metrics, Material material, String colourHex, PointGroup group)
-		{
-			this.group = group;
-			this.name = name;
-			this.coordinates = coordinates;
-			this.metrics = metrics;
-			this.material = material;
-			this.colour = colourHex;
-		}
-		
-		
-		@Override
-		public String toString()
-		{
-			ColorAttribute colour = (ColorAttribute) material.get(ColorAttribute.Diffuse);
-			return String.format("%s|(%.03f, %.03f, %.03f)[%s]", name, metrics.x, metrics.y, metrics.z, colour.color);
-		}
-	}
-	
-	
-	private static class Volume
-	{
-		double[] coordinates;
-		private int[][] faces;
-		Material material;
-		
-		public Volume(double[] coordinates, int[][] faces, Material material)
-		{
-			this.coordinates = coordinates;
-			this.faces = faces;
-			this.material = material;
-		}
-	}
-	
-	
 	private static class TetrahedronSide
 	{
 		Renderable renderable;
 		Vector3 centre;
-	}
-	
-	
-	private static class Tetrahedron
-	{
-		Vector3 mediumPos;
-		Vector3 longPos;
-		Vector3 shortPos;
-		Vector3 uvPos;
-		Vector3 achroPos;
-
-		public Tetrahedron(float size)
-		{
-			float pi = MathUtils.PI;
-			float circleThird = MathUtils.PI2/3;
-			float deg110 = (float) Math.toRadians(109.5);
-			float magnitude = 0.75f * size;
-			mediumPos = createVectorFromAngles(pi/2, pi/2 - deg110, magnitude);
-			longPos = createVectorFromAngles(pi/2 - circleThird, pi/2 - deg110, magnitude);
-			shortPos = createVectorFromAngles(pi/2 + circleThird, pi/2 - deg110, magnitude);
-			uvPos = createVectorFromAngles(0, pi/2, magnitude);
-			achroPos = Vector3.Zero.cpy();
-		}
 	}
 }
