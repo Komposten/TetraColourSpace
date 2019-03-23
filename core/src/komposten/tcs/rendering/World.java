@@ -401,17 +401,30 @@ public class World implements Disposable
 		Color colourMedium = style.get(Colour.WL_MEDIUM);
 		Color colourLong = style.get(Colour.WL_LONG);
 		Color colourUv = style.get(Colour.WL_UV);
-		Color colourShortLong = colourLong.cpy().lerp(colourShort, 0.5f);
+		Color colourSL = colourLong.cpy().lerp(colourShort, 0.5f);
+		Color colourSML = colourLong.cpy().lerp(colourMedium, 0.5f).lerp(colourShort, 1/3f);
+		
+		colourSL = maximiseBrightness(colourSL);
+		colourSML = maximiseBrightness(colourSML);
 		
 		meshBuilder.line(start.set(-length, 0, 0), colourShort, end.set(length, 0, 0), colourLong);
-		meshBuilder.line(start.set(0, -length, 0), Color.WHITE, end.set(0, length, 0), colourUv);
-		meshBuilder.line(start.set(0, 0, -length), colourMedium, end.set(0, 0, length), colourShortLong);
+		meshBuilder.line(start.set(0, -length, 0), colourSML, end.set(0, length, 0), colourUv);
+		meshBuilder.line(start.set(0, 0, -length), colourMedium, end.set(0, 0, length), colourSL);
 
 		Mesh mesh = meshBuilder.end();
 		
 		axisLines = new Renderable();
 		axisLines.material = getMaterialForColour(Color.WHITE);
 		axisLines.meshPart.set("lines", mesh, 0, mesh.getNumVertices(), GL20.GL_LINES);
+	}
+
+
+	private Color maximiseBrightness(Color colour)
+	{
+		float largest = Math.max(colour.r, Math.max(colour.g, colour.b));
+		float ratio = 1 / largest;
+		
+		return colour.mul(ratio);
 	}
 
 
