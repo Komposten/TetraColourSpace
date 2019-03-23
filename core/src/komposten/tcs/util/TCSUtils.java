@@ -30,46 +30,36 @@ public class TCSUtils
 
 	public static Color getColourFromHex(String hexColour)
 	{
-		//TODO Rewrite this to use Color(int) instead.
-		if (hexColour.startsWith("#")) hexColour = hexColour.substring(1);
-		
-		String r;
-		String g;
-		String b;
-		String a = "FF";
-		
-		if (hexColour.length() == 3 || hexColour.length() == 4)
+		if (hexColour.startsWith("#"))
 		{
-			String twoCharFormat = "%1$s%1$s";
-			r = String.format(twoCharFormat, hexColour.charAt(0));
-			g = String.format(twoCharFormat, hexColour.charAt(1));
-			b = String.format(twoCharFormat, hexColour.charAt(2));
-			
-			if (hexColour.length() == 4)
-				a = String.format(twoCharFormat, hexColour.charAt(3));
+			hexColour = hexColour.substring(1);
 		}
-		else if (hexColour.length() == 6 || hexColour.length() == 8)
+		
+		if (hexColour.matches("[0-9A-Fa-f]+"))
 		{
-			r = hexColour.substring(0, 2);
-			g = hexColour.substring(2, 4);
-			b = hexColour.substring(4, 6);
+			if (hexColour.length() == 3 || hexColour.length() == 4)
+			{
+				char[] chars = new char[hexColour.length()*2];
+				
+				for (int i = 0; i < hexColour.length(); i++)
+					chars[i*2] = chars[i*2+1] = hexColour.charAt(i);
+				
+				hexColour = new String(chars);
+			}
+			
+			if (hexColour.length() == 6)
+			{
+				hexColour += "FF";
+			}
 			
 			if (hexColour.length() == 8)
-				a = hexColour.substring(6, 8);
+			{
+				int rgb = Integer.parseInt(hexColour.substring(0, 6), 16);
+				int alpha = Integer.parseInt(hexColour.substring(6), 16);
+				return new Color(rgb << 8 | alpha);
+			}
 		}
-		else
-		{
-			throw new IllegalArgumentException(hexColour + " is not a valid hex colour!");
-		}
-
-		return new Color(
-				getColourComponentFloat(r), getColourComponentFloat(g),
-				getColourComponentFloat(b), getColourComponentFloat(a));
-	}
-
-
-	private static float getColourComponentFloat(String hex)
-	{
-		return Integer.parseInt(hex, 16) / 255f;
+		
+		throw new IllegalArgumentException(hexColour + " is not a valid hex colour!");
 	}
 }
