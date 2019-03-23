@@ -306,7 +306,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		spriteBatch.setColor(colour);
 		spriteBatch.draw(shapeTexture, x, y - shapeSize/2 , shapeSize, shapeSize);
 		spriteBatch.setColor(Color.WHITE);
-		String line = String.format("[%s]%s", colour, text);
+		String line = String.format("[#%s]%s", colour, text);
 		font.draw(spriteBatch, line, x + shapeSize + padding, y + font.getCapHeight()/2, 0, Align.left, false);
 	}
 
