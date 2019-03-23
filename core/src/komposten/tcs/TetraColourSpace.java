@@ -13,18 +13,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Buttons;
@@ -68,20 +56,20 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.BufferUtils;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.github.quickhull3d.QuickHull3D;
 
+import komposten.tcs.backend.Backend;
+import komposten.tcs.backend.Style;
+import komposten.tcs.backend.Style.Colour;
 import komposten.tcs.backend.data.Point;
 import komposten.tcs.backend.data.PointGroup;
 import komposten.tcs.backend.data.Shape;
 import komposten.tcs.backend.data.Volume;
-import komposten.tcs.util.TCSUtils;
 import komposten.tcs.util.Tetrahedron;
 import komposten.utilities.logging.Level;
 import komposten.utilities.logging.Logger;
 import komposten.utilities.tools.FileOperations;
 import komposten.utilities.tools.Geometry;
 import komposten.utilities.tools.MathOps;
-import komposten.utilities.tools.Regex;
 
 
 public class TetraColourSpace extends ApplicationAdapter
@@ -117,6 +105,8 @@ public class TetraColourSpace extends ApplicationAdapter
 	private Logger logger;
 	private List<Point> selectionLog;
 	
+	private Backend backend;
+	
 	private File dataFile;
 	private File outputPath;
 	private PerspectiveCamera camera;
@@ -132,23 +122,8 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private FrameBuffer screenshotBuffer;
 	
-	private Color colourBackground = new Color(.12f, .12f, .12f, 1f);
-	private Color colourText = new Color(.89f, .89f, .89f, 1f);
-	private Color colourCrosshair = null;
-	private Color colourLong = Color.RED;
-	private Color colourMedium = Color.GREEN;
-	private Color colourShort = Color.BLUE;
-	private Color colourUv = Color.VIOLET;
-	private Color colourAchro = Color.GRAY;
-	private Color colourMetricLine = new Color(.89f, .89f, .89f, 1f);
-	private Color colourMetricFill = colourMetricLine.cpy().mul(.5f);
-	private Color colourHighlight = Color.CORAL;
-	private Color colourSelection = Color.DARK_GRAY;
-	
 	private List<Disposable> disposables;
 	private List<Disposable> volumeMeshes;
-	private List<PointGroup> dataGroups;
-	private List<Volume> dataVolumes;
 	private List<ModelInstance> staticModels;
 	private List<ModelInstance> pointModelInstances;
 	private List<Renderable> volumeRenderables;
@@ -204,8 +179,6 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		disposables = new ArrayList<>();
 		volumeMeshes = new ArrayList<>();
-		dataGroups = new ArrayList<>();
-		dataVolumes = new ArrayList<>();
 		staticModels = new ArrayList<>();
 		pointModelInstances = new ArrayList<>();
 		volumeRenderables = new ArrayList<>();
@@ -236,12 +209,6 @@ public class TetraColourSpace extends ApplicationAdapter
 		environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.6f, 0.6f, 0.6f, 1.0f));
 		environment.add(light);
 		
-		pointMetricsLines = new Renderable();
-		pointMetricsArcs = new Renderable();
-		pointMetricsLines.material = getMaterialForColour(colourMetricLine);
-		pointMetricsArcs.material = getMaterialForColour(colourMetricFill);
-		pointMetricsArcs.environment = environment;
-		
 		createScreenshotBuffer();
 		loadData();
 		updateViewport();
@@ -261,6 +228,8 @@ public class TetraColourSpace extends ApplicationAdapter
 		Texture crosshairTexture = new Texture(Gdx.files.internal("crosshair.png"));
 		crosshair = new Sprite(crosshairTexture);
 		
+		Color colourCrosshair = backend.getStyle().get(Colour.CROSSHAIR);
+		Color colourBackground = backend.getStyle().get(Colour.BACKGROUND);
 		if (colourCrosshair == null)
 		{
 			colourCrosshair = Color.WHITE.cpy().sub(colourBackground);
@@ -292,13 +261,20 @@ public class TetraColourSpace extends ApplicationAdapter
 		ModelBuilder modelBuilder = new ModelBuilder();
 		createPyramidCorners(tetrahedron, modelBuilder);
 
+		Style style = backend.getStyle();
 		Model model = createSphere(modelBuilder, 0.025f, GL20.GL_LINES, 10);
-		selectedModel = createModelInstance(model, Vector3.Zero, colourSelection);
-		highlightModel = createModelInstance(model, Vector3.Zero, colourHighlight);
+		selectedModel = createModelInstance(model, Vector3.Zero, style.get(Colour.SELECTION));
+		highlightModel = createModelInstance(model, Vector3.Zero, style.get(Colour.HIGHLIGHT));
 		
 		MeshBuilder meshBuilder = new MeshBuilder();
 		createTCSPyramid(meshBuilder);
 		createAxisLines(meshBuilder);
+		
+		pointMetricsLines = new Renderable();
+		pointMetricsArcs = new Renderable();
+		pointMetricsLines.material = getMaterialForColour(style.get(Colour.METRIC_LINE));
+		pointMetricsArcs.material = getMaterialForColour(style.get(Colour.METRIC_FILL));
+		pointMetricsArcs.environment = environment;
 	}
 	
 	
@@ -364,10 +340,11 @@ public class TetraColourSpace extends ApplicationAdapter
 		Vector3 shortPos = tetrahedron.shortPos;
 		Vector3 uvPos = tetrahedron.uvPos;
 		
-		Color longColourActive = (applyColours ? this.colourLong : Color.WHITE);
-		Color mediumColourActive = (applyColours ? this.colourMedium : Color.WHITE);
-		Color shortColourActive = (applyColours ? this.colourShort : Color.WHITE);
-		Color uvColourActive = (applyColours ? this.colourUv : Color.WHITE);
+		Style style = backend.getStyle();
+		Color longColourActive = (applyColours ? style.get(Colour.WL_LONG) : Color.WHITE);
+		Color mediumColourActive = (applyColours ? style.get(Colour.WL_MEDIUM) : Color.WHITE);
+		Color shortColourActive = (applyColours ? style.get(Colour.WL_SHORT) : Color.WHITE);
+		Color uvColourActive = (applyColours ? style.get(Colour.WL_UV) : Color.WHITE);
 
 		Vector3 normal = mediumPos.cpy().add(longPos).add(shortPos);
 		short corner1 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
@@ -470,11 +447,12 @@ public class TetraColourSpace extends ApplicationAdapter
 		float diameter = 0.03f;
 		Model sphereModel = createSphere(modelBuilder, diameter, GL20.GL_TRIANGLES);
 		
-		ModelInstance redSphere = createModelInstance(sphereModel, tetrahedron.longPos, colourLong);
-		ModelInstance greenSphere = createModelInstance(sphereModel, tetrahedron.mediumPos, colourMedium);
-		ModelInstance blueSphere = createModelInstance(sphereModel, tetrahedron.shortPos, colourShort);
-		ModelInstance uvSphere = createModelInstance(sphereModel, tetrahedron.uvPos, colourUv);
-		ModelInstance achroSphere = createModelInstance(sphereModel, tetrahedron.achroPos, colourAchro);
+		Style style = backend.getStyle();
+		ModelInstance redSphere = createModelInstance(sphereModel, tetrahedron.longPos, style.get(Colour.WL_LONG));
+		ModelInstance greenSphere = createModelInstance(sphereModel, tetrahedron.mediumPos, style.get(Colour.WL_MEDIUM));
+		ModelInstance blueSphere = createModelInstance(sphereModel, tetrahedron.shortPos, style.get(Colour.WL_SHORT));
+		ModelInstance uvSphere = createModelInstance(sphereModel, tetrahedron.uvPos, style.get(Colour.WL_UV));
+		ModelInstance achroSphere = createModelInstance(sphereModel, tetrahedron.achroPos, style.get(Colour.ACHRO));
 		
 		staticModels.add(redSphere);
 		staticModels.add(greenSphere);
@@ -489,14 +467,21 @@ public class TetraColourSpace extends ApplicationAdapter
 	private void createAxisLines(MeshBuilder meshBuilder)
 	{
 		meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_LINES);
-		
+
+		Style style = backend.getStyle();
 		float length = 0.2f;
 		Vector3 start = new Vector3();
 		Vector3 end = new Vector3();
+		Color colourShort = style.get(Colour.WL_SHORT);
+		Color colourMedium = style.get(Colour.WL_MEDIUM);
+		Color colourLong = style.get(Colour.WL_LONG);
+		Color colourUv = style.get(Colour.WL_UV);
+		Color colourShortLong = colourLong.cpy().lerp(colourShort, 0.5f);
+		
 		meshBuilder.line(start.set(-length, 0, 0), colourShort, end.set(length, 0, 0), colourLong);
 		meshBuilder.line(start.set(0, -length, 0), Color.WHITE, end.set(0, length, 0), colourUv);
-		meshBuilder.line(start.set(0, 0, -length), colourMedium, end.set(0, 0, length), colourLong.cpy().lerp(colourShort, 0.5f));
-		
+		meshBuilder.line(start.set(0, 0, -length), colourMedium, end.set(0, 0, length), colourShortLong);
+
 		Mesh mesh = meshBuilder.end();
 		
 		axisLines = new Renderable();
@@ -669,165 +654,13 @@ public class TetraColourSpace extends ApplicationAdapter
 
 	private void loadData()
 	{
-		loadDataFromFile();
+		backend = new Backend(dataFile, logger);
+		
 		generatePointObjects();
 		generateVolumeObjects();
 		
 		createStaticModels();
 		createCrosshair();
-	}
-
-
-	private void loadDataFromFile()
-	{
-		try
-		{
-			DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
-			docBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-			DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
-			Document document = docBuilder.parse(dataFile);
-			Element root = document.getDocumentElement();
-			
-			loadConfig(root);
-			loadPointData(root);
-			loadVolumeData(root);
-		}
-		catch (IOException e)
-		{
-			String msg = "Error reading data file: " + dataFile.getPath();
-			logger.log(Level.FATAL, getClass().getSimpleName(), msg, e, false);
-		}
-		catch (ParserConfigurationException e)
-		{
-			String msg = "Error creating the XML parser!";
-			logger.log(Level.FATAL, getClass().getSimpleName(), msg, e, false);
-		}
-		catch (SAXException e)
-		{
-			String msg = "Error parsing data file: " + dataFile.getPath();
-			logger.log(Level.FATAL, getClass().getSimpleName(), msg, e, false);
-		}
-	}
-
-
-	private void loadPointData(Element root)
-	{
-		NodeList groups = root.getElementsByTagName("group");
-		for (int g = 0; g < groups.getLength(); g++)
-		{
-			Element group = (Element) groups.item(g);
-			
-			Node groupNameAttr = group.getAttributeNode("name");
-			Node groupShapeAttr = group.getAttributeNode("shape");
-			
-			String groupName = getAttributeValue(groupNameAttr, "Group " + (g+1));
-			String shapeName = getAttributeValue(groupShapeAttr, "sphere");
-			Shape shape = Shape.fromString(shapeName);
-			
-			if (shape == null)
-			{
-				shape = Shape.SPHERE;
-				logger.log(Level.WARNING, "Invalid point shape: \"" + shapeName + "\"");
-			}
-			
-			PointGroup pointGroup = new PointGroup(groupName, shape);
-			pointGroup.setPoints(createGroupPoints(group, pointGroup));
-			dataGroups.add(pointGroup);
-		}
-	}
-
-
-	private List<Point> createGroupPoints(Element group, PointGroup pointGroup)
-	{
-		List<Point> pointList = new LinkedList<>();
-		
-		NodeList points = group.getElementsByTagName("point");
-		for (int i = 0; i < points.getLength(); i++)
-		{
-			Node pointNode = points.item(i);
-			
-			NamedNodeMap attributes = pointNode.getAttributes();
-			Node colourAttr = attributes.getNamedItem("colour");
-			Node nameAttr = attributes.getNamedItem("name");
-			Node positionAttr = attributes.getNamedItem("position");
-			
-			String colourHex = getAttributeValue(colourAttr, colourText.toString());
-			String name = getAttributeValue(nameAttr, "Point " + (i+1));
-			String position = positionAttr.getNodeValue();
-			
-			Color colour = getColourFromHex(colourHex);
-			Material material = getMaterialForColour(colour);
-			
-			Vector3 metrics = getColourSpaceMetricsFromLine(position);
-			Vector3 coords = TCSUtils.createVectorFromAngles(metrics.x, metrics.y, metrics.z);
-			Point point = new Point(name, coords, metrics, material, colourHex, pointGroup);
-			pointList.add(point);
-		}
-		
-		return pointList;
-	}
-
-
-	private void loadVolumeData(Element root)
-	{
-		NodeList volumes = root.getElementsByTagName("volume");
-		for (int i = 0; i < volumes.getLength(); i++)
-		{
-			Node volumesNode = volumes.item(i);
-			
-			NamedNodeMap attributes = volumesNode.getAttributes();
-			Node colourAttr = attributes.getNamedItem("colour");
-			
-			String colourHex = getAttributeValue(colourAttr, colourText.toString());
-			Color colour = getColourFromHex(colourHex);
-			Material material = getMaterialForColour(colour);
-	
-			String[] pointStrings = volumesNode.getFirstChild().getTextContent().trim().split("[\n\r]+");
-			pointStrings = Arrays.stream(pointStrings).filter(x -> !x.trim().isEmpty()).toArray(l -> new String[l]);
-			
-			int[][] faces = null;
-			double[] coords = new double[pointStrings.length*3];
-			for (int j = 0; j < pointStrings.length; j++)
-			{
-				String pointString = pointStrings[j].trim();
-				Vector3 vector = getCoordinatesFromLine(pointString);
-				coords[j*3+0] = vector.x;
-				coords[j*3+1] = vector.y;
-				coords[j*3+2] = vector.z;
-			}
-			
-			if (coords.length >= 12)
-			{
-				QuickHull3D quickHull = new QuickHull3D();
-				quickHull.build(coords);
-				
-				coords = new double[quickHull.getNumVertices()*3];
-				quickHull.getVertices(coords);
-				
-				faces = quickHull.getFaces();
-			}
-			else if (coords.length == 9)
-			{
-				faces = new int[1][];
-				faces[0] = new int[] { 0, 1, 2 };
-			}
-			else
-			{
-				faces = new int[0][];
-			}
-			
-			Volume volume = new Volume(coords, faces, material);
-			dataVolumes.add(volume);
-		}
-	}
-	
-	
-	private String getAttributeValue(Node attribute, String defaultValue)
-	{
-		if (attribute != null)
-			return attribute.getNodeValue().trim();
-		else
-			return defaultValue;
 	}
 
 
@@ -842,7 +675,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		disposables.add(modelBox);
 		disposables.add(modelPyramid);
 		
-		for (PointGroup group : dataGroups)
+		for (PointGroup group : backend.getDataGroups())
 		{
 			Model model;
 			
@@ -865,7 +698,7 @@ public class TetraColourSpace extends ApplicationAdapter
 				
 				ModelInstance instance = new ModelInstance(model);
 				instance.transform.translate(point.getCoordinates());
-				setMaterial(point.getMaterial(), instance);
+				setMaterial(getMaterialForColour(point.getColour()).copy(), instance);
 				pointModelInstances.add(instance);
 				pointToModelMap.put(point, instance);
 			}
@@ -884,7 +717,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		Vector3 edge2 = new Vector3();
 		Vector3 normal = new Vector3();
 		
-		for (Volume volume : dataVolumes)
+		for (Volume volume : backend.getDataVolumes())
 		{
 			double[] volumeCoords = volume.getCoordinates();
 			
@@ -945,7 +778,7 @@ public class TetraColourSpace extends ApplicationAdapter
 				
 				Renderable renderable = new Renderable();
 				renderable.meshPart.set("volume_polygon", mesh, 0, mesh.getNumVertices(), GL20.GL_TRIANGLES);
-				renderable.material = volume.getMaterial().copy();
+				renderable.material = getMaterialForColour(volume.getColour()).copy();
 				renderable.material.set(new BlendingAttribute(0.5f));
 				renderable.environment = environment;
 				
@@ -967,97 +800,13 @@ public class TetraColourSpace extends ApplicationAdapter
 				
 				Renderable renderable = new Renderable();
 				renderable.meshPart.set("volume_line", mesh, 0, mesh.getNumVertices(), GL20.GL_LINES);
-				renderable.material = volume.getMaterial().copy();
+				renderable.material = getMaterialForColour(volume.getColour()).copy();
 				renderable.environment = environment;
 				
 				volumeRenderables.add(renderable);
 				volumeMeshes.add(mesh);
 			}
 		}
-	}
-
-
-	private void loadConfig(Element root)
-	{
-		NodeList styleNodes = root.getElementsByTagName("style");
-		
-		for (int i = 0; i < styleNodes.getLength(); i++)
-		{
-			Node styleNode = styleNodes.item(i);
-			
-			NodeList childNodes = styleNode.getChildNodes();
-			
-			for (int j = 0; j < childNodes.getLength(); j++)
-			{
-				Node child = childNodes.item(j);
-
-				String name = child.getNodeName().toLowerCase();
-				String value = child.getTextContent();
-				
-				switch (name)
-				{
-					case "background" :
-						colourBackground = getColourFromHex(value);
-						break;
-					case "colour_text" :
-						colourText = getColourFromHex(value);
-						break;
-					case "colour_long" :
-						colourLong = getColourFromHex(value);
-						break;
-					case "colour_medium" :
-						colourMedium = getColourFromHex(value);
-						break;
-					case "colour_short" :
-						colourShort = getColourFromHex(value);
-						break;
-					case "colour_uv" :
-						colourUv = getColourFromHex(value);
-						break;
-					case "colour_achro" :
-						colourAchro = getColourFromHex(value);
-						break;
-					case "colour_arc_lines" :
-						colourMetricLine = getColourFromHex(value);
-						break;
-					case "colour_arc_fill" :
-						colourMetricFill = getColourFromHex(value);
-						break;
-					case "colour_highlight" :
-						colourHighlight = getColourFromHex(value);
-						break;
-					case "colour_selection" :
-						colourSelection = getColourFromHex(value);
-						break;
-					default :
-						break;
-				}
-			}
-		}
-	}
-
-
-	private Vector3 getCoordinatesFromLine(String line)
-	{
-		Vector3 metrics = getColourSpaceMetricsFromLine(line);
-
-		return TCSUtils.createVectorFromAngles(metrics.x, metrics.y, metrics.z);
-	}
-	
-	
-	private Vector3 getColourSpaceMetricsFromLine(String line)
-	{
-		String[] values = Regex.getMatches("-?\\d+(\\.\\d+)?", line);
-		float[] floats = new float[values.length];
-		
-		for (int i = 0; i < floats.length; i++)
-			floats[i] = Float.parseFloat(values[i]);
-
-		float theta = floats[0];
-		float phi = floats[1];
-		float magnitude = floats[2];
-		
-		return new Vector3(theta, phi, magnitude);
 	}
 
 
@@ -1085,51 +834,6 @@ public class TetraColourSpace extends ApplicationAdapter
 	}
 
 
-	private Color getColourFromHex(String hexColour)
-	{
-		if (hexColour.startsWith("#")) hexColour = hexColour.substring(1);
-		
-		String r;
-		String g;
-		String b;
-		String a = "FF";
-		
-		if (hexColour.length() == 3 || hexColour.length() == 4)
-		{
-			String twoCharFormat = "%1$s%1$s";
-			r = String.format(twoCharFormat, hexColour.charAt(0));
-			g = String.format(twoCharFormat, hexColour.charAt(1));
-			b = String.format(twoCharFormat, hexColour.charAt(2));
-			
-			if (hexColour.length() == 4)
-				a = String.format(twoCharFormat, hexColour.charAt(3));
-		}
-		else if (hexColour.length() == 6 || hexColour.length() == 8)
-		{
-			r = hexColour.substring(0, 2);
-			g = hexColour.substring(2, 4);
-			b = hexColour.substring(4, 6);
-			
-			if (hexColour.length() == 8)
-				a = hexColour.substring(6, 8);
-		}
-		else
-		{
-			throw new IllegalArgumentException(hexColour + " is not a valid hex colour!");
-		}
-
-		return new Color(
-				getColourComponentFloat(r), getColourComponentFloat(g),
-				getColourComponentFloat(b), getColourComponentFloat(a));
-	}
-
-
-	private float getColourComponentFloat(String hex)
-	{
-		return Integer.parseInt(hex, 16) / 255f;
-	}
-
-
 	@Override
 	public void render()
 	{
@@ -1146,6 +850,7 @@ public class TetraColourSpace extends ApplicationAdapter
 			screenshotBuffer.begin();
 		}
 		
+		Color colourBackground = backend.getStyle().get(Colour.BACKGROUND);
 		Gdx.gl.glClearColor(colourBackground.r, colourBackground.g, colourBackground.b, colourBackground.a);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
@@ -1214,7 +919,7 @@ public class TetraColourSpace extends ApplicationAdapter
 					selectedPoint.getMetrics().y,
 					selectedPoint.getMetrics().z);
 			
-			spriteBatch.setColor(colourText);
+			spriteBatch.setColor(backend.getStyle().get(Colour.TEXT));
 			font.draw(spriteBatch, metrics, 5, Gdx.graphics.getHeight()-10f);
 			spriteBatch.setColor(Color.WHITE);
 		}
@@ -1243,7 +948,7 @@ public class TetraColourSpace extends ApplicationAdapter
 			float x = padding;
 			float y = Gdx.graphics.getHeight() - (padding + lineHeight/2);
 			
-			for (PointGroup group : dataGroups)
+			for (PointGroup group : backend.getDataGroups())
 			{
 				Texture shapeTexture = shapeSprites.get(group.getShape());
 				
@@ -1266,12 +971,12 @@ public class TetraColourSpace extends ApplicationAdapter
 
 
 	private void renderTextWithSymbol(String text, Texture shapeTexture, float x, float y,
-			float padding, float shapeSize, String colourHex)
+			float padding, float shapeSize, Color colour)
 	{
-		spriteBatch.setColor(getColourFromHex(colourHex));
+		spriteBatch.setColor(colour);
 		spriteBatch.draw(shapeTexture, x, y - shapeSize/2 , shapeSize, shapeSize);
 		spriteBatch.setColor(Color.WHITE);
-		String line = String.format("[%s]%s", colourHex, text);
+		String line = String.format("[%s]%s", colour, text);
 		font.draw(spriteBatch, line, x + shapeSize + padding, y + font.getCapHeight()/2, 0, Align.left, false);
 	}
 
@@ -1589,7 +1294,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		Vector3 calc2 = new Vector3();
 		Vector3 calc3 = new Vector3();
 		
-		for (PointGroup group : dataGroups)
+		for (PointGroup group : backend.getDataGroups())
 		{
 			for (Point point : group.getPoints())
 			{

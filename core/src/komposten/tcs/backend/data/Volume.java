@@ -1,6 +1,6 @@
 package komposten.tcs.backend.data;
 
-import com.badlogic.gdx.graphics.g3d.Material;
+import com.badlogic.gdx.graphics.Color;
 
 /**
  * Stores information about a volume consisting of several data points.
@@ -9,7 +9,7 @@ public class Volume
 {
 	private double[] coordinates;
 	private int[][] faces;
-	private Material material;
+	private Color colour;
 	
 
 	/**
@@ -20,13 +20,13 @@ public class Volume
 	 *          face.<br />
 	 *          E.g. the face [1, 2, 3] corresponds to the first three vertices in
 	 *          <code>coordinates</code>.
-	 * @param material The material to use for the volume.
+	 * @param colour The colour to use for the volume.
 	 */
-	public Volume(double[] coordinates, int[][] faces, Material material)
+	public Volume(double[] coordinates, int[][] faces, Color colour)
 	{
 		this.coordinates = coordinates;
 		this.faces = faces;
-		this.material = material;
+		this.colour = colour;
 	}
 
 	/**
@@ -50,8 +50,8 @@ public class Volume
 		return faces;
 	}
 
-	public Material getMaterial()
+	public Color getColour()
 	{
-		return material;
+		return colour;
 	}
 }

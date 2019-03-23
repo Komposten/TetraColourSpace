@@ -3,6 +3,8 @@ package komposten.tcs.backend.data;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.badlogic.gdx.graphics.Color;
+
 
 /**
  * A group of data points.
@@ -57,8 +59,8 @@ public class PointGroup
 	/**
 	 * @return The colour of the first point in the list, to represent all points.
 	 */
-	public String getColour()
+	public Color getColour()
 	{
-		return (points.isEmpty() ? "" : points.get(0).getColour());
+		return (points.isEmpty() ? Color.WHITE : points.get(0).getColour());
 	}
 }
