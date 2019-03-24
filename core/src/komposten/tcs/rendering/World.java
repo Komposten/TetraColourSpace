@@ -26,7 +26,6 @@ import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder.VertexInfo;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Disposable;
 
@@ -36,6 +35,7 @@ import komposten.tcs.backend.Style.Colour;
 import komposten.tcs.backend.data.Point;
 import komposten.tcs.backend.data.PointGroup;
 import komposten.tcs.backend.data.Volume;
+import komposten.tcs.util.ShapeFactory;
 import komposten.tcs.util.Tetrahedron;
 import komposten.utilities.tools.Geometry;
 
@@ -187,7 +187,7 @@ public class World implements Disposable
 		createPyramidCorners(tetrahedron, modelBuilder);
 
 		Style style = backend.getStyle();
-		Model model = createSphere(modelBuilder, 0.025f, GL20.GL_LINES, 10);
+		Model model = ShapeFactory.createSphere(modelBuilder, 0.025f, GL20.GL_LINES, 10);
 		selectedModel = createModelInstance(model, Vector3.Zero, style.get(Colour.SELECTION));
 		highlightModel = createModelInstance(model, Vector3.Zero, style.get(Colour.HIGHLIGHT));
 		
@@ -205,7 +205,7 @@ public class World implements Disposable
 	
 	private void createTCSPyramid(MeshBuilder meshBuilder)
 	{
-		Mesh[] pyramidMesh = createPyramidMeshSeparate(1f, GL20.GL_TRIANGLES, meshBuilder, true);
+		Mesh[] pyramidMesh = ShapeFactory.createTetrahedronSideMeshes(1f, GL20.GL_TRIANGLES, meshBuilder, backend.getStyle());
 		
 		pyramidSides = new TetrahedronSide[4];
 		
@@ -221,128 +221,12 @@ public class World implements Disposable
 			pyramidSides[i].centre = getMeshCentre(pyramidMesh[i]);
 		}
 
-		Mesh pyramidMeshSingle = createPyramidMesh(1f, GL20.GL_LINES, meshBuilder, true);
+		Mesh pyramidMeshSingle = ShapeFactory.createTetrahedronMesh(1f, GL20.GL_LINES, meshBuilder, backend.getStyle());
 		
 		pyramidLines = new Renderable();
 		pyramidLines.material = new Material(getMaterialForColour(Color.WHITE));
 		pyramidLines.meshPart.set("pyramid_lines", pyramidMeshSingle, 0, pyramidMeshSingle.getNumVertices(), GL20.GL_LINES);
 		disposables.add(pyramidMeshSingle);
-	}
-
-
-	private Mesh createPyramidMesh(float size, int primitiveType, MeshBuilder meshBuilder, boolean applyColours)
-	{
-		Mesh[] sides = createPyramidMeshSeparate(size, primitiveType, meshBuilder, applyColours);
-		
-		meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_TRIANGLES);
-		for (Mesh side : sides)
-		{
-			meshBuilder.addMesh(side);
-			side.dispose();
-		}
-		
-		return meshBuilder.end();
-	}
-	
-	
-	private Mesh[] createPyramidMeshSeparate(float size, int primitiveType, MeshBuilder meshBuilder, boolean applyColours)
-	{
-		Tetrahedron tetrahedron = new Tetrahedron(size);
-		
-		boolean triangleType = (primitiveType == GL20.GL_TRIANGLES);
-		return createPyramidSeparate(tetrahedron, meshBuilder, triangleType, applyColours);
-	}
-
-
-	private Mesh[] createPyramidSeparate(Tetrahedron tetrahedron, MeshBuilder meshBuilder, boolean doubleFaced, boolean applyColours)
-	{
-		Mesh[] meshes = new Mesh[4];
-		int meshAttributes = Usage.Position | Usage.Normal | Usage.ColorUnpacked;
-		meshBuilder.begin(meshAttributes, GL20.GL_TRIANGLES);
-		
-		Vector3 longPos = tetrahedron.longPos;
-		Vector3 mediumPos = tetrahedron.mediumPos;
-		Vector3 shortPos = tetrahedron.shortPos;
-		Vector3 uvPos = tetrahedron.uvPos;
-		
-		Style style = backend.getStyle();
-		Color longColourActive = (applyColours ? style.get(Colour.WL_LONG) : Color.WHITE);
-		Color mediumColourActive = (applyColours ? style.get(Colour.WL_MEDIUM) : Color.WHITE);
-		Color shortColourActive = (applyColours ? style.get(Colour.WL_SHORT) : Color.WHITE);
-		Color uvColourActive = (applyColours ? style.get(Colour.WL_UV) : Color.WHITE);
-
-		Vector3 normal = mediumPos.cpy().add(longPos).add(shortPos);
-		short corner1 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
-		short corner2 = meshBuilder.vertex(longPos, normal, longColourActive, Vector2.Zero);
-		short corner3 = meshBuilder.vertex(shortPos, normal, shortColourActive, Vector2.Zero);
-		meshBuilder.triangle(corner1, corner2, corner3);
-
-		if (doubleFaced)
-		{
-			normal = normal.scl(-1);
-			corner1 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
-			corner2 = meshBuilder.vertex(longPos, normal, longColourActive, Vector2.Zero);
-			corner3 = meshBuilder.vertex(shortPos, normal, shortColourActive, Vector2.Zero);
-			meshBuilder.triangle(corner3, corner2, corner1);
-		}
-		
-		meshes[0] = meshBuilder.end();
-		meshBuilder.begin(meshAttributes, GL20.GL_TRIANGLES);
-		
-		normal = longPos.cpy().add(mediumPos).add(uvPos);
-		corner1 = meshBuilder.vertex(longPos, normal, longColourActive, Vector2.Zero);
-		corner2 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
-		corner3 = meshBuilder.vertex(uvPos, normal, uvColourActive, Vector2.Zero);
-		meshBuilder.triangle(corner1, corner2, corner3);
-
-		if (doubleFaced)
-		{
-			normal = normal.scl(-1);
-			corner1 = meshBuilder.vertex(longPos, normal, longColourActive, Vector2.Zero);
-			corner2 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
-			corner3 = meshBuilder.vertex(uvPos, normal, uvColourActive, Vector2.Zero);
-			meshBuilder.triangle(corner3, corner2, corner1);
-		}
-		
-		meshes[1] = meshBuilder.end();
-		meshBuilder.begin(meshAttributes, GL20.GL_TRIANGLES);
-
-		normal = longPos.cpy().add(uvPos).add(shortPos);
-		corner1 = meshBuilder.vertex(longPos, normal, longColourActive, Vector2.Zero);
-		corner2 = meshBuilder.vertex(uvPos, normal, uvColourActive, Vector2.Zero);
-		corner3 = meshBuilder.vertex(shortPos, normal, shortColourActive, Vector2.Zero);
-		meshBuilder.triangle(corner1, corner2, corner3);
-
-		if (doubleFaced)
-		{
-			normal = normal.scl(-1);
-			corner1 = meshBuilder.vertex(longPos, normal, longColourActive, Vector2.Zero);
-			corner2 = meshBuilder.vertex(uvPos, normal, uvColourActive, Vector2.Zero);
-			corner3 = meshBuilder.vertex(shortPos, normal, shortColourActive, Vector2.Zero);
-			meshBuilder.triangle(corner3, corner2, corner1);
-		}
-		
-		meshes[2] = meshBuilder.end();
-		meshBuilder.begin(meshAttributes, GL20.GL_TRIANGLES);
-
-		normal = uvPos.cpy().add(mediumPos).add(shortPos);
-		corner1 = meshBuilder.vertex(uvPos, normal, uvColourActive, Vector2.Zero);
-		corner2 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
-		corner3 = meshBuilder.vertex(shortPos, normal, shortColourActive, Vector2.Zero);
-		meshBuilder.triangle(corner1, corner2, corner3);
-
-		if (doubleFaced)
-		{
-			normal = normal.scl(-1);
-			corner1 = meshBuilder.vertex(uvPos, normal, uvColourActive, Vector2.Zero);
-			corner2 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
-			corner3 = meshBuilder.vertex(shortPos, normal, shortColourActive, Vector2.Zero);
-			meshBuilder.triangle(corner3, corner2, corner1);
-		}
-		
-		meshes[3] = meshBuilder.end();
-
-		return meshes;
 	}
 	
 	
@@ -370,7 +254,7 @@ public class World implements Disposable
 	private void createPyramidCorners(Tetrahedron tetrahedron, ModelBuilder modelBuilder)
 	{
 		float diameter = 0.03f;
-		Model sphereModel = createSphere(modelBuilder, diameter, GL20.GL_TRIANGLES);
+		Model sphereModel = ShapeFactory.createSphere(modelBuilder, diameter, GL20.GL_TRIANGLES, SPHERE_SEGMENTS);
 		
 		Style style = backend.getStyle();
 		ModelInstance redSphere = createModelInstance(sphereModel, tetrahedron.longPos, style.get(Colour.WL_LONG));
@@ -425,37 +309,6 @@ public class World implements Disposable
 		float ratio = 1 / largest;
 		
 		return colour.mul(ratio);
-	}
-
-
-	private Model createSphere(ModelBuilder modelBuilder, float diameter, int primitiveType)
-	{
-		return createSphere(modelBuilder, diameter, primitiveType, SPHERE_SEGMENTS);
-	}
-
-
-	private Model createSphere(ModelBuilder modelBuilder, float diameter, int primitiveType, int segments)
-	{
-		return modelBuilder.createSphere(
-				diameter, diameter, diameter, segments, segments,
-				primitiveType, new Material(), Usage.Position | Usage.Normal);
-	}
-	
-	
-	private Model createBox(ModelBuilder modelBuilder, float size, int primitiveType)
-	{
-		return modelBuilder.createBox(size, size, size, primitiveType,
-				new Material(), Usage.Position | Usage.Normal);
-	}
-	
-	
-	private Model createPyramid(ModelBuilder modelBuilder, float size, int primitiveType)
-	{
-		Mesh mesh = createPyramidMesh(size, primitiveType, new MeshBuilder(), false);
-		
-		modelBuilder.begin();
-		modelBuilder.part("pyramid", mesh, primitiveType, new Material());
-		return modelBuilder.end();
 	}
 	
 	
@@ -594,9 +447,9 @@ public class World implements Disposable
 	{
 		ModelBuilder builder = new ModelBuilder();
 		float diameter = 0.02f;
-		Model modelSphere = createSphere(builder, diameter, GL20.GL_TRIANGLES);
-		Model modelBox = createBox(builder, diameter, GL20.GL_TRIANGLES);
-		Model modelPyramid = createPyramid(builder, diameter, GL20.GL_TRIANGLES);
+		Model modelSphere = ShapeFactory.createSphere(builder, diameter, GL20.GL_TRIANGLES, SPHERE_SEGMENTS);
+		Model modelBox = ShapeFactory.createBox(builder, diameter, GL20.GL_TRIANGLES);
+		Model modelPyramid = ShapeFactory.createTetrahedron(builder, diameter, GL20.GL_TRIANGLES);
 		disposables.add(modelSphere);
 		disposables.add(modelBox);
 		disposables.add(modelPyramid);
