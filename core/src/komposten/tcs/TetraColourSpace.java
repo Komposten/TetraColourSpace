@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.EnumMap;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -24,15 +23,10 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Pixmap.Filter;
 import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.PixmapIO.PNG;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.Texture.TextureFilter;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.BufferUtils;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -40,9 +34,8 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import komposten.tcs.backend.Backend;
 import komposten.tcs.backend.Style.Colour;
 import komposten.tcs.backend.data.Point;
-import komposten.tcs.backend.data.PointGroup;
-import komposten.tcs.backend.data.Shape;
 import komposten.tcs.rendering.World;
+import komposten.tcs.ui.UserInterface;
 import komposten.utilities.logging.Level;
 import komposten.utilities.logging.Logger;
 import komposten.utilities.tools.FileOperations;
@@ -69,16 +62,12 @@ public class TetraColourSpace extends ApplicationAdapter
 	private static final int SCREENSHOT_SIZE = 1080;
 	private static final int SCREENSHOT_SUPERSAMPLE = 10;
 	
-	private static final int LEGEND_HIDE = 0;
-	private static final int LEGEND_GROUPS = 1;
-	private static final int LEGEND_POINTS = 2;
-	private static final int LEGEND_OPTIONS = 3;
-	
 	private Logger logger;
 	private List<Point> selectionLog;
 	
 	private Backend backend;
 	private World world;
+	private UserInterface userInterface;
 	
 	private File dataFile;
 	private File outputPath;
@@ -86,11 +75,6 @@ public class TetraColourSpace extends ApplicationAdapter
 	private OrthographicCamera spriteCamera;
 	private ModelBatch batch;
 	private SpriteBatch spriteBatch;
-	
-	private Sprite crosshair;
-	private BitmapFont font;
-	
-	private EnumMap<Shape, Texture> shapeSprites;
 	
 	private FrameBuffer screenshotBuffer;
 	
@@ -100,8 +84,6 @@ public class TetraColourSpace extends ApplicationAdapter
 	private int scrollDelta = 0;
 	
 	private boolean takeScreenshot = false;
-	private boolean showCrosshair = true;
-	private int showLegend = 0;
 	private boolean cameraDirty = true;
 	private boolean autoRotate = false;
 	private int autoRotation = 1;
@@ -131,13 +113,6 @@ public class TetraColourSpace extends ApplicationAdapter
 		spriteCamera = new OrthographicCamera();
 		batch = new ModelBatch();
 		spriteBatch = new SpriteBatch();
-		font = new BitmapFont();
-		font.getData().markupEnabled = true;
-		
-		shapeSprites = new EnumMap<>(Shape.class);
-		shapeSprites.put(Shape.SPHERE, createLinearTexture("circle.png"));
-		shapeSprites.put(Shape.PYRAMID, createLinearTexture("triangle.png"));
-		shapeSprites.put(Shape.BOX, createLinearTexture("square.png"));
 		
 		int distance = 1;
 		camera.translate(distance, distance, -0.3f*distance);
@@ -148,33 +123,6 @@ public class TetraColourSpace extends ApplicationAdapter
 		createScreenshotBuffer();
 		loadData();
 		updateViewport();
-	}
-
-
-	private Texture createLinearTexture(String path)
-	{
-		Texture texture = new Texture(Gdx.files.internal(path));
-		texture.setFilter(TextureFilter.Linear, TextureFilter.Linear);
-		return texture;
-	}
-
-
-	private void createCrosshair()
-	{
-		Texture crosshairTexture = new Texture(Gdx.files.internal("crosshair.png"));
-		crosshair = new Sprite(crosshairTexture);
-		
-		Color colourCrosshair = backend.getStyle().get(Colour.CROSSHAIR);
-		Color colourBackground = backend.getStyle().get(Colour.BACKGROUND);
-		if (colourCrosshair == null)
-		{
-			colourCrosshair = Color.WHITE.cpy().sub(colourBackground);
-			colourCrosshair.a = 1f;
-		}
-		
-		crosshair.setColor(colourCrosshair);
-		crosshair.getColor().a = 1f;
-		disposables.add(crosshairTexture);
 	}
 
 
@@ -194,8 +142,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	{
 		backend = new Backend(dataFile, logger);
 		world = new World(backend, camera);
-		
-		createCrosshair();
+		userInterface = new UserInterface(backend, world);
 	}
 
 
@@ -232,27 +179,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		}
 		
 		spriteBatch.begin();
-		if (showCrosshair)
-		{
-			crosshair.draw(spriteBatch);
-		}
-		if (world.hasSelection())
-		{
-			Point selectedPoint = world.getSelectedPoint();
-			renderTextWithSymbol(selectedPoint.getName(),
-					shapeSprites.get(selectedPoint.getGroup().getShape()), 5, Gdx.graphics.getHeight() - 15f,
-					5, 12, selectedPoint.getColour());
-			String metrics = String.format(
-					"%n  Theta: %.02f%n  Phi: %.02f%n  r: %.02f",
-					selectedPoint.getMetrics().x,
-					selectedPoint.getMetrics().y,
-					selectedPoint.getMetrics().z);
-			
-			spriteBatch.setColor(backend.getStyle().get(Colour.TEXT));
-			font.draw(spriteBatch, metrics, 5, Gdx.graphics.getHeight()-10f);
-			spriteBatch.setColor(Color.WHITE);
-		}
-		renderLegend();
+		userInterface.render(spriteBatch);
 		spriteBatch.end();
 		
 		//Handle input
@@ -265,49 +192,6 @@ public class TetraColourSpace extends ApplicationAdapter
 		{
 			updateFollow();
 		}
-	}
-
-
-	private void renderLegend()
-	{
-		if (showLegend != LEGEND_HIDE)
-		{
-			float shapeSize = 12;
-			float padding = 5;
-			float lineHeight = Math.max(font.getLineHeight(), shapeSize);
-			float x = padding;
-			float y = Gdx.graphics.getHeight() - (padding + lineHeight/2);
-			
-			for (PointGroup group : backend.getDataGroups())
-			{
-				Texture shapeTexture = shapeSprites.get(group.getShape());
-				
-				if (showLegend == LEGEND_POINTS)
-				{
-					for (Point point : group.getPoints())
-					{
-						renderTextWithSymbol(point.getName(), shapeTexture, x, y, padding, shapeSize, point.getColour());
-						y -= lineHeight;
-					}
-				}
-				else if (showLegend == LEGEND_GROUPS)
-				{
-					renderTextWithSymbol(group.getName(), shapeTexture, x, y, padding, shapeSize, group.getColour());
-					y -= lineHeight;
-				}
-			}
-		}
-	}
-
-
-	private void renderTextWithSymbol(String text, Texture shapeTexture, float x, float y,
-			float padding, float shapeSize, Color colour)
-	{
-		spriteBatch.setColor(colour);
-		spriteBatch.draw(shapeTexture, x, y - shapeSize/2 , shapeSize, shapeSize);
-		spriteBatch.setColor(Color.WHITE);
-		String line = String.format("[#%s]%s", colour, text);
-		font.draw(spriteBatch, line, x + shapeSize + padding, y + font.getCapHeight()/2, 0, Align.left, false);
 	}
 
 
@@ -591,8 +475,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		spriteCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		spriteBatch.setProjectionMatrix(spriteCamera.combined);
 		
-		if (crosshair != null)
-			crosshair.setCenter(Gdx.graphics.getWidth()/2f, Gdx.graphics.getHeight()/2f);
+		userInterface.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 	}
 	
 	
@@ -608,12 +491,8 @@ public class TetraColourSpace extends ApplicationAdapter
 	{
 		screenshotBuffer.dispose();
 		batch.dispose();
+		userInterface.dispose();
 		disposeObjects();
-		
-		for (Texture texture : shapeSprites.values())
-		{
-			texture.dispose();
-		}
 		
 		if (!selectionLog.isEmpty())
 		{
@@ -677,12 +556,13 @@ public class TetraColourSpace extends ApplicationAdapter
 			}
 			else if (keycode == Keys.C)
 			{
-				showCrosshair = !showCrosshair;
+				userInterface.toggleCrosshair();
 				return true;
 			}
 			else if (keycode == Keys.L)
 			{
-				showLegend = (showLegend + 1) % LEGEND_OPTIONS;
+				userInterface.toggleLegend();
+				return true;
 			}
 			else if (keycode == Keys.T)
 			{
