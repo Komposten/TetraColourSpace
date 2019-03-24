@@ -1,11 +1,18 @@
 package komposten.tcs.util;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g3d.Material;
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.math.Vector3;
 
 
 public class TCSUtils
 {
+	private static Map<Color, Material> materials = new HashMap<>();
+	
 	private TCSUtils() {}
 
 
@@ -61,5 +68,11 @@ public class TCSUtils
 		}
 		
 		throw new IllegalArgumentException(hexColour + " is not a valid hex colour!");
+	}
+
+
+	public static Material getMaterialForColour(Color colour)
+	{
+		return materials.computeIfAbsent(colour, c -> new Material(ColorAttribute.createDiffuse(colour)));
 	}
 }

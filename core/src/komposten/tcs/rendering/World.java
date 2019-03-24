@@ -1,8 +1,6 @@
 package komposten.tcs.rendering;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +11,6 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g3d.Environment;
-import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
@@ -35,8 +32,9 @@ import komposten.tcs.backend.Style.Colour;
 import komposten.tcs.backend.data.Point;
 import komposten.tcs.backend.data.PointGroup;
 import komposten.tcs.backend.data.Volume;
+import komposten.tcs.util.ModelInstanceFactory;
 import komposten.tcs.util.ShapeFactory;
-import komposten.tcs.util.Tetrahedron;
+import komposten.tcs.util.TCSUtils;
 import komposten.utilities.tools.Geometry;
 
 /*
@@ -44,11 +42,11 @@ import komposten.utilities.tools.Geometry;
  */
 /*
  * TODO Move the data points and volumes into separate classes (Dataset?).
- * TODO Move the static models into a separate class?
  */
 public class World implements Disposable
 {
-	private static final int SPHERE_SEGMENTS = 25;
+	public static final int SPHERE_SEGMENTS = 25;
+	
 	private static final int POINT_METRIC_HIDE = 0;
 	private static final int POINT_METRIC_FILLED = 2;
 	private static final int POINT_METRIC_OPTIONS = 3;
@@ -56,32 +54,28 @@ public class World implements Disposable
 	private Backend backend;
 	private Camera camera;
 	private Environment environment;
+	
+	private GraphSpace graphSpace;
 
 	private Vector3 calcVector = new Vector3();
 
 	private List<Disposable> disposables;
 	private List<Disposable> volumeMeshes;
-	private List<ModelInstance> pyramidCornerModels;
 	private List<ModelInstance> pointModelInstances;
 	private List<Renderable> volumeRenderables;
 	private Map<Point, ModelInstance> pointToModelMap;
-	private TetrahedronSide[] pyramidSides;
-	private Renderable pyramidLines;
-	private Renderable axisLines;
 	private Renderable pointMetricsLines;
 	private Renderable pointMetricsArcs;
 	private ModelInstance selectedModel;
 	private ModelInstance highlightModel;
-	private Map<Color, Material> materials;
 	
 	private Point highlightPoint;
 	private Point selectedPoint;
 	
-	private boolean showPyramidSides = false;
-	private boolean showAxes = false;
 	private boolean showPoints = true;
 	private boolean showVolumes = true;
 	private boolean showHighlight = true;
+	private boolean showAxes = false;
 	private int showPointMetrics = 0;
 	private boolean hasSelection = false;
 	private boolean hasHighlight = false;
@@ -94,10 +88,8 @@ public class World implements Disposable
 		
 		disposables = new ArrayList<>();
 		volumeMeshes = new ArrayList<>();
-		pyramidCornerModels = new ArrayList<>();
 		pointModelInstances = new ArrayList<>();
 		volumeRenderables = new ArrayList<>();
-		materials = new HashMap<>();
 		pointToModelMap = new HashMap<>();
 
 		createEnvironment();
@@ -132,15 +124,17 @@ public class World implements Disposable
 	}
 	
 	
-	public void togglePyramidSides()
+	public void toggleTetrahedronSides()
 	{
-		showPyramidSides = !showPyramidSides;
+		graphSpace.toggleTetrahedronSides();
 	}
 	
 	
 	public void toggleAxisLines()
 	{
 		showAxes = !showAxes;
+		
+		graphSpace.setShowAxes(showPointMetrics != POINT_METRIC_HIDE || showAxes);
 	}
 	
 	
@@ -153,6 +147,8 @@ public class World implements Disposable
 	public void togglePointMetrics()
 	{
 		showPointMetrics = (showPointMetrics + 1) % POINT_METRIC_OPTIONS;
+		
+		graphSpace.setShowAxes(showPointMetrics != POINT_METRIC_HIDE || showAxes);
 	}
 	
 	
@@ -181,151 +177,18 @@ public class World implements Disposable
 	
 	private void createStaticModels()
 	{
-		Tetrahedron tetrahedron = new Tetrahedron(1f);
-
-		ModelBuilder modelBuilder = new ModelBuilder();
-		createPyramidCorners(tetrahedron, modelBuilder);
+		graphSpace = new GraphSpace(backend.getStyle(), camera);
 
 		Style style = backend.getStyle();
-		Model model = ShapeFactory.createSphere(modelBuilder, 0.025f, GL20.GL_LINES, 10);
-		selectedModel = createModelInstance(model, Vector3.Zero, style.get(Colour.SELECTION));
-		highlightModel = createModelInstance(model, Vector3.Zero, style.get(Colour.HIGHLIGHT));
-		
-		MeshBuilder meshBuilder = new MeshBuilder();
-		createTCSPyramid(meshBuilder);
-		createAxisLines(meshBuilder);
+		Model model = ShapeFactory.createSphere(new ModelBuilder(), 0.025f, GL20.GL_LINES, 10);
+		selectedModel = ModelInstanceFactory.create(model, Vector3.Zero, style.get(Colour.SELECTION));
+		highlightModel = ModelInstanceFactory.create(model, Vector3.Zero, style.get(Colour.HIGHLIGHT));
 		
 		pointMetricsLines = new Renderable();
 		pointMetricsArcs = new Renderable();
-		pointMetricsLines.material = getMaterialForColour(style.get(Colour.METRIC_LINE));
-		pointMetricsArcs.material = getMaterialForColour(style.get(Colour.METRIC_FILL));
+		pointMetricsLines.material = TCSUtils.getMaterialForColour(style.get(Colour.METRIC_LINE));
+		pointMetricsArcs.material = TCSUtils.getMaterialForColour(style.get(Colour.METRIC_FILL));
 		pointMetricsArcs.environment = environment;
-	}
-	
-	
-	private void createTCSPyramid(MeshBuilder meshBuilder)
-	{
-		Mesh[] pyramidMesh = ShapeFactory.createTetrahedronSideMeshes(1f, GL20.GL_TRIANGLES, meshBuilder, backend.getStyle());
-		
-		pyramidSides = new TetrahedronSide[4];
-		
-		for (int i = 0; i < pyramidMesh.length; i++)
-		{
-			pyramidSides[i] = new TetrahedronSide();
-			pyramidSides[i].renderable = new Renderable();
-			pyramidSides[i].renderable.material = new Material(getMaterialForColour(Color.WHITE));
-			pyramidSides[i].renderable.material.set(new BlendingAttribute(0.5f));
-			pyramidSides[i].renderable.meshPart.set("pyramid_side_" + i, pyramidMesh[i], 0, pyramidMesh[i].getNumVertices(), GL20.GL_TRIANGLES);
-			disposables.add(pyramidMesh[i]);
-
-			pyramidSides[i].centre = getMeshCentre(pyramidMesh[i]);
-		}
-
-		Mesh pyramidMeshSingle = ShapeFactory.createTetrahedronMesh(1f, GL20.GL_LINES, meshBuilder, backend.getStyle());
-		
-		pyramidLines = new Renderable();
-		pyramidLines.material = new Material(getMaterialForColour(Color.WHITE));
-		pyramidLines.meshPart.set("pyramid_lines", pyramidMeshSingle, 0, pyramidMeshSingle.getNumVertices(), GL20.GL_LINES);
-		disposables.add(pyramidMeshSingle);
-	}
-	
-	
-	private Vector3 getMeshCentre(Mesh mesh)
-	{
-		int vertexSize = mesh.getVertexSize() / 4;
-		int vertexCount = mesh.getNumVertices();
-		float[] vertices = mesh.getVertices(new float[vertexCount * vertexSize]);
-		
-		float avgX = 0;
-		float avgY = 0;
-		float avgZ = 0;
-		
-		for (int i = 0; i < vertexCount; i++)
-		{
-			avgX += vertices[i*vertexSize];
-			avgY += vertices[i*vertexSize+1];
-			avgZ += vertices[i*vertexSize+2];
-		}
-		
-		return new Vector3(avgX / vertexCount, avgY / vertexCount, avgZ / vertexCount);
-	}
-
-
-	private void createPyramidCorners(Tetrahedron tetrahedron, ModelBuilder modelBuilder)
-	{
-		float diameter = 0.03f;
-		Model sphereModel = ShapeFactory.createSphere(modelBuilder, diameter, GL20.GL_TRIANGLES, SPHERE_SEGMENTS);
-		
-		Style style = backend.getStyle();
-		ModelInstance redSphere = createModelInstance(sphereModel, tetrahedron.longPos, style.get(Colour.WL_LONG));
-		ModelInstance greenSphere = createModelInstance(sphereModel, tetrahedron.mediumPos, style.get(Colour.WL_MEDIUM));
-		ModelInstance blueSphere = createModelInstance(sphereModel, tetrahedron.shortPos, style.get(Colour.WL_SHORT));
-		ModelInstance uvSphere = createModelInstance(sphereModel, tetrahedron.uvPos, style.get(Colour.WL_UV));
-		ModelInstance achroSphere = createModelInstance(sphereModel, tetrahedron.achroPos, style.get(Colour.ACHRO));
-		
-		pyramidCornerModels.add(redSphere);
-		pyramidCornerModels.add(greenSphere);
-		pyramidCornerModels.add(blueSphere);
-		pyramidCornerModels.add(uvSphere);
-		pyramidCornerModels.add(achroSphere);
-
-		disposables.add(sphereModel);
-	}
-
-
-	private void createAxisLines(MeshBuilder meshBuilder)
-	{
-		meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_LINES);
-
-		Style style = backend.getStyle();
-		float length = 0.2f;
-		Vector3 start = new Vector3();
-		Vector3 end = new Vector3();
-		Color colourShort = style.get(Colour.WL_SHORT);
-		Color colourMedium = style.get(Colour.WL_MEDIUM);
-		Color colourLong = style.get(Colour.WL_LONG);
-		Color colourUv = style.get(Colour.WL_UV);
-		Color colourSL = colourLong.cpy().lerp(colourShort, 0.5f);
-		Color colourSML = colourLong.cpy().lerp(colourMedium, 0.5f).lerp(colourShort, 1/3f);
-		
-		colourSL = maximiseBrightness(colourSL);
-		colourSML = maximiseBrightness(colourSML);
-		
-		meshBuilder.line(start.set(-length, 0, 0), colourShort, end.set(length, 0, 0), colourLong);
-		meshBuilder.line(start.set(0, -length, 0), colourSML, end.set(0, length, 0), colourUv);
-		meshBuilder.line(start.set(0, 0, -length), colourMedium, end.set(0, 0, length), colourSL);
-
-		Mesh mesh = meshBuilder.end();
-		
-		axisLines = new Renderable();
-		axisLines.material = getMaterialForColour(Color.WHITE);
-		axisLines.meshPart.set("lines", mesh, 0, mesh.getNumVertices(), GL20.GL_LINES);
-	}
-
-
-	private Color maximiseBrightness(Color colour)
-	{
-		float largest = Math.max(colour.r, Math.max(colour.g, colour.b));
-		float ratio = 1 / largest;
-		
-		return colour.mul(ratio);
-	}
-	
-	
-	private ModelInstance createModelInstance(Model model, Vector3 position, Color colour)
-	{
-		Material material = materials.get(colour);
-		
-		if (material == null)
-		{
-			material = new Material(ColorAttribute.createDiffuse(colour));
-			materials.put(colour, material);
-		}
-		
-		ModelInstance instance = new ModelInstance(model);
-		instance.transform.setTranslation(position);
-		setMaterial(material, instance);
-		return instance;
 	}
 	
 	
@@ -474,10 +337,8 @@ public class World implements Disposable
 			
 			for (Point point : group.getPoints())
 			{
-				
-				ModelInstance instance = new ModelInstance(model);
-				instance.transform.translate(point.getCoordinates());
-				setMaterial(getMaterialForColour(point.getColour()).copy(), instance);
+				ModelInstance instance = ModelInstanceFactory.create(model,
+						point.getCoordinates(), point.getColour());
 				pointModelInstances.add(instance);
 				pointToModelMap.put(point, instance);
 			}
@@ -557,7 +418,7 @@ public class World implements Disposable
 				
 				Renderable renderable = new Renderable();
 				renderable.meshPart.set("volume_polygon", mesh, 0, mesh.getNumVertices(), GL20.GL_TRIANGLES);
-				renderable.material = getMaterialForColour(volume.getColour()).copy();
+				renderable.material = TCSUtils.getMaterialForColour(volume.getColour()).copy();
 				renderable.material.set(new BlendingAttribute(0.5f));
 				renderable.environment = environment;
 				
@@ -579,37 +440,13 @@ public class World implements Disposable
 				
 				Renderable renderable = new Renderable();
 				renderable.meshPart.set("volume_line", mesh, 0, mesh.getNumVertices(), GL20.GL_LINES);
-				renderable.material = getMaterialForColour(volume.getColour()).copy();
+				renderable.material = TCSUtils.getMaterialForColour(volume.getColour()).copy();
 				renderable.environment = environment;
 				
 				volumeRenderables.add(renderable);
 				volumeMeshes.add(mesh);
 			}
 		}
-	}
-
-
-	private void setMaterial(Material material, ModelInstance instance)
-	{
-		instance.nodes.forEach(node -> node.parts.forEach(part -> part.material = material));
-	}
-
-
-	private Material getMaterialForColour(Color colour)
-	{
-		Material activeMaterial = null;
-		
-		if (!materials.containsKey(colour))
-		{
-			activeMaterial = new Material(ColorAttribute.createDiffuse(colour));
-			materials.put(colour, activeMaterial);
-		}
-		else
-		{
-			activeMaterial = materials.get(colour);
-		}
-		
-		return activeMaterial;
 	}
 	
 	
@@ -704,39 +541,13 @@ public class World implements Disposable
 	{
 		if (cameraUpdated)
 		{
-			Arrays.sort(pyramidSides, pyramidSideComparator);
+			graphSpace.cameraUpdated();
 		}
 		
-		renderPyramid(batch);
-		renderAxes(batch);
+		graphSpace.render(batch, environment);
 		renderPoints(batch);
 		renderVolumes(batch);
 		renderPointMetrics(batch);
-	}
-
-
-	private void renderPyramid(ModelBatch batch)
-	{
-		if (showPyramidSides)
-		{
-			for (TetrahedronSide side : pyramidSides)
-			{
-				batch.render(side.renderable);
-			}
-		}
-		else
-		{
-			batch.render(pyramidLines);
-		}
-
-		batch.render(pyramidCornerModels, environment);
-	}
-
-
-	private void renderAxes(ModelBatch batch)
-	{
-		if (showAxes || showPointMetrics != POINT_METRIC_HIDE)
-			batch.render(axisLines);
 	}
 
 
@@ -790,20 +601,5 @@ public class World implements Disposable
 		{
 			mesh.dispose();
 		}
-	}
-	
-	
-	private Comparator<TetrahedronSide> pyramidSideComparator = (side1, side2) -> 
-	{
-			float length1 = calcVector.set(camera.position).sub(side1.centre).len2();
-			float length2 = calcVector.set(camera.position).sub(side2.centre).len2();
-			return -Float.compare(length1, length2);
-	};
-	
-	
-	private static class TetrahedronSide
-	{
-		Renderable renderable;
-		Vector3 centre;
 	}
 }

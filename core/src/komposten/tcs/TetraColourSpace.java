@@ -566,7 +566,7 @@ public class TetraColourSpace extends ApplicationAdapter
 			}
 			else if (keycode == Keys.T)
 			{
-				world.togglePyramidSides();
+				world.toggleTetrahedronSides();
 				return true;
 			}
 			else if (keycode == Keys.Y)
