@@ -31,6 +31,7 @@ import komposten.tcs.backend.data.Volume;
 import komposten.tcs.util.TCSUtils;
 import komposten.utilities.logging.Level;
 import komposten.utilities.logging.Logger;
+import komposten.utilities.tools.MathOps;
 import komposten.utilities.tools.Regex;
 
 public class Backend
@@ -244,7 +245,7 @@ public class Backend
 	
 	private Vector3 getColourSpaceMetricsFromLine(String line)
 	{
-		String[] values = Regex.getMatches("-?\\d+(\\.\\d+)?", line);
+		String[] values = Regex.getMatches(MathOps.doubleRegex, line);
 		float[] floats = new float[values.length];
 		
 		for (int i = 0; i < floats.length; i++)
