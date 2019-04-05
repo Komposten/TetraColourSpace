@@ -13,7 +13,6 @@ import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.Renderable;
-import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.model.MeshPart;
@@ -38,9 +37,6 @@ import komposten.utilities.tools.Geometry;
 /*
  * TODO Move the metric lines and arcs to the UI?
  */
-/*
- * TODO Move the data points and volumes into separate classes (Dataset?).
- */
 public class World implements Disposable
 {
 	public static final int SPHERE_SEGMENTS = 25;
@@ -55,12 +51,9 @@ public class World implements Disposable
 	
 	private GraphSpace graphSpace;
 
-	private Vector3 calcVector = new Vector3();
-
 	private List<Disposable> disposables;
-	private List<Disposable> volumeMeshes;
 	private List<PointGroupRenderable> groupRenderables;
-	private List<Renderable> volumeRenderables;
+	private List<VolumeRenderable> volumeRenderables;
 	private Renderable pointMetricsLines;
 	private Renderable pointMetricsArcs;
 	private ModelInstance selectedModel;
@@ -84,9 +77,6 @@ public class World implements Disposable
 		this.camera = camera;
 		
 		disposables = new ArrayList<>();
-		volumeMeshes = new ArrayList<>();
-		volumeRenderables = new ArrayList<>();
-		groupRenderables = new ArrayList<>();
 
 		createEnvironment();
 		
@@ -304,6 +294,8 @@ public class World implements Disposable
 
 	private void generatePointObjects()
 	{
+		groupRenderables = new ArrayList<>(backend.getDataGroups().size());
+		
 		for (PointGroup group : backend.getDataGroups())
 		{
 			PointGroupRenderable dataGroup = new PointGroupRenderable(group, 0.02f);
@@ -315,104 +307,13 @@ public class World implements Disposable
 
 	private void generateVolumeObjects()
 	{
-		MeshBuilder meshBuilder = new MeshBuilder();
-		Vector3 vector1 = new Vector3();
-		Vector3 vector2 = new Vector3();
-		Vector3 vector3 = new Vector3();
-		Vector3 vector4 = new Vector3();
-		Vector3 edge1 = new Vector3();
-		Vector3 edge2 = new Vector3();
-		Vector3 normal = new Vector3();
+		volumeRenderables = new ArrayList<>(backend.getDataVolumes().size());
 		
 		for (Volume volume : backend.getDataVolumes())
 		{
-			double[] volumeCoords = volume.getCoordinates();
-			
-			int vertexCount = volumeCoords.length / 3;
-			if (vertexCount >= 3)
-			{
-				meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_TRIANGLES);
-				for (int[] face : volume.getFaces())
-				{
-					int vertex1Index = face[0]*3;
-					int vertex2Index = face[1]*3;
-					int vertex3Index = face[2]*3;
-					vector1.set((float) volumeCoords[vertex1Index],
-							(float) volumeCoords[vertex1Index + 1],
-							(float) volumeCoords[vertex1Index + 2]);
-					vector2.set((float) volumeCoords[vertex2Index],
-							(float) volumeCoords[vertex2Index + 1],
-							(float) volumeCoords[vertex2Index + 2]);
-					vector3.set((float) volumeCoords[vertex3Index],
-							(float) volumeCoords[vertex3Index + 1],
-							(float) volumeCoords[vertex3Index + 2]);
-					
-					edge1.set(vector2).sub(vector1);
-					edge2.set(vector3).sub(vector1);
-					normal.x = edge1.y*edge2.z - edge1.z*edge2.y;
-					normal.y = edge1.z*edge2.x - edge1.x*edge2.z;
-					normal.z = edge1.x*edge2.y - edge1.y*edge2.x;
-					normal.nor();
-					
-					if (vertexCount > 3)
-					{
-						// This code ensures that the normal is pointing outwards.
-						// Basic idea: 
-						// 1) Find any point not in the current face.
-						// 2) Check if adding or subtracting the normal takes us away from said point.
-						
-						int vertex4Index = (vertex1Index + 3) % volumeCoords.length;
-						while (vertex4Index == vertex2Index || vertex4Index == vertex3Index)
-							vertex4Index = (vertex4Index + 3) % volumeCoords.length;
-						
-						vector4.set((float) volumeCoords[vertex4Index],
-							(float) volumeCoords[vertex4Index + 1],
-							(float) volumeCoords[vertex4Index + 2]);
-						
-						float length1 = calcVector.set(vector1).add(normal).sub(vector4).len2();
-						float length2 = calcVector.set(vector1).sub(normal).sub(vector4).len2();
-						
-						if (length1 < length2)
-							normal.scl(-1);
-					}
-					
-					short vertex1 = meshBuilder.vertex(vector1, normal, Color.WHITE, null);
-					short vertex2 = meshBuilder.vertex(vector2, normal, Color.WHITE, null);
-					short vertex3 = meshBuilder.vertex(vector3, normal, Color.WHITE, null);
-					meshBuilder.triangle(vertex1, vertex2, vertex3);
-				}
-				Mesh mesh = meshBuilder.end();
-				
-				Renderable renderable = new Renderable();
-				renderable.meshPart.set("volume_polygon", mesh, 0, mesh.getNumVertices(), GL20.GL_TRIANGLES);
-				renderable.material = TCSUtils.getMaterialForColour(volume.getColour()).copy();
-				renderable.material.set(new BlendingAttribute(0.5f));
-				renderable.environment = environment;
-				
-				volumeRenderables.add(renderable);
-				volumeMeshes.add(mesh);
-			}
-			else if (volumeCoords.length == 6)
-			{
-				vector1.set((float) volumeCoords[0],
-						(float) volumeCoords[1],
-						(float) volumeCoords[2]);
-				vector2.set((float) volumeCoords[3],
-						(float) volumeCoords[4],
-						(float) volumeCoords[5]);
-				
-				meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_LINES);
-				meshBuilder.line(vector1, vector2);
-				Mesh mesh = meshBuilder.end();
-				
-				Renderable renderable = new Renderable();
-				renderable.meshPart.set("volume_line", mesh, 0, mesh.getNumVertices(), GL20.GL_LINES);
-				renderable.material = TCSUtils.getMaterialForColour(volume.getColour()).copy();
-				renderable.environment = environment;
-				
-				volumeRenderables.add(renderable);
-				volumeMeshes.add(mesh);
-			}
+			VolumeRenderable renderable = new VolumeRenderable(volume, environment);
+			volumeRenderables.add(renderable);
+			disposables.add(renderable);
 		}
 	}
 	
@@ -521,9 +422,7 @@ public class World implements Disposable
 		if (showPoints)
 		{
 			for (PointGroupRenderable groupRenderable : groupRenderables)
-			{
 				groupRenderable.render(batch, environment);
-			}
 
 			if (hasSelection)
 			{
@@ -541,8 +440,8 @@ public class World implements Disposable
 	{
 		if (showVolumes)
 		{
-			for (Renderable mesh : volumeRenderables)
-				batch.render(mesh);
+			for (VolumeRenderable volumeRenderable : volumeRenderables)
+				volumeRenderable.render(batch);
 		}
 	}
 
@@ -564,10 +463,6 @@ public class World implements Disposable
 		for (Disposable disposable : disposables)
 		{
 			disposable.dispose();
-		}
-		for (Disposable mesh : volumeMeshes)
-		{
-			mesh.dispose();
 		}
 	}
 }
