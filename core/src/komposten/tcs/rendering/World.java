@@ -1,9 +1,7 @@
 package komposten.tcs.rendering;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
@@ -61,9 +59,8 @@ public class World implements Disposable
 
 	private List<Disposable> disposables;
 	private List<Disposable> volumeMeshes;
-	private List<ModelInstance> pointModelInstances;
+	private List<PointGroupRenderable> groupRenderables;
 	private List<Renderable> volumeRenderables;
-	private Map<Point, ModelInstance> pointToModelMap;
 	private Renderable pointMetricsLines;
 	private Renderable pointMetricsArcs;
 	private ModelInstance selectedModel;
@@ -88,9 +85,8 @@ public class World implements Disposable
 		
 		disposables = new ArrayList<>();
 		volumeMeshes = new ArrayList<>();
-		pointModelInstances = new ArrayList<>();
 		volumeRenderables = new ArrayList<>();
-		pointToModelMap = new HashMap<>();
+		groupRenderables = new ArrayList<>();
 
 		createEnvironment();
 		
@@ -308,40 +304,11 @@ public class World implements Disposable
 
 	private void generatePointObjects()
 	{
-		ModelBuilder builder = new ModelBuilder();
-		float diameter = 0.02f;
-		Model modelSphere = ShapeFactory.createSphere(builder, diameter, GL20.GL_TRIANGLES, SPHERE_SEGMENTS);
-		Model modelBox = ShapeFactory.createBox(builder, diameter, GL20.GL_TRIANGLES);
-		Model modelPyramid = ShapeFactory.createTetrahedron(builder, diameter, GL20.GL_TRIANGLES);
-		disposables.add(modelSphere);
-		disposables.add(modelBox);
-		disposables.add(modelPyramid);
-		
 		for (PointGroup group : backend.getDataGroups())
 		{
-			Model model;
-			
-			switch (group.getShape())
-			{
-				case BOX :
-					model = modelBox;
-					break;
-				case PYRAMID :
-					model = modelPyramid;
-					break;
-				case SPHERE :
-				default :
-					model = modelSphere;
-					break;
-			}
-			
-			for (Point point : group.getPoints())
-			{
-				ModelInstance instance = ModelInstanceFactory.create(model,
-						point.getCoordinates(), point.getColour());
-				pointModelInstances.add(instance);
-				pointToModelMap.put(point, instance);
-			}
+			PointGroupRenderable dataGroup = new PointGroupRenderable(group, 0.02f);
+			groupRenderables.add(dataGroup);
+			disposables.add(dataGroup);
 		}
 	}
 
@@ -460,11 +427,10 @@ public class World implements Disposable
 	private void updateHighlight()
 	{
 		highlightPoint = getPointNearCrosshair();
-		ModelInstance model = pointToModelMap.get(highlightPoint);
-		if (model != null)
+		if (highlightPoint != null)
 		{
 			hasHighlight = true;
-			highlightModel.transform.setTranslation(model.transform.getTranslation(calcVector));
+			highlightModel.transform.setTranslation(highlightPoint.getCoordinates());
 		}
 		else
 		{
@@ -478,11 +444,10 @@ public class World implements Disposable
 		if (showPoints)
 		{
 			selectedPoint = highlightPoint;
-			ModelInstance model = pointToModelMap.get(selectedPoint);
-			if (model != null)
+			if (selectedPoint != null)
 			{
 				hasSelection = true;
-				selectedModel.transform.setTranslation(model.transform.getTranslation(calcVector));
+				selectedModel.transform.setTranslation(selectedPoint.getCoordinates());
 				createPointMetricMesh(selectedPoint);
 				return selectedPoint;
 			}
@@ -555,7 +520,10 @@ public class World implements Disposable
 	{
 		if (showPoints)
 		{
-			batch.render(pointModelInstances, environment);
+			for (PointGroupRenderable groupRenderable : groupRenderables)
+			{
+				groupRenderable.render(batch, environment);
+			}
 
 			if (hasSelection)
 			{
