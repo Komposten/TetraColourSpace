@@ -111,6 +111,12 @@ public class World implements Disposable
 	public void toggleHighlight()
 	{
 		showHighlight = !showHighlight;
+		
+		if (!showHighlight)
+		{
+			hasHighlight = false;
+			highlightPoint = null;
+		}
 	}
 	
 	
@@ -198,7 +204,7 @@ public class World implements Disposable
 	
 	public Point updateSelection()
 	{
-		if (showPoints)
+		if (showPoints && showHighlight)
 		{
 			selectedPoint = highlightPoint;
 			graphSpace.setPointMetricTarget(selectedPoint);
@@ -212,6 +218,11 @@ public class World implements Disposable
 			{
 				hasSelection = false;
 			}
+		}
+		else if (!showHighlight)
+		{
+			selectedPoint = null;
+			hasSelection = false;
 		}
 
 		return null;
