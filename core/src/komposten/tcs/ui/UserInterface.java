@@ -1,37 +1,33 @@
 package komposten.tcs.ui;
 
-import java.util.EnumMap;
-
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Disposable;
 
 import komposten.tcs.backend.Backend;
 import komposten.tcs.backend.Style.Colour;
 import komposten.tcs.backend.data.Point;
-import komposten.tcs.backend.data.PointGroup;
-import komposten.tcs.backend.data.Shape;
 import komposten.tcs.rendering.World;
 
 public class UserInterface implements Disposable
 {
 	private static final int LEGEND_HIDE = 0;
-	private static final int LEGEND_GROUPS = 1;
 	private static final int LEGEND_POINTS = 2;
 	private static final int LEGEND_OPTIONS = 3;
 	
 	private Backend backend;
 	private World world;
+	private LegendRenderable legend;
 	
-	private EnumMap<Shape, Texture> shapeSprites;
 	private Sprite crosshair;
 	private BitmapFont font;
+
+	private IconText metricHeader;
+	private IconText metricBody;
 	
 	private boolean showCrosshair = true;
 	private int showLegend = 0;
@@ -39,14 +35,31 @@ public class UserInterface implements Disposable
 	
 	public UserInterface(Backend backend, World world)
 	{
+		IconText.createIcons();
+		
 		this.backend = backend;
 		this.world = world;
 		
 		font = new BitmapFont();
 		font.getData().markupEnabled = true;
 		
-		createShapes();
+		legend = new LegendRenderable(backend, font);
+		
+		createMetricLabels();
 		createCrosshair();
+	}
+
+
+	private void createMetricLabels()
+	{
+		metricHeader = new IconText();
+		metricHeader.setX(5);
+		metricHeader.setIconSize(12);
+		
+		metricBody = new IconText();
+		metricBody.setX(5);
+		metricBody.setIconSize(12);
+		metricBody.setColour(backend.getStyle().get(Colour.TEXT));
 	}
 	
 	
@@ -59,23 +72,6 @@ public class UserInterface implements Disposable
 	public void toggleLegend()
 	{
 		showLegend = (showLegend + 1) % LEGEND_OPTIONS;
-	}
-
-
-	private void createShapes()
-	{
-		shapeSprites = new EnumMap<>(Shape.class);
-		shapeSprites.put(Shape.SPHERE, createLinearTexture("circle.png"));
-		shapeSprites.put(Shape.PYRAMID, createLinearTexture("triangle.png"));
-		shapeSprites.put(Shape.BOX, createLinearTexture("square.png"));
-	}
-
-
-	private Texture createLinearTexture(String path)
-	{
-		Texture texture = new Texture(Gdx.files.internal(path));
-		texture.setFilter(TextureFilter.Linear, TextureFilter.Linear);
-		return texture;
 	}
 
 
@@ -123,18 +119,20 @@ public class UserInterface implements Disposable
 		if (world.hasSelection())
 		{
 			Point selectedPoint = world.getSelectedPoint();
-			renderTextWithSymbol(selectedPoint.getName(),
-					shapeSprites.get(selectedPoint.getGroup().getShape()), 5, Gdx.graphics.getHeight() - 15f,
-					5, 12, selectedPoint.getColour(), batch);
-			String metrics = String.format(
-					"%n  Theta: %.02f%n  Phi: %.02f%n  r: %.02f",
+			String metrics = String.format("  Theta: %.02f%n  Phi: %.02f%n  r: %.02f",
 					selectedPoint.getMetrics().x,
 					selectedPoint.getMetrics().y,
 					selectedPoint.getMetrics().z);
 			
-			batch.setColor(backend.getStyle().get(Colour.TEXT));
-			font.draw(batch, metrics, 5, Gdx.graphics.getHeight()-10f);
-			batch.setColor(Color.WHITE);
+			metricHeader.setText(selectedPoint.getName());
+			metricHeader.setY(Gdx.graphics.getHeight() - 15f);
+			metricHeader.setIcon(selectedPoint.getGroup().getShape());
+			metricHeader.setColour(selectedPoint.getColour());
+			metricHeader.render(batch, font);
+			
+			metricBody.setText(metrics);
+			metricBody.setY(Gdx.graphics.getHeight() - 15f - font.getLineHeight());
+			metricBody.render(batch, font);
 		}
 	}
 
@@ -143,50 +141,15 @@ public class UserInterface implements Disposable
 	{
 		if (showLegend != LEGEND_HIDE)
 		{
-			float shapeSize = 12;
-			float padding = 5;
-			float lineHeight = Math.max(font.getLineHeight(), shapeSize);
-			float x = padding;
-			float y = Gdx.graphics.getHeight() - (padding + lineHeight/2);
-			
-			for (PointGroup group : backend.getDataGroups())
-			{
-				Texture shapeTexture = shapeSprites.get(group.getShape());
-				
-				if (showLegend == LEGEND_POINTS)
-				{
-					for (Point point : group.getPoints())
-					{
-						renderTextWithSymbol(point.getName(), shapeTexture, x, y, padding, shapeSize, point.getColour(), batch);
-						y -= lineHeight;
-					}
-				}
-				else if (showLegend == LEGEND_GROUPS)
-				{
-					renderTextWithSymbol(group.getName(), shapeTexture, x, y, padding, shapeSize, group.getColour(), batch);
-					y -= lineHeight;
-				}
-			}
+			legend.render(batch, font, showLegend == LEGEND_POINTS);
 		}
-	}
-
-
-	private void renderTextWithSymbol(String text, Texture shapeTexture, float x, float y,
-			float padding, float shapeSize, Color colour, SpriteBatch batch)
-	{
-		batch.setColor(colour);
-		batch.draw(shapeTexture, x, y - shapeSize/2 , shapeSize, shapeSize);
-		batch.setColor(Color.WHITE);
-		String line = String.format("[#%s]%s", colour, text);
-		font.draw(batch, line, x + shapeSize + padding, y + font.getCapHeight()/2, 0, Align.left, false);
 	}
 	
 	
 	@Override
 	public void dispose()
 	{
-		for (Texture texture : shapeSprites.values())
-			texture.dispose();
+		IconText.dispose();
 		crosshair.getTexture().dispose();
 	}
 }
