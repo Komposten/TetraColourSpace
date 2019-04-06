@@ -6,20 +6,13 @@ import java.util.List;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Mesh;
-import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
-import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
-import com.badlogic.gdx.graphics.g3d.model.MeshPart;
-import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
-import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder.VertexInfo;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Disposable;
 
@@ -31,19 +24,10 @@ import komposten.tcs.backend.data.PointGroup;
 import komposten.tcs.backend.data.Volume;
 import komposten.tcs.util.ModelInstanceFactory;
 import komposten.tcs.util.ShapeFactory;
-import komposten.tcs.util.TCSUtils;
-import komposten.utilities.tools.Geometry;
 
-/*
- * TODO Move the metric lines and arcs to the UI?
- */
 public class World implements Disposable
 {
 	public static final int SPHERE_SEGMENTS = 25;
-	
-	private static final int POINT_METRIC_HIDE = 0;
-	private static final int POINT_METRIC_FILLED = 2;
-	private static final int POINT_METRIC_OPTIONS = 3;
 	
 	private Backend backend;
 	private Camera camera;
@@ -54,8 +38,6 @@ public class World implements Disposable
 	private List<Disposable> disposables;
 	private List<PointGroupRenderable> groupRenderables;
 	private List<VolumeRenderable> volumeRenderables;
-	private Renderable pointMetricsLines;
-	private Renderable pointMetricsArcs;
 	private ModelInstance selectedModel;
 	private ModelInstance highlightModel;
 	
@@ -65,8 +47,6 @@ public class World implements Disposable
 	private boolean showPoints = true;
 	private boolean showVolumes = true;
 	private boolean showHighlight = true;
-	private boolean showAxes = false;
-	private int showPointMetrics = 0;
 	private boolean hasSelection = false;
 	private boolean hasHighlight = false;
 
@@ -118,23 +98,19 @@ public class World implements Disposable
 	
 	public void toggleAxisLines()
 	{
-		showAxes = !showAxes;
-		
-		graphSpace.setShowAxes(showPointMetrics != POINT_METRIC_HIDE || showAxes);
+		graphSpace.toggleAxisLines();
+	}
+	
+	
+	public void togglePointMetrics()
+	{
+		graphSpace.togglePointMetrics();
 	}
 	
 	
 	public void toggleHighlight()
 	{
 		showHighlight = !showHighlight;
-	}
-	
-	
-	public void togglePointMetrics()
-	{
-		showPointMetrics = (showPointMetrics + 1) % POINT_METRIC_OPTIONS;
-		
-		graphSpace.setShowAxes(showPointMetrics != POINT_METRIC_HIDE || showAxes);
 	}
 	
 	
@@ -163,135 +139,15 @@ public class World implements Disposable
 	
 	private void createStaticModels()
 	{
-		graphSpace = new GraphSpace(backend.getStyle(), camera);
+		graphSpace = new GraphSpace(backend.getStyle(), camera, environment);
 
 		Style style = backend.getStyle();
 		Model model = ShapeFactory.createSphere(new ModelBuilder(), 0.025f, GL20.GL_LINES, 10);
 		selectedModel = ModelInstanceFactory.create(model, Vector3.Zero, style.get(Colour.SELECTION));
 		highlightModel = ModelInstanceFactory.create(model, Vector3.Zero, style.get(Colour.HIGHLIGHT));
-		
-		pointMetricsLines = new Renderable();
-		pointMetricsArcs = new Renderable();
-		pointMetricsLines.material = TCSUtils.getMaterialForColour(style.get(Colour.METRIC_LINE));
-		pointMetricsArcs.material = TCSUtils.getMaterialForColour(style.get(Colour.METRIC_FILL));
-		pointMetricsArcs.environment = environment;
 	}
 	
 	
-	private void createPointMetricMesh(Point point)
-	{
-		Vector3 line = point.getCoordinates();
-		Vector3 lineInZX = new Vector3(line.x, 0, line.z);
-		
-		float arcRadius = lineInZX.len()*0.8f;
-		int segments = 200;
-		float segmentsPerRadian = segments / MathUtils.PI2;
-		float theta = point.getMetrics().x;
-		float phi = point.getMetrics().y;
-		
-		while (theta > MathUtils.PI) theta -= MathUtils.PI2;
-		while (theta < -MathUtils.PI) theta += MathUtils.PI2;
-
-		float thetaDeg = theta*MathUtils.radiansToDegrees;
-		
-		int thetaSegments = MathUtils.ceil(Math.abs(theta)*segmentsPerRadian);
-		int phiSegments = MathUtils.ceil(Math.abs(phi)*segmentsPerRadian);
-		float[] thetaArc = Geometry.createArc(0, -theta, arcRadius, thetaSegments);
-		float[] phiArc = Geometry.createArc(0, phi, arcRadius, phiSegments);
-		
-		MeshBuilder builder = new MeshBuilder();
-		builder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_LINES);
-		
-		//Create the lines from origin
-		MeshPart lines = builder.part("lines", GL20.GL_LINES);
-		builder.line(Vector3.Zero, line);
-		builder.line(Vector3.Zero, lineInZX);
-		
-		//Create the arc outlines
-		Vector3 start = new Vector3();
-		Vector3 end = new Vector3();
-		for (int i = 2; i < thetaArc.length; i+=2)
-		{
-			start.set(thetaArc[i-2], 0, thetaArc[i-1]);
-			end.set(thetaArc[i], 0, thetaArc[i+1]);
-			
-			if (i == 2)
-				builder.line(Vector3.Zero, start);
-			else if (i/2 == (thetaArc.length-1)/2)
-				builder.line(end, Vector3.Zero);
-			builder.line(start, end);
-		}
-		
-		for (int i = 2; i < phiArc.length; i+=2)
-		{
-			start.set(phiArc[i-2], phiArc[i-1], 0);
-			end.set(phiArc[i], phiArc[i+1], 0);
-			
-			start.rotate(Vector3.Y, thetaDeg);
-			end.rotate(Vector3.Y, thetaDeg);
-
-			if (i == 2)
-				builder.line(Vector3.Zero, start);
-			else if (i/2 == (phiArc.length-1)/2)
-				builder.line(end, Vector3.Zero);
-			builder.line(start, end);
-		}
-		
-		//Create the filled arcs
-		MeshPart arcFill = builder.part("arc_fill", GL20.GL_TRIANGLES);
-		Vector3 normal = new Vector3();
-		Vector3 normalInv = new Vector3();
-		VertexInfo startVertex = new VertexInfo();
-		VertexInfo endVertex = new VertexInfo();
-		VertexInfo zeroVertex = new VertexInfo().setPos(Vector3.Zero);
-
-		normal.set(0, -1, 0);
-		normalInv.set(normal).scl(-1);
-		for (int i = 2; i < thetaArc.length; i+=2)
-		{
-			startVertex.setPos(thetaArc[i-2], 0, thetaArc[i-1]);
-			endVertex.setPos(thetaArc[i], 0, thetaArc[i+1]);
-			
-			startVertex.setNor(normal);
-			endVertex.setNor(normal);
-			zeroVertex.setNor(normal);
-			builder.triangle(startVertex, endVertex, zeroVertex);
-			
-			startVertex.setNor(normalInv);
-			endVertex.setNor(normalInv);
-			zeroVertex.setNor(normalInv);
-			builder.triangle(startVertex, zeroVertex, endVertex);
-		}
-		
-		normal.set(0, 0, -1).rotate(Vector3.Y, thetaDeg);
-		normalInv.set(normal).scl(-1);
-		for (int i = 2; i < phiArc.length; i+=2)
-		{
-			startVertex.setPos(phiArc[i-2], phiArc[i-1], 0);
-			endVertex.setPos(phiArc[i], phiArc[i+1], 0);
-			
-			startVertex.position.rotate(Vector3.Y, thetaDeg);
-			endVertex.position.rotate(Vector3.Y, thetaDeg);
-			
-			startVertex.setNor(normal);
-			endVertex.setNor(normal);
-			zeroVertex.setNor(normal);
-			builder.triangle(startVertex, endVertex, zeroVertex);
-
-			startVertex.setNor(normalInv);
-			endVertex.setNor(normalInv);
-			zeroVertex.setNor(normalInv);
-			builder.triangle(startVertex, zeroVertex, endVertex);
-		}
-		
-		Mesh mesh = builder.end();
-		pointMetricsLines.meshPart.set(lines);
-		pointMetricsArcs.meshPart.set(arcFill);
-		
-		disposables.add(mesh);
-	}
-
-
 	private void generatePointObjects()
 	{
 		groupRenderables = new ArrayList<>(backend.getDataGroups().size());
@@ -345,11 +201,11 @@ public class World implements Disposable
 		if (showPoints)
 		{
 			selectedPoint = highlightPoint;
+			graphSpace.setPointMetricTarget(selectedPoint);
 			if (selectedPoint != null)
 			{
 				hasSelection = true;
 				selectedModel.transform.setTranslation(selectedPoint.getCoordinates());
-				createPointMetricMesh(selectedPoint);
 				return selectedPoint;
 			}
 			else
@@ -413,7 +269,6 @@ public class World implements Disposable
 		graphSpace.render(batch, environment);
 		renderPoints(batch);
 		renderVolumes(batch);
-		renderPointMetrics(batch);
 	}
 
 
@@ -442,17 +297,6 @@ public class World implements Disposable
 		{
 			for (VolumeRenderable volumeRenderable : volumeRenderables)
 				volumeRenderable.render(batch);
-		}
-	}
-
-
-	private void renderPointMetrics(ModelBatch batch)
-	{
-		if (showPoints && hasSelection && showPointMetrics != POINT_METRIC_HIDE)
-		{
-			if (showPointMetrics == POINT_METRIC_FILLED)
-				batch.render(pointMetricsArcs);
-			batch.render(pointMetricsLines);
 		}
 	}
 	

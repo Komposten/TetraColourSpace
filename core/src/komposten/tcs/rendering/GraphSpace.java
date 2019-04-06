@@ -24,6 +24,7 @@ import com.badlogic.gdx.utils.Disposable;
 
 import komposten.tcs.backend.Style;
 import komposten.tcs.backend.Style.Colour;
+import komposten.tcs.backend.data.Point;
 import komposten.tcs.util.ModelInstanceFactory;
 import komposten.tcs.util.ShapeFactory;
 import komposten.tcs.util.TCSUtils;
@@ -31,6 +32,12 @@ import komposten.tcs.util.Tetrahedron;
 
 public class GraphSpace implements Disposable
 {
+	private enum MetricLineVisibility
+	{
+		HIDDEN,
+		OUTLINE,
+		FILL
+	}
 	private Camera camera;
 	
 	private List<Disposable> disposables;
@@ -38,12 +45,14 @@ public class GraphSpace implements Disposable
 	private TetrahedronSide[] tetrahedronSides;
 	private Renderable tetrahedronLines;
 	private Renderable axisLines;
+	private MetricLineRenderable metricLines;
 
 	private boolean showTetrahedronSides = false;
 	private boolean showAxes = false;
+	private MetricLineVisibility pointMetricVariant = MetricLineVisibility.HIDDEN;
 	
 	
-	public GraphSpace(Style style, Camera camera)
+	public GraphSpace(Style style, Camera camera, Environment environment)
 	{
 		this.camera = camera;
 		
@@ -58,6 +67,8 @@ public class GraphSpace implements Disposable
 		MeshBuilder meshBuilder = new MeshBuilder();
 		createTetrahedron(meshBuilder, style);
 		createAxisLines(meshBuilder, style);
+		
+		metricLines = new MetricLineRenderable(style, environment);
 	}
 	
 	
@@ -67,9 +78,23 @@ public class GraphSpace implements Disposable
 	}
 	
 	
-	public void setShowAxes(boolean showAxes)
+	public void toggleAxisLines()
 	{
-		this.showAxes = showAxes;
+		showAxes = !showAxes;
+	}
+
+	
+	public void togglePointMetrics()
+	{
+		int index = pointMetricVariant.ordinal();
+		int next = (index + 1) % MetricLineVisibility.values().length;
+		pointMetricVariant = MetricLineVisibility.values()[next];
+	}
+	
+	
+	public void setPointMetricTarget(Point point)
+	{
+		metricLines.setTarget(point);
 	}
 	
 	
@@ -191,6 +216,7 @@ public class GraphSpace implements Disposable
 	{
 		renderTetrahedron(batch, environment);
 		renderAxes(batch);
+		renderPointMetrics(batch);
 	}
 
 
@@ -214,8 +240,15 @@ public class GraphSpace implements Disposable
 
 	private void renderAxes(ModelBatch batch)
 	{
-		if (showAxes)
+		if (showAxes || pointMetricVariant != MetricLineVisibility.HIDDEN)
 			batch.render(axisLines);
+	}
+
+
+	private void renderPointMetrics(ModelBatch batch)
+	{
+		if (pointMetricVariant != MetricLineVisibility.HIDDEN)
+			metricLines.render(batch, pointMetricVariant == MetricLineVisibility.FILL);
 	}
 	
 	
