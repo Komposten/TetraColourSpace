@@ -116,7 +116,7 @@ public class UserInterface implements Disposable
 
 	private void renderMetricText(SpriteBatch batch)
 	{
-		if (world.hasSelection())
+		if (world.hasSelection() && world.pointsVisible())
 		{
 			Point selectedPoint = world.getSelectedPoint();
 			String metrics = String.format("  Theta: %.02f%n  Phi: %.02f%n  r: %.02f",
