@@ -149,7 +149,7 @@ public class MetricLineRenderable implements Disposable
 		VertexInfo endVertex = new VertexInfo();
 		VertexInfo zeroVertex = new VertexInfo().setPos(Vector3.Zero);
 	
-		normal.set(0, -1, 0);
+		normal.set(0, thetaDeg > 0 ? 1 : -1, 0);
 		normalInv.set(normal).scl(-1);
 		for (int i = 2; i < thetaArc.length; i+=2)
 		{
