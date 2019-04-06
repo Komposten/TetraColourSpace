@@ -406,12 +406,18 @@ public class TetraColourSpace extends ApplicationAdapter
 			calcVector.set(camera.direction).setLength(velocity);
 			if (velocity < 0)
 				calcVector.scl(-1);
+
+			if (Gdx.input.isKeyPressed(Keys.SHIFT_LEFT))
+				calcVector.scl(SLOW_MODIFIER);
 			
 			movement.add(calcVector);
 		}
 		
 		if (!MathOps.equals(rotX, 0, 0.0001f))
 		{
+			if (Gdx.input.isKeyPressed(Keys.SHIFT_LEFT))
+				rotX /= 2;
+			
 			Vector3 vectorFromCentre = camera.position.cpy().sub(focalPoint);
 			vectorFromCentre.rotate(Vector3.Y, rotX);
 			vectorFromCentre.add(focalPoint);
@@ -421,6 +427,9 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		if (!MathOps.equals(rotY, 0, 0.0001f))
 		{
+			if (Gdx.input.isKeyPressed(Keys.SHIFT_LEFT))
+				rotY /= 2;
+			
 			Vector3 vectorFromCentre = camera.position.cpy().sub(focalPoint);
 			
 			float rotationY = -clampYRotation(-rotY);
