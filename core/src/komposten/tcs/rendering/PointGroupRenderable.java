@@ -39,10 +39,10 @@ public class PointGroupRenderable implements Disposable
 		switch (shape)
 		{
 			case BOX :
-				model = ShapeFactory.createBox(builder, diameter, GL20.GL_TRIANGLES);
+				model = ShapeFactory.createBox(builder, diameter*0.8f, GL20.GL_TRIANGLES);
 				break;
 			case PYRAMID :
-				model = ShapeFactory.createTetrahedron(builder, diameter, GL20.GL_TRIANGLES);
+				model = ShapeFactory.createTetrahedron(builder, diameter*0.9f, GL20.GL_TRIANGLES);
 				break;
 			case SPHERE :
 			default :
