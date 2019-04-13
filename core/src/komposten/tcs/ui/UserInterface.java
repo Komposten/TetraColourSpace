@@ -67,19 +67,6 @@ public class UserInterface implements Disposable, InputReceiver
 	{
 		multiplexer.removeProcessor(inputProcessor);
 	}
-	
-	
-	public void toggleCrosshair()
-	{
-		showCrosshair = !showCrosshair;
-	}
-	
-	
-	public void toggleLegend()
-	{
-		showLegend = (showLegend + 1) % LEGEND_OPTIONS;
-	}
-
 
 	private void createMetricLabels()
 	{
@@ -180,12 +167,12 @@ public class UserInterface implements Disposable, InputReceiver
 		{
 			if (keycode == Keys.C)
 			{
-				toggleCrosshair();
+				showCrosshair = !showCrosshair;
 				return true;
 			}
 			else if (keycode == Keys.L)
 			{
-				toggleLegend();
+				showLegend = (showLegend + 1) % LEGEND_OPTIONS;
 				return true;
 			}
 			
