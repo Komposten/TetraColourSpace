@@ -13,6 +13,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
@@ -34,31 +35,16 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import komposten.tcs.backend.Backend;
 import komposten.tcs.backend.Style.Colour;
 import komposten.tcs.backend.data.Point;
+import komposten.tcs.input.CameraController;
 import komposten.tcs.rendering.World;
 import komposten.tcs.ui.UserInterface;
 import komposten.utilities.logging.Level;
 import komposten.utilities.logging.Logger;
 import komposten.utilities.tools.FileOperations;
-import komposten.utilities.tools.MathOps;
 
 
 public class TetraColourSpace extends ApplicationAdapter
 {
-	private enum FollowMode
-	{
-		SELECTED,
-		CENTRE,
-		OFF
-	}
-	
-	private static final float MAX_ZOOM = 0.025f;
-	private static final float SENSITIVITY = -0.2f;
-	private static final float SLOW_MODIFIER = .33f;
-	private static final int LINEAR_VELOCITY = 1;
-	private static final int SCROLL_VELOCITY = 5;
-	private static final int ANGULAR_VELOCITY = 50;
-	private static final int ANGULAR_AUTO_VELOCITY = 20;
-	private static final int MAX_DISTANCE = 5;
 	private static final int SCREENSHOT_SIZE = 1080;
 	private static final int SCREENSHOT_SUPERSAMPLE = 10;
 	
@@ -68,6 +54,8 @@ public class TetraColourSpace extends ApplicationAdapter
 	private Backend backend;
 	private World world;
 	private UserInterface userInterface;
+	private CameraController cameraController;
+	private InputMultiplexer inputMultiplexer;
 	
 	private File dataFile;
 	private File outputPath;
@@ -80,13 +68,8 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private List<Disposable> disposables;
 	
-	private FollowMode followMode = FollowMode.OFF;
-	private int scrollDelta = 0;
-	
 	private boolean takeScreenshot = false;
 	private boolean cameraDirty = true;
-	private boolean autoRotate = false;
-	private int autoRotation = 1;
 	
 	public TetraColourSpace(File dataFile, File outputPath)
 	{
@@ -106,7 +89,9 @@ public class TetraColourSpace extends ApplicationAdapter
 	public void create()
 	{
 		Gdx.graphics.setTitle("TetraColourSpace - " + dataFile.getName());
-		Gdx.input.setInputProcessor(inputProcessor);
+		
+		inputMultiplexer = new InputMultiplexer(inputProcessor);
+		Gdx.input.setInputProcessor(inputMultiplexer);
 		
 		disposables = new ArrayList<>();
 		camera = new PerspectiveCamera(67, 1, 1);
@@ -114,14 +99,9 @@ public class TetraColourSpace extends ApplicationAdapter
 		batch = new ModelBatch();
 		spriteBatch = new SpriteBatch();
 		
-		int distance = 1;
-		camera.translate(distance, distance, -0.3f*distance);
-		camera.near = 0.01f;
-		camera.far = 300;
-		lookAt(Vector3.Zero);
-		
 		createScreenshotBuffer();
 		loadData();
+		setupPerspectiveCamera();
 		updateViewport();
 	}
 
@@ -146,14 +126,28 @@ public class TetraColourSpace extends ApplicationAdapter
 	}
 
 
+	private void setupPerspectiveCamera()
+	{
+		int distance = 1;
+		camera.translate(distance, distance, -0.3f*distance);
+		camera.near = 0.01f;
+		camera.far = 300;
+		
+		cameraController = new CameraController(camera, world);
+		cameraController.lookAt(Vector3.Zero);
+		cameraController.register(inputMultiplexer);
+	}
+
+
 	@Override
 	public void render()
 	{
-		boolean cameraUpdated = cameraDirty;
-		if (cameraDirty)
+		boolean cameraUpdated = cameraDirty || cameraController.isCameraDirty();
+		if (cameraUpdated)
 		{
 			cameraDirty = false;
 			camera.update();
+			cameraController.clearCameraDirty();
 		}
 		
 		if (takeScreenshot)
@@ -183,15 +177,10 @@ public class TetraColourSpace extends ApplicationAdapter
 		spriteBatch.end();
 		
 		//Handle input
-		readInput(Gdx.graphics.getDeltaTime());
+		cameraController.readInput(Gdx.graphics.getDeltaTime());
 		
 		//Update stuff
 		world.update();
-		
-		if (followMode != FollowMode.OFF)
-		{
-			updateFollow();
-		}
 	}
 
 
@@ -229,252 +218,6 @@ public class TetraColourSpace extends ApplicationAdapter
 	}
 
 
-	private void updateFollow()
-	{
-		switch (followMode)
-		{
-			case CENTRE :
-				lookAt(Vector3.Zero);
-				cameraDirty = true;
-				break;
-			case SELECTED :
-				lookAt(world.getSelectedPoint().getCoordinates());
-				cameraDirty = true;
-				break;
-			case OFF :
-			default :
-				break;
-		}
-	}
-
-
-	private void readInput(float deltaTime)
-	{
-		if (readCameraInput(deltaTime))
-			cameraDirty = true;
-	}
-
-
-	private Vector3 calcVector = new Vector3();
-	private boolean readCameraInput(float deltaTime)
-	{
-		if (followMode != FollowMode.OFF)
-			return rotationMovement(deltaTime);
-		else 
-			return translationMovement(deltaTime);
-	}
-
-
-	private boolean translationMovement(float deltaTime)
-	{
-		Vector3 movement = new Vector3();
-		
-		if (Gdx.input.isKeyPressed(Keys.W) || Gdx.input.isKeyPressed(Keys.S))
-		{
-			calcVector.set(camera.direction.x, 0, camera.direction.z).setLength(LINEAR_VELOCITY * deltaTime);
-			
-			if (Gdx.input.isKeyPressed(Keys.W))
-				movement.add(calcVector);
-			else
-				movement.sub(calcVector);
-		}
-		
-		if (Gdx.input.isKeyPressed(Keys.A) || Gdx.input.isKeyPressed(Keys.D))
-		{
-			calcVector.set(camera.direction.z, 0, -camera.direction.x).setLength(LINEAR_VELOCITY * deltaTime);
-			
-			if (Gdx.input.isKeyPressed(Keys.A))
-				movement.add(calcVector);
-			else
-				movement.sub(calcVector);
-		}
-		
-		if (Gdx.input.isKeyPressed(Keys.E) || Gdx.input.isKeyPressed(Keys.Q))
-		{
-			calcVector.set(camera.direction).setLength(LINEAR_VELOCITY * deltaTime);
-			
-			if (Gdx.input.isKeyPressed(Keys.E))
-				movement.add(calcVector);
-			else
-				movement.sub(calcVector);
-		}
-		
-		if (Gdx.input.isKeyPressed(Keys.SPACE))
-		{
-			movement.y += LINEAR_VELOCITY * deltaTime;
-		}
-		else if (Gdx.input.isKeyPressed(Keys.CONTROL_LEFT))
-		{
-			movement.y -= LINEAR_VELOCITY * deltaTime;
-		}
-		
-		boolean needsUpdate = false;
-		if (!movement.epsilonEquals(Vector3.Zero))
-		{
-			if (Gdx.input.isKeyPressed(Keys.SHIFT_LEFT))
-				movement.scl(SLOW_MODIFIER);
-			
-			camera.position.x = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.x + movement.x);
-			camera.position.y = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.y + movement.y);
-			camera.position.z = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.z + movement.z);
-			needsUpdate = true;
-		}
-		
-		if (Gdx.input.isButtonPressed(Buttons.RIGHT))
-		{
-			int mouseDX = Gdx.input.getDeltaX();
-			int mouseDY = Gdx.input.getDeltaY();
-			
-			if (mouseDX != 0 || mouseDY != 0)
-			{
-				float sensitivity = SENSITIVITY;
-				float rotationX = mouseDX * sensitivity;
-				float rotationY = -mouseDY * sensitivity;
-				
-				camera.rotate(Vector3.Y, rotationX);
-				
-				calcVector.set(camera.direction.x, 0, camera.direction.z);
-				
-				rotationY = clampYRotation(rotationY);
-				
-				calcVector.set(camera.direction.z, 0, -camera.direction.x);
-				camera.rotate(calcVector, rotationY);
-				
-				needsUpdate = true;
-			}
-		}
-		
-		return needsUpdate;
-	}
-
-
-	private boolean rotationMovement(float deltaTime)
-	{
-		Vector3 movement = new Vector3();
-		Vector3 focalPoint = (followMode == FollowMode.CENTRE ? Vector3.Zero : world.getSelectedPoint().getCoordinates());
-		
-		float rotX = 0;
-		float rotY = 0;
-		float zoom = 0;
-
-		if (Gdx.input.isKeyPressed(Keys.W) || Gdx.input.isKeyPressed(Keys.E))
-			zoom += LINEAR_VELOCITY * deltaTime;
-		if (Gdx.input.isKeyPressed(Keys.S) || Gdx.input.isKeyPressed(Keys.Q))
-			zoom -= LINEAR_VELOCITY * deltaTime;
-		if (Gdx.input.isKeyPressed(Keys.A))
-			rotX -= ANGULAR_VELOCITY * deltaTime;
-		if (Gdx.input.isKeyPressed(Keys.D))
-			rotX += ANGULAR_VELOCITY * deltaTime;
-		if (Gdx.input.isKeyPressed(Keys.SPACE))
-			rotY -= ANGULAR_VELOCITY * deltaTime;
-		if (Gdx.input.isKeyPressed(Keys.CONTROL_LEFT))
-			rotY += ANGULAR_VELOCITY * deltaTime;
-		
-		if (scrollDelta != 0)
-		{
-			zoom -= scrollDelta * SCROLL_VELOCITY * deltaTime;
-			scrollDelta = 0;
-		}
-		
-		if (autoRotate)
-		{
-			rotX += ANGULAR_AUTO_VELOCITY * deltaTime * autoRotation;
-		}
-		
-		if (Gdx.input.isButtonPressed(Buttons.RIGHT))
-		{
-			int mouseDX = Gdx.input.getDeltaX();
-			int mouseDY = Gdx.input.getDeltaY();
-			
-			if (mouseDX != 0)
-			{
-				rotX += mouseDX * SENSITIVITY;
-			}
-			if (mouseDY != 0)
-			{
-				rotY += mouseDY * SENSITIVITY;
-			}
-		}
-		
-		if (!MathOps.equals(zoom, 0, 0.0001f))
-		{
-			float distanceToPoint = calcVector.set(camera.position).sub(focalPoint).len();
-			float velocity = zoom;
-			if (distanceToPoint - velocity < MAX_ZOOM)
-				velocity = distanceToPoint - MAX_ZOOM;
-				
-			calcVector.set(camera.direction).setLength(velocity);
-			if (velocity < 0)
-				calcVector.scl(-1);
-
-			if (Gdx.input.isKeyPressed(Keys.SHIFT_LEFT))
-				calcVector.scl(SLOW_MODIFIER);
-			
-			movement.add(calcVector);
-		}
-		
-		if (!MathOps.equals(rotX, 0, 0.0001f))
-		{
-			if (Gdx.input.isKeyPressed(Keys.SHIFT_LEFT))
-				rotX /= 2;
-			
-			Vector3 vectorFromCentre = camera.position.cpy().sub(focalPoint);
-			vectorFromCentre.rotate(Vector3.Y, rotX);
-			vectorFromCentre.add(focalPoint);
-
-			movement.add(vectorFromCentre.sub(camera.position));
-		}
-		
-		if (!MathOps.equals(rotY, 0, 0.0001f))
-		{
-			if (Gdx.input.isKeyPressed(Keys.SHIFT_LEFT))
-				rotY /= 2;
-			
-			Vector3 vectorFromCentre = camera.position.cpy().sub(focalPoint);
-			
-			float rotationY = -clampYRotation(-rotY);
-
-			calcVector.set(vectorFromCentre.z, 0, -vectorFromCentre.x);
-			vectorFromCentre.rotate(calcVector, rotationY);
-			vectorFromCentre.add(focalPoint);
-
-			movement.add(vectorFromCentre.sub(camera.position));
-		}
-		
-		boolean needsUpdate = false;
-		if (!movement.epsilonEquals(Vector3.Zero))
-		{
-			camera.position.x = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.x + movement.x);
-			camera.position.y = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.y + movement.y);
-			camera.position.z = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.z + movement.z);
-			needsUpdate = true;
-		}
-		
-		return needsUpdate;
-	}
-
-
-	private float clampYRotation(float rotationY)
-	{
-		calcVector.set(camera.direction.x, 0, camera.direction.z);
-		double currentAngle = Math.toDegrees(Math.atan2(calcVector.y - camera.direction.y, calcVector.len()));
-		double maxAngle = 89;
-		
-		if (currentAngle + rotationY > maxAngle)
-			rotationY = (float) (maxAngle - currentAngle);
-		else if (currentAngle + rotationY < -maxAngle)
-			rotationY = (float) -(maxAngle + currentAngle);
-		return rotationY;
-	}
-
-
-	private void lookAt(Vector3 target)
-	{
-		camera.lookAt(target);
-		camera.up.set(Vector3.Y); //Resetting the up vector since camera.lookAt() changes it.
-	}
-	
-	
 	private void updateViewport()
 	{
 		float ratio = Gdx.graphics.getHeight() / (float)Gdx.graphics.getWidth();
@@ -528,42 +271,10 @@ public class TetraColourSpace extends ApplicationAdapter
 	
 	private InputProcessor inputProcessor = new InputAdapter()
 	{
-		boolean nonRPressed = false;
-		
-		@Override
-		public boolean keyDown(int keycode)
-		{
-			if (keycode == Keys.HOME)
-			{
-				followMode = FollowMode.CENTRE;
-				return true;
-			}
-			else if (keycode == Keys.R)
-			{
-				nonRPressed = false;
-			}
-			
-			return false;
-		}
-		
-		
 		@Override
 		public boolean keyUp(int keycode)
 		{
-			if (keycode == Keys.HOME && followMode == FollowMode.CENTRE)
-			{
-				followMode = FollowMode.OFF;
-				return true;
-			}
-			else if (keycode == Keys.G)
-			{
-				if (followMode != FollowMode.CENTRE)
-					followMode = FollowMode.CENTRE;
-				else
-					followMode = FollowMode.OFF;
-				return true;
-			}
-			else if (keycode == Keys.C)
+			if (keycode == Keys.C)
 			{
 				userInterface.toggleCrosshair();
 				return true;
@@ -603,70 +314,9 @@ public class TetraColourSpace extends ApplicationAdapter
 				world.toggleVolumes();
 				return true;
 			}
-			else if (keycode == Keys.F && world.hasSelection())
-			{
-				if (followMode != FollowMode.SELECTED)
-					followMode = FollowMode.SELECTED;
-				else
-					followMode = FollowMode.OFF;
-				return true;
-			}
 			else if (keycode == Keys.F12)
 			{
 				takeScreenshot = true;
-			}
-			else if (keycode == Keys.R)
-			{
-				if (!nonRPressed)
-					autoRotate = !autoRotate;
-			}
-			else if (Gdx.input.isKeyPressed(Keys.R))
-			{
-				if (keycode >= Keys.NUMPAD_1 && keycode <= Keys.NUMPAD_9)
-				{
-					int sign = (autoRotation > 0 ? 1 : -1);
-					autoRotation = sign * (keycode - Keys.NUMPAD_0);
-					nonRPressed = true;
-				}
-				else if (keycode == Keys.STAR)
-				{
-					autoRotation = -autoRotation;
-					nonRPressed = true;
-				}
-				else if (keycode == Keys.MINUS)
-				{
-					if (autoRotation < -1)
-						autoRotation += 1;
-					else if (autoRotation > 1)
-						autoRotation -= 1;
-					
-					nonRPressed = true;
-				}
-				else if (keycode == Keys.PLUS)
-				{
-					autoRotation += (autoRotation < 0 ? -1 : 1);
-					nonRPressed = true;
-				}
-				
-				return true;
-			}
-			else if (keycode == Keys.NUMPAD_1)
-			{
-				camera.position.set(1, 1, -0.3f);
-				lookAt(Vector3.Zero);
-				cameraDirty = true;
-			}
-			else if (keycode == Keys.NUMPAD_2)
-			{
-				camera.position.set(0, -1.4f, 0.0001f);
-				lookAt(Vector3.Zero);
-				cameraDirty = true;
-			}
-			else if (keycode == Keys.NUMPAD_3)
-			{
-				camera.position.set(0, 1f, 0.0001f);
-				lookAt(Vector3.Zero);
-				cameraDirty = true;
 			}
 			
 			return false;
@@ -676,12 +326,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		@Override
 		public boolean touchDown(int screenX, int screenY, int pointer, int button)
 		{
-			if (button == Buttons.RIGHT)
-			{
-				Gdx.input.setCursorCatched(true);
-				return true;
-			}
-			else if (button == Buttons.LEFT)
+			if (button == Buttons.LEFT)
 			{
 				Point newSelection = world.updateSelection();
 				
@@ -689,32 +334,6 @@ public class TetraColourSpace extends ApplicationAdapter
 					selectionLog.add(newSelection);
 			}
 			
-			return false;
-		}
-		
-		
-		@Override
-		public boolean touchUp(int screenX, int screenY, int pointer, int button)
-		{
-			if (button == Buttons.RIGHT)
-			{
-				Gdx.input.setCursorCatched(false);
-				return true;
-			}
-			
-			return false;
-		}
-		
-		
-		@Override
-		public boolean scrolled(int amount)
-		{
-			if (Gdx.input.isButtonPressed(Buttons.RIGHT) && followMode != FollowMode.OFF)
-			{
-				scrollDelta += amount;
-				return true;
-			}
-
 			return false;
 		}
 	};
