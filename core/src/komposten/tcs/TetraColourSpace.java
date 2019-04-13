@@ -123,6 +123,8 @@ public class TetraColourSpace extends ApplicationAdapter
 		backend = new Backend(dataFile, logger);
 		world = new World(backend, camera);
 		userInterface = new UserInterface(backend, world);
+		
+		userInterface.register(inputMultiplexer);
 	}
 
 
@@ -274,17 +276,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		@Override
 		public boolean keyUp(int keycode)
 		{
-			if (keycode == Keys.C)
-			{
-				userInterface.toggleCrosshair();
-				return true;
-			}
-			else if (keycode == Keys.L)
-			{
-				userInterface.toggleLegend();
-				return true;
-			}
-			else if (keycode == Keys.T)
+			if (keycode == Keys.T)
 			{
 				world.toggleTetrahedronSides();
 				return true;

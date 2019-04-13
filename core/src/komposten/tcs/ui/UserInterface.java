@@ -1,6 +1,10 @@
 package komposten.tcs.ui;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.InputMultiplexer;
+import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -11,9 +15,10 @@ import com.badlogic.gdx.utils.Disposable;
 import komposten.tcs.backend.Backend;
 import komposten.tcs.backend.Style.Colour;
 import komposten.tcs.backend.data.Point;
+import komposten.tcs.input.InputReceiver;
 import komposten.tcs.rendering.World;
 
-public class UserInterface implements Disposable
+public class UserInterface implements Disposable, InputReceiver
 {
 	private static final int LEGEND_HIDE = 0;
 	private static final int LEGEND_POINTS = 2;
@@ -48,18 +53,19 @@ public class UserInterface implements Disposable
 		createMetricLabels();
 		createCrosshair();
 	}
-
-
-	private void createMetricLabels()
+	
+	
+	@Override
+	public void register(InputMultiplexer multiplexer)
 	{
-		metricHeader = new IconText();
-		metricHeader.setX(5);
-		metricHeader.setIconSize(12);
-		
-		metricBody = new IconText();
-		metricBody.setX(5);
-		metricBody.setIconSize(12);
-		metricBody.setColour(backend.getStyle().get(Colour.TEXT));
+		multiplexer.addProcessor(inputProcessor);
+	}
+	
+	
+	@Override
+	public void unregister(InputMultiplexer multiplexer)
+	{
+		multiplexer.removeProcessor(inputProcessor);
 	}
 	
 	
@@ -72,6 +78,19 @@ public class UserInterface implements Disposable
 	public void toggleLegend()
 	{
 		showLegend = (showLegend + 1) % LEGEND_OPTIONS;
+	}
+
+
+	private void createMetricLabels()
+	{
+		metricHeader = new IconText();
+		metricHeader.setX(5);
+		metricHeader.setIconSize(12);
+		
+		metricBody = new IconText();
+		metricBody.setX(5);
+		metricBody.setIconSize(12);
+		metricBody.setColour(backend.getStyle().get(Colour.TEXT));
 	}
 
 
@@ -152,4 +171,25 @@ public class UserInterface implements Disposable
 		IconText.dispose();
 		crosshair.getTexture().dispose();
 	}
+	
+	
+	private InputProcessor inputProcessor = new InputAdapter()
+	{
+		@Override
+		public boolean keyUp(int keycode)
+		{
+			if (keycode == Keys.C)
+			{
+				toggleCrosshair();
+				return true;
+			}
+			else if (keycode == Keys.L)
+			{
+				toggleLegend();
+				return true;
+			}
+			
+			return false;
+		}
+	};
 }
