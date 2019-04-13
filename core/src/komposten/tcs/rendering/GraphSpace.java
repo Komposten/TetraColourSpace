@@ -5,6 +5,10 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
+import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.InputMultiplexer;
+import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -25,12 +29,13 @@ import com.badlogic.gdx.utils.Disposable;
 import komposten.tcs.backend.Style;
 import komposten.tcs.backend.Style.Colour;
 import komposten.tcs.backend.data.Point;
+import komposten.tcs.input.InputReceiver;
 import komposten.tcs.util.ModelInstanceFactory;
 import komposten.tcs.util.ShapeFactory;
 import komposten.tcs.util.TCSUtils;
 import komposten.tcs.util.Tetrahedron;
 
-public class GraphSpace implements Disposable
+public class GraphSpace implements Disposable, InputReceiver
 {
 	private enum MetricLineVisibility
 	{
@@ -72,23 +77,17 @@ public class GraphSpace implements Disposable
 	}
 	
 	
-	public void toggleTetrahedronSides()
+	@Override
+	public void register(InputMultiplexer multiplexer)
 	{
-		showTetrahedronSides = !showTetrahedronSides;
+		multiplexer.addProcessor(inputProcessor);
 	}
 	
 	
-	public void toggleAxisLines()
+	@Override
+	public void unregister(InputMultiplexer multiplexer)
 	{
-		showAxes = !showAxes;
-	}
-
-	
-	public void togglePointMetrics()
-	{
-		int index = pointMetricVariant.ordinal();
-		int next = (index + 1) % MetricLineVisibility.values().length;
-		pointMetricVariant = MetricLineVisibility.values()[next];
+		multiplexer.removeProcessor(inputProcessor);
 	}
 	
 	
@@ -261,6 +260,34 @@ public class GraphSpace implements Disposable
 		}
 	}
 	
+	
+	private InputProcessor inputProcessor = new InputAdapter()
+	{
+		@Override
+		public boolean keyUp(int keycode)
+		{
+			if (keycode == Keys.T)
+			{
+				showTetrahedronSides = !showTetrahedronSides;
+				return true;
+			}
+			else if (keycode == Keys.Y)
+			{
+				showAxes = !showAxes;
+				return true;
+			}
+			else if (keycode == Keys.M)
+			{
+				int index = pointMetricVariant.ordinal();
+				int next = (index + 1) % MetricLineVisibility.values().length;
+				pointMetricVariant = MetricLineVisibility.values()[next];
+				return true;
+			}
+			
+			return false;
+		}
+	};
+
 	
 	private Vector3 calcVector = new Vector3();
 	private Comparator<TetrahedronSide> tetrahedronSideComparator = (side1, side2) -> 

@@ -3,6 +3,10 @@ package komposten.tcs.rendering;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.InputMultiplexer;
+import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -22,10 +26,11 @@ import komposten.tcs.backend.Style.Colour;
 import komposten.tcs.backend.data.Point;
 import komposten.tcs.backend.data.PointGroup;
 import komposten.tcs.backend.data.Volume;
+import komposten.tcs.input.InputReceiver;
 import komposten.tcs.util.ModelInstanceFactory;
 import komposten.tcs.util.ShapeFactory;
 
-public class World implements Disposable
+public class World implements Disposable, InputReceiver
 {
 	public static final int SPHERE_SEGMENTS = 25;
 	
@@ -66,6 +71,22 @@ public class World implements Disposable
 	}
 	
 	
+	@Override
+	public void register(InputMultiplexer multiplexer)
+	{
+		multiplexer.addProcessor(inputProcessor);
+		graphSpace.register(multiplexer);
+	}
+	
+	
+	@Override
+	public void unregister(InputMultiplexer multiplexer)
+	{
+		multiplexer.removeProcessor(inputProcessor);
+		graphSpace.unregister(multiplexer);
+	}
+	
+	
 	public boolean hasSelection()
 	{
 		return hasSelection;
@@ -87,48 +108,6 @@ public class World implements Disposable
 	public Point getSelectedPoint()
 	{
 		return selectedPoint;
-	}
-	
-	
-	public void toggleTetrahedronSides()
-	{
-		graphSpace.toggleTetrahedronSides();
-	}
-	
-	
-	public void toggleAxisLines()
-	{
-		graphSpace.toggleAxisLines();
-	}
-	
-	
-	public void togglePointMetrics()
-	{
-		graphSpace.togglePointMetrics();
-	}
-	
-	
-	public void toggleHighlight()
-	{
-		showHighlight = !showHighlight;
-		
-		if (!showHighlight)
-		{
-			hasHighlight = false;
-			highlightPoint = null;
-		}
-	}
-	
-	
-	public void togglePoints()
-	{
-		showPoints = !showPoints;
-	}
-	
-	
-	public void toggleVolumes()
-	{
-		showVolumes = !showVolumes;
 	}
 	
 	
@@ -320,4 +299,36 @@ public class World implements Disposable
 			disposable.dispose();
 		}
 	}
+	
+	
+	private InputProcessor inputProcessor = new InputAdapter()
+	{
+		@Override
+		public boolean keyUp(int keycode)
+		{
+			if (keycode == Keys.H)
+			{
+				showHighlight = !showHighlight;
+				
+				if (!showHighlight)
+				{
+					hasHighlight = false;
+					highlightPoint = null;
+				}
+				return true;
+			}
+			else if (keycode == Keys.NUM_1)
+			{
+				showPoints = !showPoints;
+				return true;
+			}
+			else if (keycode == Keys.NUM_2)
+			{
+				showVolumes = !showVolumes;
+				return true;
+			}
+			
+			return false;
+		}
+	};
 }

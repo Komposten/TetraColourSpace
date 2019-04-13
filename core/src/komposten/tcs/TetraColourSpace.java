@@ -125,6 +125,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		userInterface = new UserInterface(backend, world);
 		
 		userInterface.register(inputMultiplexer);
+		world.register(inputMultiplexer);
 	}
 
 
@@ -276,37 +277,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		@Override
 		public boolean keyUp(int keycode)
 		{
-			if (keycode == Keys.T)
-			{
-				world.toggleTetrahedronSides();
-				return true;
-			}
-			else if (keycode == Keys.Y)
-			{
-				world.toggleAxisLines();
-				return true;
-			}
-			else if (keycode == Keys.H)
-			{
-				world.toggleHighlight();
-				return true;
-			}
-			else if (keycode == Keys.M)
-			{
-				world.togglePointMetrics();
-				return true;
-			}
-			else if (keycode == Keys.NUM_1)
-			{
-				world.togglePoints();
-				return true;
-			}
-			else if (keycode == Keys.NUM_2)
-			{
-				world.toggleVolumes();
-				return true;
-			}
-			else if (keycode == Keys.F12)
+			if (keycode == Keys.F12)
 			{
 				takeScreenshot = true;
 			}
