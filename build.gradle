@@ -39,6 +39,7 @@ allprojects {
         aiVersion = '1.8.0'
         qhVersion = '1.0.0'
         slf4jVersion = '1.7.25'
+        junitVersion = '5.4.2'
     }
 
     repositories {
@@ -65,6 +66,10 @@ project(":desktop") {
 
 project(":core") {
     apply plugin: "java"
+    
+    test {
+      useJUnitPlatform()
+    }
 
 
     dependencies {
@@ -73,6 +78,12 @@ project(":core") {
         compile "org.slf4j:slf4j-nop:$slf4jVersion"
         implementation "com.github.Komposten:Utilities:master-SNAPSHOT"
         
+        testCompile "org.junit.jupiter:junit-jupiter-api:$junitVersion"
+        testRuntime "org.junit.jupiter:junit-jupiter-engine:$junitVersion"
+        
+        testCompile "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
+        testCompile "com.badlogicgames.gdx:gdx:$gdxVersion"
+        testCompile "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
     }
 }
 
