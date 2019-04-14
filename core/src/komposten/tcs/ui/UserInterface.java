@@ -1,10 +1,6 @@
 package komposten.tcs.ui;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.InputAdapter;
-import com.badlogic.gdx.InputMultiplexer;
-import com.badlogic.gdx.InputProcessor;
-import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -15,6 +11,9 @@ import com.badlogic.gdx.utils.Disposable;
 import komposten.tcs.backend.Backend;
 import komposten.tcs.backend.Style.Colour;
 import komposten.tcs.backend.data.Point;
+import komposten.tcs.input.Action;
+import komposten.tcs.input.InputHandler;
+import komposten.tcs.input.InputHandler.InputListener;
 import komposten.tcs.input.InputReceiver;
 import komposten.tcs.rendering.World;
 
@@ -56,16 +55,16 @@ public class UserInterface implements Disposable, InputReceiver
 	
 	
 	@Override
-	public void register(InputMultiplexer multiplexer)
+	public void register(InputHandler handler)
 	{
-		multiplexer.addProcessor(inputProcessor);
+		handler.addListener(inputListener);
 	}
 	
 	
 	@Override
-	public void unregister(InputMultiplexer multiplexer)
+	public void unregister(InputHandler handler)
 	{
-		multiplexer.removeProcessor(inputProcessor);
+		handler.removeListener(inputListener);
 	}
 
 	private void createMetricLabels()
@@ -160,22 +159,29 @@ public class UserInterface implements Disposable, InputReceiver
 	}
 	
 	
-	private InputProcessor inputProcessor = new InputAdapter()
+	private InputListener inputListener = new InputListener()
 	{
 		@Override
-		public boolean keyUp(int keycode)
+		public boolean onActionStopped(Action action, Object... parameters)
 		{
-			if (keycode == Keys.C)
+			if (action == Action.TOGGLE_CROSSHAIR)
 			{
 				showCrosshair = !showCrosshair;
 				return true;
 			}
-			else if (keycode == Keys.L)
+			else if (action == Action.TOGGLE_LEGEND)
 			{
 				showLegend = (showLegend + 1) % LEGEND_OPTIONS;
 				return true;
 			}
-			
+
+			return false;
+		}
+
+
+		@Override
+		public boolean onActionStarted(Action action, Object... parameters)
+		{
 			return false;
 		}
 	};

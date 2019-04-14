@@ -10,11 +10,6 @@ import java.util.List;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input.Buttons;
-import com.badlogic.gdx.Input.Keys;
-import com.badlogic.gdx.InputAdapter;
-import com.badlogic.gdx.InputMultiplexer;
-import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -35,7 +30,10 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import komposten.tcs.backend.Backend;
 import komposten.tcs.backend.Style.Colour;
 import komposten.tcs.backend.data.Point;
+import komposten.tcs.input.Action;
 import komposten.tcs.input.CameraController;
+import komposten.tcs.input.InputHandler;
+import komposten.tcs.input.InputHandler.InputListener;
 import komposten.tcs.rendering.World;
 import komposten.tcs.ui.UserInterface;
 import komposten.utilities.logging.Level;
@@ -55,7 +53,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	private World world;
 	private UserInterface userInterface;
 	private CameraController cameraController;
-	private InputMultiplexer inputMultiplexer;
+	private InputHandler inputHandler;
 	
 	private File dataFile;
 	private File outputPath;
@@ -90,14 +88,16 @@ public class TetraColourSpace extends ApplicationAdapter
 	{
 		Gdx.graphics.setTitle("TetraColourSpace - " + dataFile.getName());
 		
-		inputMultiplexer = new InputMultiplexer(inputProcessor);
-		Gdx.input.setInputProcessor(inputMultiplexer);
+		inputHandler = new InputHandler();
+		Gdx.input.setInputProcessor(inputHandler);
 		
 		disposables = new ArrayList<>();
 		camera = new PerspectiveCamera(67, 1, 1);
 		spriteCamera = new OrthographicCamera();
 		batch = new ModelBatch();
 		spriteBatch = new SpriteBatch();
+		
+		inputHandler.addListener(inputListener);
 		
 		createScreenshotBuffer();
 		loadData();
@@ -124,8 +124,8 @@ public class TetraColourSpace extends ApplicationAdapter
 		world = new World(backend, camera);
 		userInterface = new UserInterface(backend, world);
 		
-		userInterface.register(inputMultiplexer);
-		world.register(inputMultiplexer);
+		userInterface.register(inputHandler);
+		world.register(inputHandler);
 	}
 
 
@@ -138,7 +138,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		cameraController = new CameraController(camera, world);
 		cameraController.lookAt(Vector3.Zero);
-		cameraController.register(inputMultiplexer);
+		cameraController.register(inputHandler);
 	}
 
 
@@ -271,15 +271,18 @@ public class TetraColourSpace extends ApplicationAdapter
 		world.dispose();
 	}
 	
-	
-	private InputProcessor inputProcessor = new InputAdapter()
+
+	private InputListener inputListener = new InputListener()
 	{
 		@Override
-		public boolean keyUp(int keycode)
+		public boolean onActionStarted(Action action, Object... parameters)
 		{
-			if (keycode == Keys.F12)
+			if (action == Action.SELECT_POINT)
 			{
-				takeScreenshot = true;
+				Point newSelection = world.updateSelection();
+				
+				if (newSelection != null)
+					selectionLog.add(newSelection);
 			}
 			
 			return false;
@@ -287,14 +290,12 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		
 		@Override
-		public boolean touchDown(int screenX, int screenY, int pointer, int button)
+		public boolean onActionStopped(Action action, Object... parameters)
 		{
-			if (button == Buttons.LEFT)
+			if (action == Action.SCREENSHOT)
 			{
-				Point newSelection = world.updateSelection();
-				
-				if (newSelection != null)
-					selectionLog.add(newSelection);
+				takeScreenshot = true;
+				return true;
 			}
 			
 			return false;

@@ -3,11 +3,10 @@ package komposten.tcs.input;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
-import com.badlogic.gdx.InputAdapter;
-import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.math.Vector3;
 
+import komposten.tcs.input.InputHandler.InputListener;
 import komposten.tcs.rendering.World;
 import komposten.utilities.tools.MathOps;
 
@@ -49,16 +48,16 @@ public class CameraController implements InputReceiver
 	
 	
 	@Override
-	public void register(InputMultiplexer multiplexer)
+	public void register(InputHandler handler)
 	{
-		multiplexer.addProcessor(inputProcessor);
+		handler.addListener(inputListener);
 	}
 	
 	
 	@Override
-	public void unregister(InputMultiplexer multiplexer)
+	public void unregister(InputHandler handler)
 	{
-		multiplexer.removeProcessor(inputProcessor);
+		handler.removeListener(inputListener);
 	}
 	
 	
@@ -301,16 +300,17 @@ public class CameraController implements InputReceiver
 		camera.up.set(Vector3.Y); //Resetting the up vector since camera.lookAt() changes it.
 	}
 	
-	
-	private InputAdapter inputProcessor = new InputAdapter()
+
+	private InputListener inputListener = new InputListener()
 	{
 		boolean nonRPressed = false;
-		
-		
+		boolean rDown = false;
+
+
 		private void setFollowMode(FollowMode mode)
 		{
 			followMode = mode;
-			
+
 			switch (followMode)
 			{
 				case CENTRE :
@@ -326,33 +326,40 @@ public class CameraController implements InputReceiver
 					break;
 			}
 		}
-		
+
+
 		@Override
-		public boolean keyDown(int keycode)
+		public boolean onActionStarted(Action action, Object... parameters)
 		{
-			if (keycode == Keys.HOME)
+			if (action == Action.FOLLOW_ORIGIN_HOLD)
 			{
 				setFollowMode(FollowMode.CENTRE);
 				return true;
 			}
-			else if (keycode == Keys.R)
+			else if (action == Action.TOGGLE_ROTATION)
 			{
 				nonRPressed = false;
+				rDown = true;
 			}
-			
+			else if (action == Action.CATCH_MOUSE)
+			{
+				Gdx.input.setCursorCatched(true);
+				return true;
+			}
+
 			return false;
 		}
 		
 		
 		@Override
-		public boolean keyUp(int keycode)
+		public boolean onActionStopped(Action action, Object... parameters)
 		{
-			if (keycode == Keys.HOME && followMode == FollowMode.CENTRE)
+			if (action == Action.FOLLOW_ORIGIN_HOLD && followMode == FollowMode.CENTRE)
 			{
 				setFollowMode(FollowMode.OFF);
 				return true;
 			}
-			else if (keycode == Keys.G)
+			else if (action == Action.FOLLOW_ORIGIN)
 			{
 				if (followMode != FollowMode.CENTRE)
 					setFollowMode(FollowMode.CENTRE);
@@ -360,7 +367,7 @@ public class CameraController implements InputReceiver
 					setFollowMode(FollowMode.OFF);
 				return true;
 			}
-			else if (keycode == Keys.F && world.hasSelection())
+			else if (action == Action.FOLLOW_SELECTION && world.hasSelection())
 			{
 				if (followMode != FollowMode.SELECTED)
 					setFollowMode(FollowMode.SELECTED);
@@ -368,96 +375,70 @@ public class CameraController implements InputReceiver
 					setFollowMode(FollowMode.OFF);
 				return true;
 			}
-			else if (keycode == Keys.R)
+			else if (action == Action.TOGGLE_ROTATION)
 			{
 				if (!nonRPressed)
 					autoRotate = !autoRotate;
+
+				rDown = false;
 			}
-			else if (Gdx.input.isKeyPressed(Keys.R))
+			else if (rDown)
 			{
-				if (keycode >= Keys.NUMPAD_1 && keycode <= Keys.NUMPAD_9)
+				if (action.name().matches("ROTATION_SPEED_\\d+"))
 				{
 					int sign = (autoRotation > 0 ? 1 : -1);
-					autoRotation = sign * (keycode - Keys.NUMPAD_0);
+					int speed = Integer.parseInt(action.name().substring(15));
+					autoRotation = sign * speed;
 					nonRPressed = true;
 				}
-				else if (keycode == Keys.STAR)
+				else if (action == Action.ROTATION_DIRECTION)
 				{
 					autoRotation = -autoRotation;
 					nonRPressed = true;
 				}
-				else if (keycode == Keys.MINUS)
+				else if (action == Action.ROTATION_SPEED_DECREMENT)
 				{
 					if (autoRotation < -1)
 						autoRotation += 1;
 					else if (autoRotation > 1)
 						autoRotation -= 1;
-					
+
 					nonRPressed = true;
 				}
-				else if (keycode == Keys.PLUS)
+				else if (action == Action.ROTATION_SPEED_INCREMENT)
 				{
 					autoRotation += (autoRotation < 0 ? -1 : 1);
 					nonRPressed = true;
 				}
-				
+
 				return true;
 			}
-			else if (keycode == Keys.NUMPAD_1)
+			else if (action == Action.CAMERA_PRESET_1)
 			{
 				camera.position.set(1, 1, -0.3f);
 				lookAt(Vector3.Zero);
 				cameraDirty = true;
 			}
-			else if (keycode == Keys.NUMPAD_2)
+			else if (action == Action.CAMERA_PRESET_2)
 			{
 				camera.position.set(0, -1.4f, 0.0001f);
 				lookAt(Vector3.Zero);
 				cameraDirty = true;
 			}
-			else if (keycode == Keys.NUMPAD_3)
+			else if (action == Action.CAMERA_PRESET_3)
 			{
 				camera.position.set(0, 1f, 0.0001f);
 				lookAt(Vector3.Zero);
 				cameraDirty = true;
 			}
-			
-			return false;
-		}
-		
-		
-		@Override
-		public boolean touchDown(int screenX, int screenY, int pointer, int button)
-		{
-			if (button == Buttons.RIGHT)
-			{
-				Gdx.input.setCursorCatched(true);
-				return true;
-			}
-			
-			return false;
-		}
-		
-		
-		@Override
-		public boolean touchUp(int screenX, int screenY, int pointer, int button)
-		{
-			if (button == Buttons.RIGHT)
+			else if (action == Action.CATCH_MOUSE)
 			{
 				Gdx.input.setCursorCatched(false);
 				return true;
 			}
-			
-			return false;
-		}
-		
-		
-		@Override
-		public boolean scrolled(int amount)
-		{
-			if (Gdx.input.isButtonPressed(Buttons.RIGHT) && followMode != FollowMode.OFF)
+			else if (action == Action.ZOOM && followMode != FollowMode.OFF)
 			{
-				scrollDelta += amount;
+				scrollDelta += (Integer) parameters[0];
 				return true;
 			}
 

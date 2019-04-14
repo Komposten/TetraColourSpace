@@ -3,10 +3,6 @@ package komposten.tcs.rendering;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.badlogic.gdx.InputAdapter;
-import com.badlogic.gdx.InputMultiplexer;
-import com.badlogic.gdx.InputProcessor;
-import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -26,6 +22,9 @@ import komposten.tcs.backend.Style.Colour;
 import komposten.tcs.backend.data.Point;
 import komposten.tcs.backend.data.PointGroup;
 import komposten.tcs.backend.data.Volume;
+import komposten.tcs.input.Action;
+import komposten.tcs.input.InputHandler;
+import komposten.tcs.input.InputHandler.InputListener;
 import komposten.tcs.input.InputReceiver;
 import komposten.tcs.util.ModelInstanceFactory;
 import komposten.tcs.util.ShapeFactory;
@@ -72,18 +71,18 @@ public class World implements Disposable, InputReceiver
 	
 	
 	@Override
-	public void register(InputMultiplexer multiplexer)
+	public void register(InputHandler handler)
 	{
-		multiplexer.addProcessor(inputProcessor);
-		graphSpace.register(multiplexer);
+		handler.addListener(inputListener);
+		graphSpace.register(handler);
 	}
 	
 	
 	@Override
-	public void unregister(InputMultiplexer multiplexer)
+	public void unregister(InputHandler handler)
 	{
-		multiplexer.removeProcessor(inputProcessor);
-		graphSpace.unregister(multiplexer);
+		handler.removeListener(inputListener);
+		graphSpace.unregister(handler);
 	}
 	
 	
@@ -300,16 +299,16 @@ public class World implements Disposable, InputReceiver
 		}
 	}
 	
-	
-	private InputProcessor inputProcessor = new InputAdapter()
+
+	private InputListener inputListener = new InputListener()
 	{
 		@Override
-		public boolean keyUp(int keycode)
+		public boolean onActionStopped(Action action, Object... parameters)
 		{
-			if (keycode == Keys.H)
+			if (action == Action.TOGGLE_HIGHLIGHT)
 			{
 				showHighlight = !showHighlight;
-				
+
 				if (!showHighlight)
 				{
 					hasHighlight = false;
@@ -317,17 +316,24 @@ public class World implements Disposable, InputReceiver
 				}
 				return true;
 			}
-			else if (keycode == Keys.NUM_1)
+			else if (action == Action.TOGGLE_POINTS)
 			{
 				showPoints = !showPoints;
 				return true;
 			}
-			else if (keycode == Keys.NUM_2)
+			else if (action == Action.TOGGLE_VOLUMES)
 			{
 				showVolumes = !showVolumes;
 				return true;
 			}
-			
+
+			return false;
+		}
+
+
+		@Override
+		public boolean onActionStarted(Action action, Object... parameters)
+		{
 			return false;
 		}
 	};

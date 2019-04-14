@@ -5,10 +5,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
-import com.badlogic.gdx.InputAdapter;
-import com.badlogic.gdx.InputMultiplexer;
-import com.badlogic.gdx.InputProcessor;
-import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -29,6 +25,9 @@ import com.badlogic.gdx.utils.Disposable;
 import komposten.tcs.backend.Style;
 import komposten.tcs.backend.Style.Colour;
 import komposten.tcs.backend.data.Point;
+import komposten.tcs.input.Action;
+import komposten.tcs.input.InputHandler;
+import komposten.tcs.input.InputHandler.InputListener;
 import komposten.tcs.input.InputReceiver;
 import komposten.tcs.util.ModelInstanceFactory;
 import komposten.tcs.util.ShapeFactory;
@@ -78,16 +77,16 @@ public class GraphSpace implements Disposable, InputReceiver
 	
 	
 	@Override
-	public void register(InputMultiplexer multiplexer)
+	public void register(InputHandler handler)
 	{
-		multiplexer.addProcessor(inputProcessor);
+		handler.addListener(inputListener);
 	}
 	
 	
 	@Override
-	public void unregister(InputMultiplexer multiplexer)
+	public void unregister(InputHandler handler)
 	{
-		multiplexer.removeProcessor(inputProcessor);
+		handler.removeListener(inputListener);
 	}
 	
 	
@@ -261,29 +260,36 @@ public class GraphSpace implements Disposable, InputReceiver
 	}
 	
 	
-	private InputProcessor inputProcessor = new InputAdapter()
+	private InputListener inputListener = new InputListener()
 	{
 		@Override
-		public boolean keyUp(int keycode)
+		public boolean onActionStopped(Action action, Object... parameters)
 		{
-			if (keycode == Keys.T)
+			if (action == Action.TOGGLE_TETRAHEDRON_SIDES)
 			{
 				showTetrahedronSides = !showTetrahedronSides;
 				return true;
 			}
-			else if (keycode == Keys.Y)
+			else if (action == Action.TOGGLE_AXES)
 			{
 				showAxes = !showAxes;
 				return true;
 			}
-			else if (keycode == Keys.M)
+			else if (action == Action.TOGGLE_METRICS)
 			{
 				int index = pointMetricVariant.ordinal();
 				int next = (index + 1) % MetricLineVisibility.values().length;
 				pointMetricVariant = MetricLineVisibility.values()[next];
 				return true;
 			}
-			
+
+			return false;
+		}
+
+
+		@Override
+		public boolean onActionStarted(Action action, Object... parameters)
+		{
 			return false;
 		}
 	};
