@@ -334,6 +334,12 @@ public class World implements Disposable, InputReceiver
 		@Override
 		public boolean onActionStarted(Action action, Object... parameters)
 		{
+			if (action == Action.SELECT_POINT)
+			{
+				updateSelection();
+				return true;
+			}
+			
 			return false;
 		}
 	};

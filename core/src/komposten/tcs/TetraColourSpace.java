@@ -184,6 +184,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		//Update stuff
 		world.update();
+		updateSelectionLog();
 	}
 
 
@@ -218,6 +219,19 @@ public class TetraColourSpace extends ApplicationAdapter
 		}
 		
 		pixmap.dispose();
+	}
+
+
+	private void updateSelectionLog()
+	{
+		Point lastSelection = null;
+		Point currentSelection = world.getSelectedPoint();
+		
+		if (!selectionLog.isEmpty())
+			lastSelection = selectionLog.get(selectionLog.size()-1);
+		
+		if (currentSelection != null && currentSelection != lastSelection)
+			selectionLog.add(currentSelection);
 	}
 
 
@@ -275,21 +289,6 @@ public class TetraColourSpace extends ApplicationAdapter
 	private InputListener inputListener = new InputListener()
 	{
 		@Override
-		public boolean onActionStarted(Action action, Object... parameters)
-		{
-			if (action == Action.SELECT_POINT)
-			{
-				Point newSelection = world.updateSelection();
-				
-				if (newSelection != null)
-					selectionLog.add(newSelection);
-			}
-			
-			return false;
-		}
-		
-		
-		@Override
 		public boolean onActionStopped(Action action, Object... parameters)
 		{
 			if (action == Action.SCREENSHOT)
@@ -298,6 +297,13 @@ public class TetraColourSpace extends ApplicationAdapter
 				return true;
 			}
 			
+			return false;
+		}
+
+		
+		@Override
+		public boolean onActionStarted(Action action, Object... parameters)
+		{
 			return false;
 		}
 	};
