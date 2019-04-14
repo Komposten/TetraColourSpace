@@ -88,7 +88,7 @@ public class TetraColourSpace extends ApplicationAdapter
 	{
 		Gdx.graphics.setTitle("TetraColourSpace - " + dataFile.getName());
 		
-		inputHandler = new InputHandler();
+		inputHandler = new InputHandler("config.ini", logger);
 		Gdx.input.setInputProcessor(inputHandler);
 		
 		disposables = new ArrayList<>();

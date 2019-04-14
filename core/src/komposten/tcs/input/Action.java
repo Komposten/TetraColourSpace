@@ -11,7 +11,8 @@ public enum Action
 	MOVE_IN,
 	MOVE_OUT,
 	
-	ZOOM,
+	ZOOM_IN,
+	ZOOM_OUT,
 	
 	REDUCE_SPEED,
 	CATCH_MOUSE,

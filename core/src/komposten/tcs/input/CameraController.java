@@ -436,9 +436,18 @@ public class CameraController implements InputReceiver
 				Gdx.input.setCursorCatched(false);
 				return true;
 			}
-			else if (action == Action.ZOOM && followMode != FollowMode.OFF)
+			else if (action.name().startsWith("ZOOM") && followMode != FollowMode.OFF)
 			{
-				scrollDelta += (Integer) parameters[0];
+				int amount;
+				
+				if (parameters.length > 0)
+					amount = (Integer) parameters[0];
+				else if (action == Action.ZOOM_IN)
+					amount = -SCROLL_VELOCITY;
+				else
+					amount = SCROLL_VELOCITY;
+				
+				scrollDelta += amount;
 				return true;
 			}
 

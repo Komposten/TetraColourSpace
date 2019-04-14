@@ -1,13 +1,21 @@
 package komposten.tcs.input;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.InputProcessor;
 
 import komposten.utilities.data.InputMapper;
+import komposten.utilities.logging.Level;
+import komposten.utilities.logging.Logger;
+import komposten.utilities.tools.FileOperations;
 
 
 public class InputHandler implements InputProcessor
@@ -18,64 +26,162 @@ public class InputHandler implements InputProcessor
 		public boolean onActionStopped(Action action, Object... parameters);
 	}
 	
+	private Logger logger;
 	private InputMapper<Action> mapper;
 	private List<InputListener> listeners;
-
-
-	public InputHandler()
+	
+	
+	public InputHandler(Logger logger)
 	{
-		mapper = new InputMapper<>();
-		listeners = new ArrayList<>();
+		this((File)null, logger);
+	}
+
+
+	public InputHandler(String keyConfigPath, Logger logger)
+	{
+		this(new File(keyConfigPath), logger);
+	}
+
+
+	public InputHandler(File keyConfigFile, Logger logger)
+	{
+		this.mapper = new InputMapper<>();
+		this.listeners = new ArrayList<>();
+		this.logger = logger;
+		
+		if (keyConfigFile != null)
+			loadConfig(keyConfigFile);
 		
 		defaultMappings();
 	}
 
 
+	private void loadConfig(File keyConfigFile)
+	{
+		try
+		{
+			Map<String, String> config = FileOperations.loadConfigFile(keyConfigFile, false);
+			
+			for (Entry<String, String> entry : config.entrySet())
+			{
+				String actionName = entry.getKey().trim();
+				String codeString = entry.getValue().trim();
+				int[] codes = stringToCodes(codeString);
+				
+				mapIfNotSet(Action.valueOf(actionName.toUpperCase()), codes);
+			}
+		}
+		catch (FileNotFoundException e)
+		{
+			logger.log(Level.INFO, "No config file, loading default keybindings.");
+		}
+	}
+
+
+	private int[] stringToCodes(String codeString)
+	{
+		String[] split = codeString.split("\\s*,\\s*");
+		
+		return Arrays.stream(split).mapToInt(this::stringToCode).toArray();
+	}
+
+
+	private int stringToCode(String codeString)
+	{
+		int code = Keys.valueOf(codeString);
+		
+		if (code == -1)
+		{
+			switch (codeString)
+			{
+				case "Mouse 1" :
+				case "M1" :
+					code = InputMapper.MOUSE1;
+					break;
+				case "Mouse 2" :
+				case "M2" :
+					code = InputMapper.MOUSE2;
+					break;
+				case "Mouse 3" :
+				case "M3" :
+					code = InputMapper.MOUSE3;
+					break;
+				case "MouseWheelUp" :
+				case "MWheelUp" :
+					code = InputMapper.MOUSE_WHEEL_UP;
+					break;
+				case "MouseWheelDown" :
+				case "MWheelDown" :
+					code = InputMapper.MOUSE_WHEEL_DOWN;
+					break;
+				default :
+					code = InputMapper.INVALID_CODE;
+					break;
+			}
+		}
+		
+		return code;
+	}
+
+
 	private void defaultMappings()
 	{
-		mapper.registerKey(Keys.W, Action.MOVE_FORWARD);
-		mapper.registerKey(Keys.S, Action.MOVE_BACKWARD);
-		mapper.registerKey(Keys.A, Action.MOVE_LEFT);
-		mapper.registerKey(Keys.D, Action.MOVE_RIGHT);
-		mapper.registerKey(Keys.SPACE, Action.MOVE_UP);
-		mapper.registerKey(Keys.CONTROL_LEFT, Action.MOVE_DOWN);
-		mapper.registerKey(Keys.CONTROL_RIGHT, Action.MOVE_DOWN);
-		mapper.registerKey(Keys.E, Action.MOVE_IN);
-		mapper.registerKey(Keys.Q, Action.MOVE_OUT);
-		mapper.registerMouseWheel(-1, Action.ZOOM);
-		mapper.registerMouseWheel(1, Action.ZOOM);
-		mapper.registerKey(Keys.SHIFT_LEFT, Action.REDUCE_SPEED);
-		mapper.registerKey(Keys.SHIFT_RIGHT, Action.REDUCE_SPEED);
-		mapper.registerKey(getMouseButtonCode(Buttons.RIGHT), Action.CATCH_MOUSE);
-		mapper.registerKey(getMouseButtonCode(Buttons.LEFT), Action.SELECT_POINT);
-		mapper.registerKey(Keys.G, Action.FOLLOW_ORIGIN);
-		mapper.registerKey(Keys.HOME, Action.FOLLOW_ORIGIN_HOLD);
-		mapper.registerKey(Keys.F, Action.FOLLOW_SELECTION);
-		mapper.registerKey(Keys.R, Action.TOGGLE_ROTATION);
-		mapper.registerKey(Keys.STAR, Action.ROTATION_DIRECTION);
-		mapper.registerKey(Keys.PLUS, Action.ROTATION_SPEED_INCREMENT);
-		mapper.registerKey(Keys.MINUS, Action.ROTATION_SPEED_DECREMENT);
-		mapper.registerKey(Keys.NUMPAD_1, Action.ROTATION_SPEED_1);
-		mapper.registerKey(Keys.NUMPAD_2, Action.ROTATION_SPEED_2);
-		mapper.registerKey(Keys.NUMPAD_3, Action.ROTATION_SPEED_3);
-		mapper.registerKey(Keys.NUMPAD_4, Action.ROTATION_SPEED_4);
-		mapper.registerKey(Keys.NUMPAD_5, Action.ROTATION_SPEED_5);
-		mapper.registerKey(Keys.NUMPAD_6, Action.ROTATION_SPEED_6);
-		mapper.registerKey(Keys.NUMPAD_7, Action.ROTATION_SPEED_7);
-		mapper.registerKey(Keys.NUMPAD_8, Action.ROTATION_SPEED_8);
-		mapper.registerKey(Keys.NUMPAD_9, Action.ROTATION_SPEED_9);
-		mapper.registerKey(Keys.NUMPAD_1, Action.CAMERA_PRESET_1);
-		mapper.registerKey(Keys.NUMPAD_2, Action.CAMERA_PRESET_2);
-		mapper.registerKey(Keys.NUMPAD_3, Action.CAMERA_PRESET_3);
-		mapper.registerKey(Keys.H, Action.TOGGLE_HIGHLIGHT);
-		mapper.registerKey(Keys.NUM_1, Action.TOGGLE_POINTS);
-		mapper.registerKey(Keys.NUM_2, Action.TOGGLE_VOLUMES);
-		mapper.registerKey(Keys.T, Action.TOGGLE_TETRAHEDRON_SIDES);
-		mapper.registerKey(Keys.Y, Action.TOGGLE_AXES);
-		mapper.registerKey(Keys.M, Action.TOGGLE_METRICS);
-		mapper.registerKey(Keys.C, Action.TOGGLE_CROSSHAIR);
-		mapper.registerKey(Keys.L, Action.TOGGLE_LEGEND);
-		mapper.registerKey(Keys.F12, Action.SCREENSHOT);
+		mapIfNotSet(Action.MOVE_FORWARD, Keys.W);
+		mapIfNotSet(Action.MOVE_BACKWARD, Keys.S);
+		mapIfNotSet(Action.MOVE_LEFT, Keys.A);
+		mapIfNotSet(Action.MOVE_RIGHT, Keys.D);
+		mapIfNotSet(Action.MOVE_UP, Keys.SPACE);
+		mapIfNotSet(Action.MOVE_DOWN, Keys.CONTROL_LEFT, Keys.CONTROL_RIGHT);
+		mapIfNotSet(Action.MOVE_IN, Keys.E);
+		mapIfNotSet(Action.MOVE_OUT, Keys.Q);
+		mapIfNotSet(Action.ZOOM_IN, InputMapper.getMouseWheelCode(1));
+		mapIfNotSet(Action.ZOOM_OUT, InputMapper.getMouseWheelCode(-1));
+		mapIfNotSet(Action.REDUCE_SPEED, Keys.SHIFT_LEFT, Keys.SHIFT_RIGHT);
+		mapIfNotSet(Action.CATCH_MOUSE, getMouseButtonCode(Buttons.RIGHT));
+		mapIfNotSet(Action.SELECT_POINT, getMouseButtonCode(Buttons.LEFT));
+		mapIfNotSet(Action.FOLLOW_ORIGIN, Keys.G);
+		mapIfNotSet(Action.FOLLOW_ORIGIN_HOLD, Keys.HOME);
+		mapIfNotSet(Action.FOLLOW_SELECTION, Keys.F);
+		mapIfNotSet(Action.TOGGLE_ROTATION, Keys.R);
+		mapIfNotSet(Action.ROTATION_DIRECTION, Keys.STAR);
+		mapIfNotSet(Action.ROTATION_SPEED_INCREMENT, Keys.PLUS);
+		mapIfNotSet(Action.ROTATION_SPEED_DECREMENT, Keys.MINUS);
+		mapIfNotSet(Action.ROTATION_SPEED_1, Keys.NUMPAD_1);
+		mapIfNotSet(Action.ROTATION_SPEED_2, Keys.NUMPAD_2);
+		mapIfNotSet(Action.ROTATION_SPEED_3, Keys.NUMPAD_3);
+		mapIfNotSet(Action.ROTATION_SPEED_4, Keys.NUMPAD_4);
+		mapIfNotSet(Action.ROTATION_SPEED_5, Keys.NUMPAD_5);
+		mapIfNotSet(Action.ROTATION_SPEED_6, Keys.NUMPAD_6);
+		mapIfNotSet(Action.ROTATION_SPEED_7, Keys.NUMPAD_7);
+		mapIfNotSet(Action.ROTATION_SPEED_8, Keys.NUMPAD_8);
+		mapIfNotSet(Action.ROTATION_SPEED_9, Keys.NUMPAD_9);
+		mapIfNotSet(Action.CAMERA_PRESET_1, Keys.NUMPAD_1);
+		mapIfNotSet(Action.CAMERA_PRESET_2, Keys.NUMPAD_2);
+		mapIfNotSet(Action.CAMERA_PRESET_3, Keys.NUMPAD_3);
+		mapIfNotSet(Action.TOGGLE_HIGHLIGHT, Keys.H);
+		mapIfNotSet(Action.TOGGLE_POINTS, Keys.NUM_1);
+		mapIfNotSet(Action.TOGGLE_VOLUMES, Keys.NUM_2);
+		mapIfNotSet(Action.TOGGLE_TETRAHEDRON_SIDES, Keys.T);
+		mapIfNotSet(Action.TOGGLE_AXES, Keys.Y);
+		mapIfNotSet(Action.TOGGLE_METRICS, Keys.M);
+		mapIfNotSet(Action.TOGGLE_CROSSHAIR, Keys.C);
+		mapIfNotSet(Action.TOGGLE_LEGEND, Keys.L);
+		mapIfNotSet(Action.SCREENSHOT, Keys.F12);
+	}
+	
+	
+	private void mapIfNotSet(Action action, int... codes)
+	{
+		if (codes == null || codes.length == 0)
+			return;
+		
+		if (mapper.getMappingsForAction(action).isEmpty())
+		{
+			for (int code : codes)
+			{
+				mapper.registerKey(code, action);
+			}
+		}
 	}
 
 
@@ -160,7 +266,7 @@ public class InputHandler implements InputProcessor
 	@Override
 	public boolean mouseMoved(int screenX, int screenY)
 	{
-		return false;//sendMoveAction(screenX, screenY);
+		return false;
 	}
 
 
@@ -203,16 +309,4 @@ public class InputHandler implements InputProcessor
 
 		return false;
 	}
-	
-	
-//	private boolean sendMoveAction(int deltaX, int deltaY)
-//	{
-//		for (InputListener listener : listeners)
-//		{
-//			if (listener.onMouseMoved(deltaX, deltaY))
-//				return true;
-//		}
-//		
-//		return false;
-//	}
 }
