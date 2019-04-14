@@ -85,9 +85,34 @@ public class InputHandler implements InputProcessor
 
 	private int[] stringToCodes(String codeString)
 	{
-		String[] split = codeString.split("\\s*,\\s*");
+		codeString = codeString.replaceAll("\\s*,\\s*", ",");
+		
+		String[] split = splitCodeString(codeString);
 		
 		return Arrays.stream(split).mapToInt(this::stringToCode).toArray();
+	}
+
+
+	private String[] splitCodeString(String codeString)
+	{
+		String[] split;
+		
+		if (codeString.equals(","))
+		{
+			split = new String[] { codeString };
+		}
+		else
+		{
+			String comma = "Comma";
+			if (codeString.startsWith(",,"))
+				codeString = comma + codeString.substring(1);
+			if (codeString.endsWith(",,"))
+				codeString = codeString.substring(0, codeString.length()-1) + comma;
+			if (codeString.contains(",,,"))
+				codeString = codeString.replace(",,,", ","+comma+",");
+			split = codeString.split(",");
+		}
+		return split;
 	}
 
 
@@ -118,6 +143,9 @@ public class InputHandler implements InputProcessor
 				case "MouseWheelDown" :
 				case "MWheelDown" :
 					code = InputMapper.MOUSE_WHEEL_DOWN;
+					break;
+				case "Comma" :
+					code = Keys.COMMA;
 					break;
 				default :
 					code = InputMapper.INVALID_CODE;
@@ -221,7 +249,7 @@ public class InputHandler implements InputProcessor
 	public boolean keyUp(int keycode)
 	{
 		List<Action> mappings = mapper.getKeyMappings(keycode);
-
+		
 		return sendActionStopped(mappings);
 	}
 
