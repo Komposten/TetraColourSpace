@@ -4,9 +4,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
@@ -30,6 +32,8 @@ public class InputHandler implements InputProcessor
 	private InputMapper<Action> mapper;
 	private List<InputListener> listeners;
 	
+	private Set<Action> activeActions;
+	
 	
 	public InputHandler(Logger logger)
 	{
@@ -47,6 +51,7 @@ public class InputHandler implements InputProcessor
 	{
 		this.mapper = new InputMapper<>();
 		this.listeners = new ArrayList<>();
+		this.activeActions = new HashSet<>();
 		this.logger = logger;
 		
 		if (keyConfigFile != null)
@@ -183,6 +188,12 @@ public class InputHandler implements InputProcessor
 			}
 		}
 	}
+	
+	
+	public boolean isActionActive(Action action)
+	{
+		return activeActions.contains(action);
+	}
 
 
 	public void addListener(InputListener listener)
@@ -285,6 +296,7 @@ public class InputHandler implements InputProcessor
 	{
 		for (Action action : actions)
 		{
+			activeActions.add(action);
 			for (InputListener listener : listeners)
 			{
 				if (listener.onActionStarted(action, parameters))
@@ -300,6 +312,7 @@ public class InputHandler implements InputProcessor
 	{
 		for (Action action : actions)
 		{
+			activeActions.remove(action);
 			for (InputListener listener : listeners)
 			{
 				if (listener.onActionStopped(action, parameters))

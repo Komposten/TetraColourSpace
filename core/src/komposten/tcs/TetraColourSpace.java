@@ -180,7 +180,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		spriteBatch.end();
 		
 		//Handle input
-		cameraController.readInput(Gdx.graphics.getDeltaTime());
+		cameraController.readInput(Gdx.graphics.getDeltaTime(), inputHandler);
 		
 		//Update stuff
 		world.update();

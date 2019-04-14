@@ -1,8 +1,6 @@
 package komposten.tcs.input;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input.Buttons;
-import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.math.Vector3;
 
@@ -73,60 +71,67 @@ public class CameraController implements InputReceiver
 	}
 	
 	
-	public void readInput(float deltaTime)
+	public void readInput(float deltaTime, InputHandler handler)
 	{
 		if (followMode != FollowMode.OFF)
 		{
-			if (rotationMovement(deltaTime))
+			if (rotationMovement(deltaTime, handler))
 				cameraDirty = true;
 		}
 		else 
 		{
-			if (translationMovement(deltaTime))
+			if (translationMovement(deltaTime, handler))
 				cameraDirty = true;
 		}
 	}
 
 
-	private boolean translationMovement(float deltaTime)
+	private boolean translationMovement(float deltaTime, InputHandler handler)
 	{
 		Vector3 movement = new Vector3();
 		
-		if (Gdx.input.isKeyPressed(Keys.W) || Gdx.input.isKeyPressed(Keys.S))
+		if (handler.isActionActive(Action.MOVE_FORWARD) ||
+				handler.isActionActive(Action.MOVE_BACKWARD))
 		{
-			calcVector.set(camera.direction.x, 0, camera.direction.z).setLength(LINEAR_VELOCITY * deltaTime);
+			calcVector
+					.set(camera.direction.x, 0, camera.direction.z)
+					.setLength(LINEAR_VELOCITY * deltaTime);
 			
-			if (Gdx.input.isKeyPressed(Keys.W))
+			if (handler.isActionActive(Action.MOVE_FORWARD))
 				movement.add(calcVector);
 			else
 				movement.sub(calcVector);
 		}
 		
-		if (Gdx.input.isKeyPressed(Keys.A) || Gdx.input.isKeyPressed(Keys.D))
+		if (handler.isActionActive(Action.MOVE_LEFT) ||
+				handler.isActionActive(Action.MOVE_RIGHT))
 		{
-			calcVector.set(camera.direction.z, 0, -camera.direction.x).setLength(LINEAR_VELOCITY * deltaTime);
+			calcVector
+					.set(camera.direction.z, 0, -camera.direction.x)
+					.setLength(LINEAR_VELOCITY * deltaTime);
 			
-			if (Gdx.input.isKeyPressed(Keys.A))
+			if (handler.isActionActive(Action.MOVE_LEFT))
 				movement.add(calcVector);
 			else
 				movement.sub(calcVector);
 		}
 		
-		if (Gdx.input.isKeyPressed(Keys.E) || Gdx.input.isKeyPressed(Keys.Q))
+		if (handler.isActionActive(Action.MOVE_IN) ||
+				handler.isActionActive(Action.MOVE_OUT))
 		{
 			calcVector.set(camera.direction).setLength(LINEAR_VELOCITY * deltaTime);
 			
-			if (Gdx.input.isKeyPressed(Keys.E))
+			if (handler.isActionActive(Action.MOVE_IN))
 				movement.add(calcVector);
 			else
 				movement.sub(calcVector);
 		}
 		
-		if (Gdx.input.isKeyPressed(Keys.SPACE))
+		if (handler.isActionActive(Action.MOVE_UP))
 		{
 			movement.y += LINEAR_VELOCITY * deltaTime;
 		}
-		else if (Gdx.input.isKeyPressed(Keys.CONTROL_LEFT))
+		else if (handler.isActionActive(Action.MOVE_DOWN))
 		{
 			movement.y -= LINEAR_VELOCITY * deltaTime;
 		}
@@ -134,7 +139,7 @@ public class CameraController implements InputReceiver
 		boolean needsUpdate = false;
 		if (!movement.epsilonEquals(Vector3.Zero))
 		{
-			if (Gdx.input.isKeyPressed(Keys.SHIFT_LEFT))
+			if (handler.isActionActive(Action.REDUCE_SPEED))
 				movement.scl(SLOW_MODIFIER);
 			
 			camera.position.x = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.x + movement.x);
@@ -143,7 +148,7 @@ public class CameraController implements InputReceiver
 			needsUpdate = true;
 		}
 		
-		if (Gdx.input.isButtonPressed(Buttons.RIGHT))
+		if (handler.isActionActive(Action.CATCH_MOUSE))
 		{
 			int mouseDX = Gdx.input.getDeltaX();
 			int mouseDY = Gdx.input.getDeltaY();
@@ -171,7 +176,7 @@ public class CameraController implements InputReceiver
 	}
 
 
-	private boolean rotationMovement(float deltaTime)
+	private boolean rotationMovement(float deltaTime, InputHandler handler)
 	{
 		Vector3 movement = new Vector3();
 		Vector3 focalPoint = (followMode == FollowMode.CENTRE ? Vector3.Zero : world.getSelectedPoint().getCoordinates());
@@ -180,17 +185,17 @@ public class CameraController implements InputReceiver
 		float rotY = 0;
 		float zoom = 0;
 
-		if (Gdx.input.isKeyPressed(Keys.W) || Gdx.input.isKeyPressed(Keys.E))
+		if (handler.isActionActive(Action.MOVE_FORWARD) || handler.isActionActive(Action.MOVE_IN))
 			zoom += LINEAR_VELOCITY * deltaTime;
-		if (Gdx.input.isKeyPressed(Keys.S) || Gdx.input.isKeyPressed(Keys.Q))
+		if (handler.isActionActive(Action.MOVE_BACKWARD) || handler.isActionActive(Action.MOVE_OUT))
 			zoom -= LINEAR_VELOCITY * deltaTime;
-		if (Gdx.input.isKeyPressed(Keys.A))
+		if (handler.isActionActive(Action.MOVE_LEFT))
 			rotX -= ANGULAR_VELOCITY * deltaTime;
-		if (Gdx.input.isKeyPressed(Keys.D))
+		if (handler.isActionActive(Action.MOVE_RIGHT))
 			rotX += ANGULAR_VELOCITY * deltaTime;
-		if (Gdx.input.isKeyPressed(Keys.SPACE))
+		if (handler.isActionActive(Action.MOVE_UP))
 			rotY -= ANGULAR_VELOCITY * deltaTime;
-		if (Gdx.input.isKeyPressed(Keys.CONTROL_LEFT))
+		if (handler.isActionActive(Action.MOVE_DOWN))
 			rotY += ANGULAR_VELOCITY * deltaTime;
 		
 		if (scrollDelta != 0)
@@ -204,7 +209,7 @@ public class CameraController implements InputReceiver
 			rotX += ANGULAR_AUTO_VELOCITY * deltaTime * autoRotation;
 		}
 		
-		if (Gdx.input.isButtonPressed(Buttons.RIGHT))
+		if (handler.isActionActive(Action.CATCH_MOUSE))
 		{
 			int mouseDX = Gdx.input.getDeltaX();
 			int mouseDY = Gdx.input.getDeltaY();
@@ -230,7 +235,7 @@ public class CameraController implements InputReceiver
 			if (velocity < 0)
 				calcVector.scl(-1);
 
-			if (Gdx.input.isKeyPressed(Keys.SHIFT_LEFT))
+			if (handler.isActionActive(Action.REDUCE_SPEED))
 				calcVector.scl(SLOW_MODIFIER);
 			
 			movement.add(calcVector);
@@ -238,7 +243,7 @@ public class CameraController implements InputReceiver
 		
 		if (!MathOps.equals(rotX, 0, 0.0001f))
 		{
-			if (Gdx.input.isKeyPressed(Keys.SHIFT_LEFT))
+			if (handler.isActionActive(Action.REDUCE_SPEED))
 				rotX /= 2;
 			
 			Vector3 vectorFromCentre = camera.position.cpy().sub(focalPoint);
@@ -250,7 +255,7 @@ public class CameraController implements InputReceiver
 		
 		if (!MathOps.equals(rotY, 0, 0.0001f))
 		{
-			if (Gdx.input.isKeyPressed(Keys.SHIFT_LEFT))
+			if (handler.isActionActive(Action.REDUCE_SPEED))
 				rotY /= 2;
 			
 			Vector3 vectorFromCentre = camera.position.cpy().sub(focalPoint);
