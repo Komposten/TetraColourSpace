@@ -6,6 +6,8 @@ sourceSets.main.java.srcDirs = [ "src/", "assets/" ]
 project.ext.mainClassName = "komposten.tcs.desktop.DesktopLauncher"
 project.ext.assetsDir = new File("assets/");
 
+archivesBaseName = 'TetraColourSpace'
+
 task run(dependsOn: classes, type: JavaExec) {
     main = project.mainClassName
     classpath = sourceSets.main.runtimeClasspath
