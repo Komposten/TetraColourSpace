@@ -71,18 +71,18 @@ public class World implements Disposable, InputReceiver
 	
 	
 	@Override
-	public void register(InputHandler handler)
+	public void attachToInputHandler(InputHandler handler)
 	{
 		handler.addListener(inputListener);
-		graphSpace.register(handler);
+		graphSpace.attachToInputHandler(handler);
 	}
 	
 	
 	@Override
-	public void unregister(InputHandler handler)
+	public void detachFromInputHandler(InputHandler handler)
 	{
 		handler.removeListener(inputListener);
-		graphSpace.unregister(handler);
+		graphSpace.detachFromInputHandler(handler);
 	}
 	
 	

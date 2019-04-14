@@ -55,14 +55,14 @@ public class UserInterface implements Disposable, InputReceiver
 	
 	
 	@Override
-	public void register(InputHandler handler)
+	public void attachToInputHandler(InputHandler handler)
 	{
 		handler.addListener(inputListener);
 	}
 	
 	
 	@Override
-	public void unregister(InputHandler handler)
+	public void detachFromInputHandler(InputHandler handler)
 	{
 		handler.removeListener(inputListener);
 	}

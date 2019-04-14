@@ -124,8 +124,8 @@ public class TetraColourSpace extends ApplicationAdapter
 		world = new World(backend, camera);
 		userInterface = new UserInterface(backend, world);
 		
-		userInterface.register(inputHandler);
-		world.register(inputHandler);
+		userInterface.attachToInputHandler(inputHandler);
+		world.attachToInputHandler(inputHandler);
 	}
 
 
@@ -138,7 +138,7 @@ public class TetraColourSpace extends ApplicationAdapter
 		
 		cameraController = new CameraController(camera, world);
 		cameraController.lookAt(Vector3.Zero);
-		cameraController.register(inputHandler);
+		cameraController.attachToInputHandler(inputHandler);
 	}
 
 
