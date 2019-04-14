@@ -322,32 +322,42 @@ public class InputHandler implements InputProcessor
 
 	private boolean sendActionStarted(List<Action> actions, Object... parameters)
 	{
+		boolean usedEvent = false;
+		
 		for (Action action : actions)
 		{
 			activeActions.add(action);
 			for (InputListener listener : listeners)
 			{
 				if (listener.onActionStarted(action, parameters))
-					return true;
+				{
+					usedEvent = true;
+					break;
+				}
 			}
 		}
 
-		return false;
+		return usedEvent;
 	}
 
 
 	private boolean sendActionStopped(List<Action> actions, Object... parameters)
 	{
+		boolean usedEvent = false;
+		
 		for (Action action : actions)
 		{
 			activeActions.remove(action);
 			for (InputListener listener : listeners)
 			{
 				if (listener.onActionStopped(action, parameters))
-					return true;
+				{
+					usedEvent = true;
+					break;
+				}
 			}
 		}
 
-		return false;
+		return usedEvent;
 	}
 }
