@@ -2,7 +2,7 @@
 ### What is TetraColourSpace?
 TetraColourSpace is a 3D graph program for visualising data points a tetrachromatic colourspace. It was originally created to be used in conjunction with the R package [pavo](https://CRAN.R-project.org/package=pavo), as pavo's built-in 3D graph had very limited functionality (and annoying controls).
 
-Datasets containing information about data points are loaded from XML-files and displayed within the confines of a tetrahedron (representing a tetrachromatic colourspace). An R-script for generating correctly formatted XML-files is included in the R folder.
+Datasets containing information about data points are loaded from XML-files and displayed within the confines of a tetrahedron (representing a tetrachromatic colourspace). An R-script for generating correctly formatted XML-files from pavo's `colspace` objects is included in the R folder.
 
 ### Features
 - Visualise groups of data points within a tetrachromatic colour space.
