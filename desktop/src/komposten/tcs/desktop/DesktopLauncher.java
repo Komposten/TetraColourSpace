@@ -23,7 +23,9 @@ public class DesktopLauncher
 		}
 		else
 		{
-			System.out.println("Usage: [filePath]");
+			System.out.println("Usage: <filePath> [outputPath]");
+			System.out.println("\t<filePath> Path to an XML graph file.");
+			System.out.println("\t[outputPath] Path to a folder to save screenshots in.");
 		}
 	}
 }
