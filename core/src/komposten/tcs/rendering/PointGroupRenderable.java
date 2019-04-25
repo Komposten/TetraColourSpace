@@ -24,14 +24,14 @@ public class PointGroupRenderable implements Disposable
 	
 	private List<ModelInstance> pointModels;
 
-	public PointGroupRenderable(PointGroup data, float size)
+	public PointGroupRenderable(PointGroup data, float size, int sphereSegments)
 	{
-		createModel(data.getShape(), size);
+		createModel(data.getShape(), size, sphereSegments);
 		createModelInstances(data.getPoints());
 	}
 
 
-	private void createModel(Shape shape, float size)
+	private void createModel(Shape shape, float size, int sphereSegments)
 	{
 		ModelBuilder builder = new ModelBuilder();
 		float diameter = size;
@@ -46,7 +46,7 @@ public class PointGroupRenderable implements Disposable
 				break;
 			case SPHERE :
 			default :
-				model = ShapeFactory.createSphere(builder, diameter, GL20.GL_TRIANGLES, World.SPHERE_SEGMENTS);
+				model = ShapeFactory.createSphere(builder, diameter, GL20.GL_TRIANGLES, sphereSegments);
 				break;
 		}
 	}

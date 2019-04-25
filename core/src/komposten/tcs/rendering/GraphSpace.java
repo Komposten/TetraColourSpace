@@ -24,6 +24,7 @@ import com.badlogic.gdx.utils.Disposable;
 
 import komposten.tcs.backend.Style;
 import komposten.tcs.backend.Style.Colour;
+import komposten.tcs.backend.Style.Setting;
 import komposten.tcs.backend.data.Point;
 import komposten.tcs.input.Action;
 import komposten.tcs.input.InputHandler;
@@ -148,7 +149,8 @@ public class GraphSpace implements Disposable, InputReceiver
 	private void createTetrahedronCorners(Tetrahedron tetrahedron, ModelBuilder modelBuilder, Style style)
 	{
 		float diameter = 0.03f;
-		Model sphereModel = ShapeFactory.createSphere(modelBuilder, diameter, GL20.GL_TRIANGLES, World.SPHERE_SEGMENTS);
+		int segments = style.get(Setting.SPHERE_QUALITY).intValue();
+		Model sphereModel = ShapeFactory.createSphere(modelBuilder, diameter, GL20.GL_TRIANGLES, segments);
 		
 		ModelInstance redSphere = ModelInstanceFactory.create(sphereModel, tetrahedron.longPos, style.get(Colour.WL_LONG));
 		ModelInstance greenSphere = ModelInstanceFactory.create(sphereModel, tetrahedron.mediumPos, style.get(Colour.WL_MEDIUM));

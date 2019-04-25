@@ -19,6 +19,7 @@ import com.badlogic.gdx.utils.Disposable;
 import komposten.tcs.backend.Backend;
 import komposten.tcs.backend.Style;
 import komposten.tcs.backend.Style.Colour;
+import komposten.tcs.backend.Style.Setting;
 import komposten.tcs.backend.data.Point;
 import komposten.tcs.backend.data.PointGroup;
 import komposten.tcs.backend.data.Volume;
@@ -31,8 +32,6 @@ import komposten.tcs.util.ShapeFactory;
 
 public class World implements Disposable, InputReceiver
 {
-	public static final int SPHERE_SEGMENTS = 25;
-	
 	private Backend backend;
 	private Camera camera;
 	private Environment environment;
@@ -135,10 +134,12 @@ public class World implements Disposable, InputReceiver
 	private void generatePointObjects()
 	{
 		groupRenderables = new ArrayList<>(backend.getDataGroups().size());
+		int sphereSegments = backend.getStyle().get(Setting.SPHERE_QUALITY).intValue();
+		float pointSize = 0.02f;
 		
 		for (PointGroup group : backend.getDataGroups())
 		{
-			PointGroupRenderable dataGroup = new PointGroupRenderable(group, 0.02f);
+			PointGroupRenderable dataGroup = new PointGroupRenderable(group, pointSize, sphereSegments);
 			groupRenderables.add(dataGroup);
 			disposables.add(dataGroup);
 		}

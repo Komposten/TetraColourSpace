@@ -9,6 +9,7 @@ import org.w3c.dom.NodeList;
 import com.badlogic.gdx.graphics.Color;
 
 import komposten.tcs.util.TCSUtils;
+import komposten.utilities.tools.MathOps;
 
 public class Style
 {
@@ -28,8 +29,13 @@ public class Style
 		SELECTION
 	}
 	
+	public enum Setting
+	{
+		SPHERE_QUALITY
+	}
+	
 	private Map<Colour, Color> colours;
-			
+	private Map<Setting, Number> settings;
 
 	public Style()
 	{
@@ -40,14 +46,15 @@ public class Style
 	Style(Node styleNode)
 	{
 		colours = new EnumMap<>(Colour.class);
+		settings = new EnumMap<>(Setting.class);
 		
-		loadDefaultStyle();
+		loadDefaults();
 		if (styleNode != null)
 			loadStyle(styleNode);
 	}
 
 
-	private void loadDefaultStyle()
+	private void loadDefaults()
 	{
 		colours.put(Colour.BACKGROUND, new Color(.12f, .12f, .12f, 1f));
 		colours.put(Colour.TEXT, new Color(.89f, .89f, .89f, 1f));
@@ -61,6 +68,8 @@ public class Style
 		colours.put(Colour.METRIC_FILL, new Color(.445f, .445f, .445f, 1f));
 		colours.put(Colour.HIGHLIGHT, Color.CORAL);
 		colours.put(Colour.SELECTION, Color.DARK_GRAY);
+
+		settings.put(Setting.SPHERE_QUALITY, 25);
 	}
 
 
@@ -80,23 +89,69 @@ public class Style
 			
 			if (idAttr != null)
 			{
-				String id = idAttr.getNodeValue().trim();
+				String id = idAttr.getNodeValue().trim().toUpperCase();
 				String value = child.getTextContent();
 				
 				if (type.equalsIgnoreCase("colour"))
 				{
-					Colour colour = Colour.valueOf(id.toUpperCase());
-					
-					if (colour != null)
-						colours.put(colour, TCSUtils.getColourFromHex(value));
+					loadColour(id, value);
+				}
+				else if (type.equalsIgnoreCase("setting"))
+				{
+					loadSetting(id, value);
 				}
 			}
 		}
 	}
+
+
+	private void loadColour(String id, String value)
+	{
+		Colour colour = Colour.valueOf(id);
+		
+		if (colour != null)
+			colours.put(colour, TCSUtils.getColourFromHex(value));
+	}
+
+
+	private void loadSetting(String id, String value)
+	{
+		Setting setting = Setting.valueOf(id);
+		Number number = getNumberFromString(value);
+		
+		switch (setting)
+		{
+			case SPHERE_QUALITY :
+				if (number.intValue() <= 5)
+					number = 5;
+				break;
+			default :
+				return;
+		}
+		
+		settings.put(setting, number);
+	}
 	
 	
+	private Number getNumberFromString(String value)
+	{
+		if (MathOps.isDouble(value))
+			return Double.valueOf(value);
+		else if (value.matches("-?\\d+"))
+			return Integer.valueOf(value);
+		
+		throw new IllegalArgumentException(value + " is not a valid double or integer!");
+	}
+
+
 	public Color get(Colour key)
 	{
 		return colours.get(key);
+	}
+	
+	
+	public Number get(Setting key)
+	{
+		return settings.get(key);
 	}
 }
