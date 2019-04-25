@@ -125,7 +125,8 @@ public class World implements Disposable, InputReceiver
 		graphSpace = new GraphSpace(backend.getStyle(), camera, environment);
 
 		Style style = backend.getStyle();
-		Model model = ShapeFactory.createSphere(new ModelBuilder(), 0.025f, GL20.GL_LINES, 10);
+		float pointSize = backend.getStyle().get(Setting.POINT_SIZE).floatValue() * 1.25f;
+		Model model = ShapeFactory.createSphere(new ModelBuilder(), pointSize, GL20.GL_LINES, 10);
 		selectedModel = ModelInstanceFactory.create(model, Vector3.Zero, style.get(Colour.SELECTION));
 		highlightModel = ModelInstanceFactory.create(model, Vector3.Zero, style.get(Colour.HIGHLIGHT));
 	}
@@ -135,7 +136,7 @@ public class World implements Disposable, InputReceiver
 	{
 		groupRenderables = new ArrayList<>(backend.getDataGroups().size());
 		int sphereSegments = backend.getStyle().get(Setting.SPHERE_QUALITY).intValue();
-		float pointSize = 0.02f;
+		float pointSize = backend.getStyle().get(Setting.POINT_SIZE).floatValue();
 		
 		for (PointGroup group : backend.getDataGroups())
 		{

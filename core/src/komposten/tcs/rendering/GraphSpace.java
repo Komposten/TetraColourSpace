@@ -148,7 +148,7 @@ public class GraphSpace implements Disposable, InputReceiver
 
 	private void createTetrahedronCorners(Tetrahedron tetrahedron, ModelBuilder modelBuilder, Style style)
 	{
-		float diameter = 0.03f;
+		float diameter = style.get(Setting.CORNER_SIZE).floatValue();
 		int segments = style.get(Setting.SPHERE_QUALITY).intValue();
 		Model sphereModel = ShapeFactory.createSphere(modelBuilder, diameter, GL20.GL_TRIANGLES, segments);
 		

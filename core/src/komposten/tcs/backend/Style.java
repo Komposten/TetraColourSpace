@@ -31,6 +31,8 @@ public class Style
 	
 	public enum Setting
 	{
+		POINT_SIZE,
+		CORNER_SIZE,
 		SPHERE_QUALITY
 	}
 	
@@ -69,6 +71,8 @@ public class Style
 		colours.put(Colour.HIGHLIGHT, Color.CORAL);
 		colours.put(Colour.SELECTION, Color.DARK_GRAY);
 
+		settings.put(Setting.POINT_SIZE, 0.02f);
+		settings.put(Setting.CORNER_SIZE, 0.03f);
 		settings.put(Setting.SPHERE_QUALITY, 25);
 	}
 
@@ -121,6 +125,14 @@ public class Style
 		
 		switch (setting)
 		{
+			case POINT_SIZE :
+				if (number.doubleValue() <= 0)
+					throw new IllegalArgumentException("POINT_SIZE must be positive and non-zero!");
+				break;
+			case CORNER_SIZE :
+				if (number.doubleValue() <= 0)
+					throw new IllegalArgumentException("CORNER_SIZE must be positive and non-zero!");
+				break;
 			case SPHERE_QUALITY :
 				if (number.intValue() <= 5)
 					number = 5;
