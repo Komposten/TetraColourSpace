@@ -14,11 +14,12 @@ public class PointGroup
 	private String name;
 	private List<Point> points;
 	private Shape shape;
+	private float size;
 	
 	
-	public PointGroup(String name, Shape shape)
+	public PointGroup(String name, Shape shape, float size)
 	{
-		this(name, new ArrayList<>(), shape);
+		this(name, new ArrayList<>(), shape, size);
 	}
 	
 	
@@ -28,12 +29,14 @@ public class PointGroup
 	 * @param points A list of {@link Point points}. The PointGroup will be backed
 	 *          by this list, so external changes are reflected in the group.
 	 * @param shape The shape to use when rendering the point.
+	 * @param size The point size to use, or a negative value to use the default.
 	 */
-	public PointGroup(String name, List<Point> points, Shape shape)
+	public PointGroup(String name, List<Point> points, Shape shape, float size)
 	{
 		this.name = name;
 		this.points = points;
 		this.shape = shape;
+		this.size = size;
 	}
 
 	public String getName()
@@ -49,6 +52,11 @@ public class PointGroup
 	public Shape getShape()
 	{
 		return shape;
+	}
+	
+	public float getSize()
+	{
+		return size;
 	}
 	
 	public void setPoints(List<Point> points)

@@ -24,6 +24,7 @@ import com.badlogic.gdx.math.Vector3;
 import com.github.quickhull3d.QuickHull3D;
 
 import komposten.tcs.backend.Style.Colour;
+import komposten.tcs.backend.Style.Setting;
 import komposten.tcs.backend.data.Point;
 import komposten.tcs.backend.data.PointGroup;
 import komposten.tcs.backend.data.Shape;
@@ -118,6 +119,8 @@ public class Backend
 
 	private void loadPointData(Element root)
 	{
+		float defaultSize = style.get(Setting.POINT_SIZE).floatValue();
+		
 		NodeList groups = root.getElementsByTagName("group");
 		for (int g = 0; g < groups.getLength(); g++)
 		{
@@ -125,10 +128,14 @@ public class Backend
 			
 			Node groupNameAttr = group.getAttributeNode("name");
 			Node groupShapeAttr = group.getAttributeNode("shape");
+			Node groupSizeAttr = group.getAttributeNode("size");
 			
 			String groupName = getAttributeValue(groupNameAttr, "Group " + (g+1));
 			String shapeName = getAttributeValue(groupShapeAttr, "sphere");
+			String sizeString = getAttributeValue(groupSizeAttr, "");
+			
 			Shape shape = Shape.fromString(shapeName);
+			float size = (MathOps.isDouble(sizeString) ? Double.valueOf(sizeString).floatValue() : defaultSize);
 			
 			if (shape == null)
 			{
@@ -136,7 +143,7 @@ public class Backend
 				logger.log(Level.WARNING, "Invalid point shape: \"" + shapeName + "\"");
 			}
 			
-			PointGroup pointGroup = new PointGroup(groupName, shape);
+			PointGroup pointGroup = new PointGroup(groupName, shape, size);
 			pointGroup.setPoints(createGroupPoints(group, pointGroup));
 			dataGroups.add(pointGroup);
 		}

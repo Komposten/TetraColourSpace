@@ -24,8 +24,10 @@ public class PointGroupRenderable implements Disposable
 	
 	private List<ModelInstance> pointModels;
 
-	public PointGroupRenderable(PointGroup data, float size, int sphereSegments)
+	public PointGroupRenderable(PointGroup data, int sphereSegments)
 	{
+		float size = data.getSize();
+		
 		createModel(data.getShape(), size, sphereSegments);
 		createModelInstances(data.getPoints());
 	}

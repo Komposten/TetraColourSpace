@@ -125,8 +125,7 @@ public class World implements Disposable, InputReceiver
 		graphSpace = new GraphSpace(backend.getStyle(), camera, environment);
 
 		Style style = backend.getStyle();
-		float pointSize = backend.getStyle().get(Setting.POINT_SIZE).floatValue() * 1.25f;
-		Model model = ShapeFactory.createSphere(new ModelBuilder(), pointSize, GL20.GL_LINES, 10);
+		Model model = ShapeFactory.createSphere(new ModelBuilder(), 1, GL20.GL_LINES, 10);
 		selectedModel = ModelInstanceFactory.create(model, Vector3.Zero, style.get(Colour.SELECTION));
 		highlightModel = ModelInstanceFactory.create(model, Vector3.Zero, style.get(Colour.HIGHLIGHT));
 	}
@@ -136,11 +135,10 @@ public class World implements Disposable, InputReceiver
 	{
 		groupRenderables = new ArrayList<>(backend.getDataGroups().size());
 		int sphereSegments = backend.getStyle().get(Setting.SPHERE_QUALITY).intValue();
-		float pointSize = backend.getStyle().get(Setting.POINT_SIZE).floatValue();
 		
 		for (PointGroup group : backend.getDataGroups())
 		{
-			PointGroupRenderable dataGroup = new PointGroupRenderable(group, pointSize, sphereSegments);
+			PointGroupRenderable dataGroup = new PointGroupRenderable(group, sphereSegments);
 			groupRenderables.add(dataGroup);
 			disposables.add(dataGroup);
 		}
@@ -173,7 +171,10 @@ public class World implements Disposable, InputReceiver
 		if (highlightPoint != null)
 		{
 			hasHighlight = true;
+			float scale = highlightPoint.getGroup().getSize() * 1.25f;
+			float oldScale = highlightModel.transform.getScaleX();
 			highlightModel.transform.setTranslation(highlightPoint.getCoordinates());
+			highlightModel.transform.scl(scale/oldScale);
 		}
 		else
 		{
