@@ -1,8 +1,11 @@
 #' Call this to start building a TCS plot.
 #' Will clear all previously added TCS data.
-tcs.begin <- function(colour_background = NULL, colour_wl_long = NULL, colour_wl_medium = NULL, colour_wl_short = NULL,
-                      colour_wl_uv = NULL, colour_achro = NULL, colour_selection = NULL,
-                      colour_highlight = NULL, colour_metric_line = NULL, colour_metric_fill = NULL)
+tcs.begin <- function(colour_background = NULL, colour_wl_long = NULL,
+                      colour_wl_medium = NULL, colour_wl_short = NULL,
+                      colour_wl_uv = NULL, colour_achro = NULL,
+                      colour_selection = NULL, colour_highlight = NULL,
+                      colour_metric_line = NULL, colour_metric_fill = NULL,
+                      point_size = NULL, corner_size = NULL, sphere_quality = NULL)
 {
   tcsEnv <<- new.env()
   tcsEnv$data <- c("<?xml version=\"1.0\"?>", "<data>")
@@ -14,9 +17,20 @@ tcs.begin <- function(colour_background = NULL, colour_wl_long = NULL, colour_wl
     tcsEnv$data <- c(tcsEnv$data, "<style>")
     for (i in seq_along(params))
     {
-      name <- substring(names(params)[i], 8)
+      name <- names(params)[i]
       value <- params[i]
-      tcsEnv$data <- c(tcsEnv$data, sprintf("<colour id=\"%s\">%s</colour>", name, value))
+      
+      if (substring(name, 1, 6) == "colour")
+      {
+        name <- substring(name, 8)
+        format <- '<colour id="%s">%s</colour>'
+      }
+      else
+      {
+        format <- '<setting id="%s">%s</setting>'
+      }
+      
+      tcsEnv$data <- c(tcsEnv$data, sprintf(format, name, value))
     }
     tcsEnv$data <- c(tcsEnv$data, "</style>")
   }
@@ -30,7 +44,8 @@ tcs.begin <- function(colour_background = NULL, colour_wl_long = NULL, colour_wl
 #' @param name The name of the group of points.
 #' @param colours A vector specifying the colours of the points.
 #' @param shape The shape to use for the points.
-tcs.points <- function(data, labels = NULL, name = NULL, colours = "#000", shape = c("sphere", "box", "pyramid"))
+tcs.points <- function(data, labels = NULL, name = NULL, colours = "#000",
+                       shape = c("sphere", "box", "pyramid"), size = NULL)
 {
   if (!exists("tcsEnv"))
     stop("Must call tcs.begin before tcs.points!")
@@ -47,10 +62,16 @@ tcs.points <- function(data, labels = NULL, name = NULL, colours = "#000", shape
     labels <- row.names(data)
   }
   
+  groupAttributes <- character(0)
   if (!is.null(name))
-    tcsEnv$data <- c(tcsEnv$data, paste0("<group name=\"", name, "\" shape=\"", shape[1], "\">"))
-  else
-    tcsEnv$data <- c(tcsEnv$data, paste0("<group shape=\"", shape[1], "\">"))
+    groupAttributes <- c(groupAttributes, sprintf('name="%s"', name))
+  if (!is.null(size))
+    groupAttributes <- c(groupAttributes, sprintf('size="%s"', size))
+  groupAttributes <- c(groupAttributes, sprintf('shape="%s"', shape[1]))
+  
+  openTag <- sprintf('<group %s>', paste(groupAttributes, collapse = " "))
+  
+  tcsEnv$data <- c(tcsEnv$data, openTag)
   tcsEnv$data <- c(tcsEnv$data, unlist(lapply(1:nrow(data), function(i)
   {
     position <- paste(data[i,], collapse = ",")
