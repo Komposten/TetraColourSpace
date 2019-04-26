@@ -171,10 +171,7 @@ public class World implements Disposable, InputReceiver
 		if (highlightPoint != null)
 		{
 			hasHighlight = true;
-			float scale = highlightPoint.getGroup().getSize() * 1.25f;
-			float oldScale = highlightModel.transform.getScaleX();
-			highlightModel.transform.setTranslation(highlightPoint.getCoordinates());
-			highlightModel.transform.scl(scale/oldScale);
+			scaleAndTranslate(highlightPoint, highlightModel);
 		}
 		else
 		{
@@ -192,7 +189,7 @@ public class World implements Disposable, InputReceiver
 			if (selectedPoint != null)
 			{
 				hasSelection = true;
-				selectedModel.transform.setTranslation(selectedPoint.getCoordinates());
+				scaleAndTranslate(selectedPoint, selectedModel);
 				return selectedPoint;
 			}
 			else
@@ -207,6 +204,15 @@ public class World implements Disposable, InputReceiver
 		}
 
 		return null;
+	}
+
+
+	private void scaleAndTranslate(Point point, ModelInstance modelInstance)
+	{
+		float scale = point.getGroup().getSize() * 1.25f;
+		float oldScale = modelInstance.transform.getScaleX();
+		modelInstance.transform.setTranslation(point.getCoordinates());
+		modelInstance.transform.scl(scale/oldScale);
 	}
 	
 	
