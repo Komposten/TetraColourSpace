@@ -3,12 +3,13 @@ TetraColourSpace uses simple XML-files to describe the graphs. The different ele
 
 ## Elements
 ### Overview
-- `<data>`: The root element containing the graph's data and style information.
-- `<style>`: The style element containing style information.
-- `<colour>`: Set the colour of an element of the graph.
-- `<group>`: Indicates a group of data points.
-- `<point>`: Describes a data point.
-- `<volume>`: Describes a data volume.
+- [`<data>`](#data): The root element containing the graph's data and style information.
+- [`<style>`](#style): The style element containing style information.
+- [`<colour>`](#colour): Set the colour of an element of the graph.
+- [`<setting>`](#setting): Set a graph setting.
+- [`<group>`](#group): Indicates a group of data points.
+- [`<point>`](#point): Describes a data point.
+- [`<volume>`](#volume): Describes a data volume.
 
 ---
 
@@ -39,11 +40,12 @@ None
 
 **Children**
 - [`<colour>`](#colour)
+- [`<setting>`](#setting)
 
 ---
 
 ### `<colour>`
-Sets the colour of an element during of the graph itself. It could be e.g. background colour, text colour or the colour of a corner in the colourspace tetrahedron.
+Sets the colour of an element of the graph itself. It could be e.g. background colour, text colour or the colour of a corner in the colourspace tetrahedron.
 
 May occur several times, but only as a child of [`<style>`](#style).
 
@@ -58,6 +60,26 @@ A hexadecimal colour value in the format `#AARRGGBB` or `#RRGGBB`.
 
 ```xml
 <colour id="background">#FFF</colour>
+```
+
+---
+
+### `<setting>`
+Sets a setting for the graph. It could be e.g. sphere quality or default data point size.
+
+May occur several times, but only as a child of [`<style>`](#style).
+
+**Attributes**
+- `id`: One of `point_size, corner_size, or sphere_quality`.
+
+**Value**
+
+A positive, non-zero integer or floating-point value. `sphere_quality` is floored to the nearest integer.
+
+**Example**
+
+```xml
+<setting id="point_size">0.03</colour>
 ```
 
 
