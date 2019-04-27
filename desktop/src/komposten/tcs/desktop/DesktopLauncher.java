@@ -2,6 +2,7 @@ package komposten.tcs.desktop;
 
 import java.io.File;
 
+import com.badlogic.gdx.Files.FileType;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
 
@@ -19,6 +20,8 @@ public class DesktopLauncher
 			LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
 			config.useGL30 = true;
 			config.samples = 8;
+			config.addIcon("icon128.png", FileType.Internal);
+			config.addIcon("icon32.png", FileType.Internal);
 			new LwjglApplication(new TetraColourSpace(file, outputDir), config);
 		}
 		else
