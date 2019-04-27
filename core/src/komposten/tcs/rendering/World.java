@@ -133,12 +133,18 @@ public class World implements Disposable, InputReceiver
 	
 	private void generatePointObjects()
 	{
+		Style style = backend.getStyle();
+		int sphereSegments = style.get(Setting.SPHERE_QUALITY).intValue();
+		
 		groupRenderables = new ArrayList<>(backend.getDataGroups().size());
-		int sphereSegments = backend.getStyle().get(Setting.SPHERE_QUALITY).intValue();
 		
 		for (PointGroup group : backend.getDataGroups())
 		{
-			PointGroupRenderable dataGroup = new PointGroupRenderable(group, sphereSegments);
+			PointGroupRenderable dataGroup;
+			if (style.get(Setting.RENDER_MODE).intValue() == Style.RENDER_MODE_FAST)
+				dataGroup = new PointGroupRenderable.MeshPerGroup(group, sphereSegments, environment);
+			else
+				dataGroup = new PointGroupRenderable.MeshPerPoint(group, sphereSegments, environment);
 			groupRenderables.add(dataGroup);
 			disposables.add(dataGroup);
 		}
@@ -275,7 +281,7 @@ public class World implements Disposable, InputReceiver
 		if (showPoints)
 		{
 			for (PointGroupRenderable groupRenderable : groupRenderables)
-				groupRenderable.render(batch, environment);
+				groupRenderable.render(batch);
 
 			if (hasSelection)
 			{

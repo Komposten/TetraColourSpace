@@ -13,6 +13,9 @@ import komposten.utilities.tools.MathOps;
 
 public class Style
 {
+	public static final int RENDER_MODE_FAST = 0;
+	public static final int RENDER_MODE_SLOW = 1;
+	
 	public enum Colour
 	{
 		BACKGROUND,
@@ -33,7 +36,8 @@ public class Style
 	{
 		POINT_SIZE,
 		CORNER_SIZE,
-		SPHERE_QUALITY
+		SPHERE_QUALITY,
+		RENDER_MODE
 	}
 	
 	private Map<Colour, Color> colours;
@@ -74,6 +78,7 @@ public class Style
 		settings.put(Setting.POINT_SIZE, 0.02f);
 		settings.put(Setting.CORNER_SIZE, 0.03f);
 		settings.put(Setting.SPHERE_QUALITY, 25);
+		settings.put(Setting.RENDER_MODE, RENDER_MODE_FAST);
 	}
 
 
@@ -121,7 +126,8 @@ public class Style
 	private void loadSetting(String id, String value)
 	{
 		Setting setting = Setting.valueOf(id);
-		Number number = getNumberFromString(value);
+		
+		Number number = getNumberFromString(setting, value);
 		
 		switch (setting)
 		{
@@ -137,6 +143,11 @@ public class Style
 				if (number.intValue() <= 5)
 					number = 5;
 				break;
+			case RENDER_MODE :
+				if (number.intValue() != RENDER_MODE_FAST
+						&& number.intValue() != RENDER_MODE_SLOW)
+					number = RENDER_MODE_FAST;
+				break;
 			default :
 				return;
 		}
@@ -145,14 +156,25 @@ public class Style
 	}
 	
 	
-	private Number getNumberFromString(String value)
+	private Number getNumberFromString(Setting setting, String value)
 	{
 		if (MathOps.isDouble(value))
+		{
 			return Double.valueOf(value);
+		}
 		else if (value.matches("-?\\d+"))
+		{
 			return Integer.valueOf(value);
+		}
+		else if (setting == Setting.RENDER_MODE)
+		{
+			if (value.equalsIgnoreCase("fast"))
+				return RENDER_MODE_FAST;
+			else if (value.equalsIgnoreCase("slow"))
+				return RENDER_MODE_SLOW;
+		}
 		
-		throw new IllegalArgumentException(value + " is not a valid double or integer!");
+		throw new IllegalArgumentException(value + " is not a valid double, integer or rendering mode!");
 	}
 
 
