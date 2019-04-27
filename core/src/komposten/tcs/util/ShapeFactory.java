@@ -23,14 +23,14 @@ public class ShapeFactory
 	{
 		return modelBuilder.createSphere(
 				diameter, diameter, diameter, segments, segments,
-				primitiveType, new Material(), Usage.Position | Usage.Normal);
+				primitiveType, new Material(), Usage.Position | Usage.Normal | Usage.ColorUnpacked);
 	}
 	
 	
 	public static Model createBox(ModelBuilder modelBuilder, float size, int primitiveType)
 	{
 		return modelBuilder.createBox(size, size, size, primitiveType,
-				new Material(), Usage.Position | Usage.Normal);
+				new Material(), Usage.Position | Usage.Normal | Usage.ColorUnpacked);
 	}
 	
 	
