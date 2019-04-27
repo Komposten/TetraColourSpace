@@ -43,7 +43,7 @@ Datasets containing information about data points are loaded from XML-files and 
 1) Clone the repository.
 2) Open a command prompt and navigate to the repository's root folder.
 3) Run `gradlew.bat desktop:dist` or `gradlew desktop:dist`. Requires a JDK.
-4) Find the runnable jar-file in `desktop/build/libs`.
+4) Find the .zip archive with the runnable .jar in `desktop/build/distributions`.
 
 **Running**
 1) Run the jar file using `javaw -jar TetraColourSpace-[VERSION].jar <xml-file> [screenshot-folder]` or by double-clicking it.
