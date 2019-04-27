@@ -121,3 +121,8 @@ If the config file is missing, the following defaults are used:
 This program is free software as long as the terms of the GNU GPL v3 license (or later versions, at your option) are complied with. See [LICENSE](LICENSE) for the full license text.
 
 I reserve the exclusive right to re-license the code.
+
+----------
+**Powered by**
+
+![LibGDX logo](https://raw.githubusercontent.com/libgdx/libgdx/master/libgdx_logo.svg?sanitize=true)
