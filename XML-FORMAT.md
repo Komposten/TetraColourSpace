@@ -70,16 +70,20 @@ Sets a setting for the graph. It could be e.g. sphere quality or default data po
 May occur several times, but only as a child of [`<style>`](#style).
 
 **Attributes**
-- `id`: One of `point_size, corner_size, or sphere_quality`.
+- `id`: One of `point_size, corner_size, sphere_quality, or render_mode`.
 
 **Value**
 
-A positive, non-zero integer or floating-point value. `sphere_quality` is floored to the nearest integer.
+`point_size or corner_size`: A positive, non-zero floating-point value.
+
+`sphere_quality`: A positive, non-zero integer. Can not be lower than 5.
+
+`render_mode`: `fast` (faster rendering, but high RAM usage) or `slow` (slower rendering, but low RAM usage).
 
 **Example**
 
 ```xml
-<setting id="point_size">0.03</colour>
+<setting id="point_size">0.03</setting>
 ```
 
 
