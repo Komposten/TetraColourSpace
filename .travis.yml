@@ -9,6 +9,9 @@ addons:
     organization: "komposten-github"
     token: $SONAR_TOKEN
     
+before_install:
+ - chmod +x gradlew
+    
 script:
   - gradle check
   - sonar-scanner
