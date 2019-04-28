@@ -13,5 +13,5 @@ before_install:
  - chmod +x gradlew
     
 script:
-  - gradle check
-  - sonar-scanner
+  - ./gradlew check
+  - ./gradlew sonarqube

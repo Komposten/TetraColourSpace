@@ -1,5 +1,5 @@
 # TetraColourSpace
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Komposten_TetraColourSpace&metric=alert_status)](https://sonarcloud.io/dashboard?id=Komposten_TetraColourSpace) [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=Komposten_TetraColourSpace&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=Komposten_TetraColourSpace)
+[![Build Status](https://travis-ci.org/Komposten/TetraColourSpace.svg?branch=master)](https://travis-ci.org/Komposten/TetraColourSpace) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Komposten_TetraColourSpace&metric=alert_status)](https://sonarcloud.io/dashboard?id=Komposten_TetraColourSpace) [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=Komposten_TetraColourSpace&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=Komposten_TetraColourSpace)
 ### What is TetraColourSpace?
 TetraColourSpace is a 3D graph program for visualising data points a tetrachromatic colourspace. It was originally created to be used in conjunction with the R package [pavo](https://CRAN.R-project.org/package=pavo), as pavo's built-in 3D graph had very limited functionality (and annoying controls).
 
