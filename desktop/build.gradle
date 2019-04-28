@@ -6,6 +6,8 @@ sourceSets.main.java.srcDirs = [ "src/", "assets/" ]
 project.ext.mainClassName = "komposten.tcs.desktop.DesktopLauncher"
 project.ext.assetsDir = new File("assets/");
 
+archivesBaseName = 'TetraColourSpace'
+
 task run(dependsOn: classes, type: JavaExec) {
     main = project.mainClassName
     classpath = sourceSets.main.runtimeClasspath
@@ -23,7 +25,7 @@ task debug(dependsOn: classes, type: JavaExec) {
     debug = true
 }
 
-task dist(type: Jar) {
+task pkg(type: Jar) {
     from files(sourceSets.main.output.classesDir)
     from files(sourceSets.main.output.resourcesDir)
     from {configurations.compile.collect {zipTree(it)}}
@@ -34,7 +36,14 @@ task dist(type: Jar) {
     }
 }
 
-dist.dependsOn classes
+task dist(dependsOn: pkg, type: Zip) {
+  from "$buildDir/libs"
+  from "$rootDir/LICENSE"
+  from "$rootDir/LICENSES-3RD-PARTY.md"
+  from "$rootDir/desktop/config.ini"
+}
+
+pkg.dependsOn classes
 
 eclipse {
     project {
