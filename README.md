@@ -4,6 +4,10 @@ TetraColourSpace is a 3D graph program for visualising data points a tetrachroma
 
 Datasets containing information about data points are loaded from XML-files and displayed within the confines of a tetrahedron (representing a tetrachromatic colourspace). An [R-script](R/tcs_plot.R) with functions for generating correctly formatted XML-files from pavo's `colspace` objects is included in the R folder.
 
+ Data points |Data volumes |Colour metrics |Customisation
+--- | --- | --- | ---
+![Screenshot 1](../assets/screenshots/screenshot_points.png?raw=true)|![Screenshot 2](../assets/screenshots/screenshot_volumes.png?raw=true)|![Screenshot 3](../assets/screenshots/screenshot_metrics.png?raw=true)|![Screenshot 4](../assets/screenshots/screenshot_custom_colours.png?raw=true)
+
 ### Features
 - Visualise groups of data points within a tetrachromatic colour space.
   - Colour the data points individually.
@@ -29,10 +33,6 @@ Datasets containing information about data points are loaded from XML-files and 
   - The highlight and selection
 - Configurable key bindings.
 - Take screenshots from within the program.
-
- Screenshot 1 |Screenshot 2 |Screenshot 3 
---- | --- | ---
-![Screenshot 1](../assets/screenshots/screenshot-1.png?raw=true)|![Screenshot 2](../assets/screenshots/screenshot-2?raw=true)|![Screenshot 3](../assets/screenshots/screenshot-3.png?raw=true)
 
 ### Running TetraColourSpace
 **Download a pre-built version**
@@ -125,4 +125,4 @@ I reserve the exclusive right to re-license the code.
 ----------
 **Powered by**
 
-![LibGDX logo](https://raw.githubusercontent.com/libgdx/libgdx/master/libgdx_logo.svg?sanitize=true)
+[![LibGDX logo](https://raw.githubusercontent.com/libgdx/libgdx/master/libgdx_logo.svg?sanitize=true)](https://libgdx.badlogicgames.com)
