@@ -2,7 +2,7 @@
 ### What is TetraColourSpace?
 TetraColourSpace is a 3D graph program for visualising data points a tetrachromatic colourspace. It was originally created to be used in conjunction with the R package [pavo](https://CRAN.R-project.org/package=pavo), as pavo's built-in 3D graph had very limited functionality (and annoying controls).
 
-Datasets containing information about data points are loaded from XML-files and displayed within the confines of a tetrahedron (representing a tetrachromatic colourspace). An [R-script](R/tcs_plot.R) with functions for generating correctly formatted XML-files from pavo's `colspace` objects is included in the R folder.
+Datasets containing information about data points are loaded from XML-files and displayed within the confines of a tetrahedron (representing a tetrachromatic colourspace). An [R-script](R/tcs_plot.R) with functions for generating correctly formatted XML-files from pavo's `colspace` objects (or data frames containing theta, phi and magnitude values) is included in the R folder.
 
  Data points |Data volumes |Colour metrics |Customisation
 --- | --- | --- | ---
@@ -39,14 +39,14 @@ Datasets containing information about data points are loaded from XML-files and 
 1) Download an existing [release](https://github.com/Komposten/TetraColourSpace/releases).
 2) Extract the .zip archive.
 
-**Build the latest version using Gradle**
+**Or build the latest version using Gradle**
 1) Clone the repository.
 2) Open a command prompt and navigate to the repository's root folder.
 3) Run `gradlew.bat desktop:dist` or `gradlew desktop:dist`. Requires a JDK.
 4) Find the .zip archive with the runnable .jar in `desktop/build/distributions`.
 
 **Running**
-1) Run the jar file using `javaw -jar TetraColourSpace-[VERSION].jar <xml-file> [screenshot-folder]` or by double-clicking it.
+1) Run the .jar file using `javaw -jar TetraColourSpace-[VERSION].jar <xml-file> [screenshot-folder]` or by double-clicking it.
 - `xml-file` is a path to the graph XML-file to load.
 - `screenshot-folder` is a path to a folder to store screenshots in (defaults to `/output`).
 
@@ -57,7 +57,7 @@ Datasets containing information about data points are loaded from XML-files and 
 * [Komposten's Utilities](https://github.com/Komposten/Utilities)
 
 ### XML-file format
-The basic format is outlined below. Point positions are given as `theta, phi, magnitude`. More details can be found in [XML_FORMAT.md](XML-FORMAT.md).
+TetraColourSpace loads graphs from XML-files. The basic format for these files is outlined below. Point positions are given as `theta, phi, magnitude`. More details can be found in [XML_FORMAT.md](XML-FORMAT.md).
 ```xml
 <?xml version="1.0"?>
 <data>
@@ -73,8 +73,8 @@ The basic format is outlined below. Point positions are given as `theta, phi, ma
 </data>
 ```
 
-### Keybindings
-Key-bindings are set using a `config.ini` file, placed next to the .jar-file. See [`desktop/config.ini`](desktop/config.ini) for a list of all commands. Available key-codes can be found here: [LibGDX key strings](https://github.com/libgdx/libgdx/blob/master/gdx/src/com/badlogic/gdx/Input.java#L253).
+### Key bindings
+Key bindings are set using a `config.ini` file, placed next to the .jar-file. See [`desktop/config.ini`](desktop/config.ini) for a list of all commands. Available key-codes can be found here: [LibGDX key strings](https://github.com/libgdx/libgdx/blob/master/gdx/src/com/badlogic/gdx/Input.java#L253).
 
 If the config file is missing, the following defaults are used:
 
