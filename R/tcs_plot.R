@@ -1,11 +1,12 @@
 #' Call this to start building a TCS plot.
 #' Will clear all previously added TCS data.
-tcs.begin <- function(colour_background = NULL, colour_wl_long = NULL,
-                      colour_wl_medium = NULL, colour_wl_short = NULL,
-                      colour_wl_uv = NULL, colour_achro = NULL,
-                      colour_selection = NULL, colour_highlight = NULL,
-                      colour_metric_line = NULL, colour_metric_fill = NULL,
-                      point_size = NULL, corner_size = NULL, sphere_quality = NULL)
+tcs.begin <- function(colour_background = NULL, colour_text = NULL,
+                      colour_wl_long = NULL, colour_wl_medium = NULL,
+                      colour_wl_short = NULL, colour_wl_uv = NULL,
+                      colour_achro = NULL, colour_selection = NULL,
+                      colour_highlight = NULL, colour_metric_line = NULL,
+                      colour_metric_fill = NULL, point_size = NULL,
+                      corner_size = NULL, sphere_quality = NULL)
 {
   tcsEnv <<- new.env()
   tcsEnv$data <- c("<?xml version=\"1.0\"?>", "<data>")
