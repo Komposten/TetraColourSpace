@@ -1,0 +1,14 @@
+language: java
+jdk: oraclejdk8
+branches:
+  only:
+  - master
+  
+addons:
+  sonarcloud:
+    organization: "komposten-github"
+    token: $SONAR_TOKEN
+    
+script:
+  - gradle check
+  - sonar-scanner
