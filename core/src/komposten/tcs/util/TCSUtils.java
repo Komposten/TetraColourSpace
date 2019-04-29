@@ -45,6 +45,9 @@ public class TCSUtils
 	 */
 	public static Vector3 createVectorFromAngles(float theta, float phi, float magnitude)
 	{
+		if (magnitude < 0)
+			throw new IllegalArgumentException("the magnitude must not be a negative value!");
+		
 		Vector3 coords = new Vector3(1, 0, 0);
 		coords.rotateRad(Vector3.Y, theta);
 		coords.rotateRad(new Vector3(-coords.z, 0, coords.x), phi);
