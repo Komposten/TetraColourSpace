@@ -33,11 +33,14 @@ public enum Shape
 	
 	public static Shape fromString(String string)
 	{
-		for (Shape shape : values())
+		if (string != null)
 		{
-			if (string.equalsIgnoreCase(shape.name()) ||
-					string.equals(Integer.toString(shape.value)))
-				return shape;
+			for (Shape shape : values())
+			{
+				if (string.equalsIgnoreCase(shape.name()) ||
+						string.equals(Integer.toString(shape.value)))
+					return shape;
+			}
 		}
 		
 		return null;
