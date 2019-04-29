@@ -122,6 +122,8 @@ public class UserInterface implements Disposable, InputReceiver
 		{
 			crosshair.setCenter(width/2f, height/2f);
 		}
+		
+		legend.resize(width, height);
 	}
 	
 	

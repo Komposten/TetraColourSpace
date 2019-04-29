@@ -84,6 +84,18 @@ public class IconText
 	}
 	
 	
+	public float getX()
+	{
+		return x;
+	}
+	
+	
+	public float getY()
+	{
+		return y;
+	}
+	
+	
 	public void setText(String text)
 	{
 		this.text = text;

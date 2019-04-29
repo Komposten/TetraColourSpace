@@ -34,6 +34,8 @@ public class LegendRenderable
 	private Backend backend;
 	private List<IconText> pointTextElements;
 	private List<IconText> groupTextElements;
+	
+	private int windowHeight;
 
 
 	public LegendRenderable(Backend backend, BitmapFont font)
@@ -48,12 +50,13 @@ public class LegendRenderable
 	
 	private void initialise(BitmapFont font)
 	{
+		windowHeight = Gdx.graphics.getHeight();
 		float shapeSize = 12;
 		float padding = 5;
 		float lineHeight = Math.max(font.getLineHeight(), shapeSize);
 		float x = padding;
-		float yP = Gdx.graphics.getHeight() - (padding + lineHeight/2);
-		float yG = Gdx.graphics.getHeight() - (padding + lineHeight/2);
+		float yP = windowHeight - (padding + lineHeight/2);
+		float yG = windowHeight - (padding + lineHeight/2);
 		
 		for (PointGroup group : backend.getDataGroups())
 		{
@@ -66,7 +69,20 @@ public class LegendRenderable
 			groupTextElements.add(new IconText(group.getName(), x, yG, shapeSize, group.getShape(), group.getColour()));
 			yG -= lineHeight;
 		}
+	}
 	
+	
+	@SuppressWarnings("unused")
+	public void resize(int width, int height)
+	{
+		int translation = height - windowHeight;
+
+		for (IconText iconText : groupTextElements)
+			iconText.setY(iconText.getY() + translation);
+		for (IconText iconText : pointTextElements)
+			iconText.setY(iconText.getY() + translation);
+		
+		windowHeight = height;
 	}
 	
 	
