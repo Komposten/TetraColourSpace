@@ -1,6 +1,7 @@
 package komposten.tcs.util;
 
-import static komposten.tcs.util.TestUtils.assertVectorEquals;
+import static komposten.tcs.util.test.Vector3Assert.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
 import org.junit.jupiter.api.Test;
 
@@ -18,11 +19,11 @@ class TetrahedronTest
 		Vector3 expectedUv = new Vector3(0, 0.75f, 0);
 		Vector3 expectedAchro = new Vector3(0, 0, 0);
 		
-		assertVectorEquals(expectedLong, tetrahedron.longPos, "longPos[size=1]");
-		assertVectorEquals(expectedMedium, tetrahedron.mediumPos, "mediumPoslongPos[size=1]");
-		assertVectorEquals(expectedShort, tetrahedron.shortPos, "shortPoslongPos[size=1]");
-		assertVectorEquals(expectedUv, tetrahedron.uvPos, "uvPoslongPos[size=1]");
-		assertVectorEquals(expectedAchro, tetrahedron.achroPos, "achroPoslongPos[size=1]");
+		assertThat(tetrahedron.longPos).as("longPos[size=1]").isEqualTo(expectedLong, within(0.001f));
+		assertThat(tetrahedron.mediumPos).as("mediumPos[size=1]").isEqualTo(expectedMedium, within(0.001f));
+		assertThat(tetrahedron.shortPos).as("shortPos[size=1]").isEqualTo(expectedShort, within(0.001f));
+		assertThat(tetrahedron.uvPos).as("uvPos[size=1]").isEqualTo(expectedUv, within(0.001f));
+		assertThat(tetrahedron.achroPos).as("achroPos[size=1]").isEqualTo(expectedAchro, within(0.001f));
 		
 		tetrahedron = new Tetrahedron(0.5f);
 		expectedLong.scl(0.5f);
@@ -31,10 +32,10 @@ class TetrahedronTest
 		expectedUv.scl(0.5f);
 		expectedAchro.scl(0.5f);
 		
-		assertVectorEquals(expectedLong, tetrahedron.longPos, "longPos[size=0.5]");
-		assertVectorEquals(expectedMedium, tetrahedron.mediumPos, "mediumPos[size=0.5]");
-		assertVectorEquals(expectedShort, tetrahedron.shortPos, "shortPos[size=0.5]");
-		assertVectorEquals(expectedUv, tetrahedron.uvPos, "uvPos[size=0.5]");
-		assertVectorEquals(expectedAchro, tetrahedron.achroPos, "achroPos[size=0.5]");
+		assertThat(tetrahedron.longPos).as("longPos[size=0.5]").isEqualTo(expectedLong, within(0.001f));
+		assertThat(tetrahedron.mediumPos).as("mediumPos[size=0.5]").isEqualTo(expectedMedium, within(0.001f));
+		assertThat(tetrahedron.shortPos).as("shortPos[size=0.5]").isEqualTo(expectedShort, within(0.001f));
+		assertThat(tetrahedron.uvPos).as("uvPos[size=0.5]").isEqualTo(expectedUv, within(0.001f));
+		assertThat(tetrahedron.achroPos).as("achroPos[size=0.5]").isEqualTo(expectedAchro, within(0.001f));
 	}
 }

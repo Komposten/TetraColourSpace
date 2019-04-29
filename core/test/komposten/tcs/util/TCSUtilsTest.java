@@ -1,11 +1,9 @@
 package komposten.tcs.util;
 
-import static komposten.tcs.util.TestUtils.assertVectorEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static komposten.tcs.util.test.Vector3Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThatObject;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
 
 import org.junit.jupiter.api.Test;
 
@@ -13,6 +11,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
+
 
 class TCSUtilsTest
 {
@@ -22,40 +21,39 @@ class TCSUtilsTest
 	@Test
 	void createVectorFromAngles_varyingTheta()
 	{
-		assertVectorEquals(new Vector3(MathUtils.cosDeg(45), 0, -MathUtils.cosDeg(45)), TCSUtils.createVectorFromAngles(rad45*1, 0, 1), "45 deg");
-		assertVectorEquals(new Vector3(-MathUtils.cosDeg(45), 0, -MathUtils.cosDeg(45)), TCSUtils.createVectorFromAngles(rad45*3, 0, 1), "45*3 deg");
-		assertVectorEquals(new Vector3(-MathUtils.cosDeg(45), 0, MathUtils.cosDeg(45)), TCSUtils.createVectorFromAngles(rad45*5, 0, 1), "45*5 deg");
-		assertVectorEquals(new Vector3(MathUtils.cosDeg(45), 0, MathUtils.cosDeg(45)), TCSUtils.createVectorFromAngles(rad45*7, 0, 1), "45*7 deg");
+		assertThat(TCSUtils.createVectorFromAngles(rad45*1, 0, 1)).as("45 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), 0, -MathUtils.cosDeg(45)), within(0.001f));
+		assertThat(TCSUtils.createVectorFromAngles(rad45*3, 0, 1)).as("45*3 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), 0, -MathUtils.cosDeg(45)), within(0.001f));
+		assertThat(TCSUtils.createVectorFromAngles(rad45*5, 0, 1)).as("45*5 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), 0, MathUtils.cosDeg(45)), within(0.001f));
+		assertThat(TCSUtils.createVectorFromAngles(rad45*7, 0, 1)).as("45*7 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), 0, MathUtils.cosDeg(45)), within(0.001f));
 
-		assertVectorEquals(new Vector3(MathUtils.cosDeg(45), 0, MathUtils.cosDeg(45)), TCSUtils.createVectorFromAngles(-rad45*1, 0, 1), "-45 deg");
-		assertVectorEquals(new Vector3(-MathUtils.cosDeg(45), 0, MathUtils.cosDeg(45)), TCSUtils.createVectorFromAngles(-rad45*3, 0, 1), "-45*3 deg");
-		assertVectorEquals(new Vector3(-MathUtils.cosDeg(45), 0, -MathUtils.cosDeg(45)), TCSUtils.createVectorFromAngles(-rad45*5, 0, 1), "-45*5 deg");
-		assertVectorEquals(new Vector3(MathUtils.cosDeg(45), 0, -MathUtils.cosDeg(45)), TCSUtils.createVectorFromAngles(-rad45*7, 0, 1), "-45*7 deg");
+		assertThat(TCSUtils.createVectorFromAngles(-rad45*1, 0, 1)).as("-45 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), 0, MathUtils.cosDeg(45)), within(0.001f));
+		assertThat(TCSUtils.createVectorFromAngles(-rad45*3, 0, 1)).as("-45*3 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), 0, MathUtils.cosDeg(45)), within(0.001f));
+		assertThat(TCSUtils.createVectorFromAngles(-rad45*5, 0, 1)).as("-45*5 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), 0, -MathUtils.cosDeg(45)), within(0.001f));
+		assertThat(TCSUtils.createVectorFromAngles(-rad45*7, 0, 1)).as("-45*7 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), 0, -MathUtils.cosDeg(45)), within(0.001f));
 	}
 	
 	
 	@Test
 	void createVectorFromAngles_varyingPhi()
 	{
-		assertVectorEquals(new Vector3(MathUtils.cosDeg(45), MathUtils.cosDeg(45), 0), TCSUtils.createVectorFromAngles(0, rad45*1, 1), "45 deg");
-		assertVectorEquals(new Vector3(-MathUtils.cosDeg(45), MathUtils.cosDeg(45), 0), TCSUtils.createVectorFromAngles(0, rad45*3, 1), "45*3 deg");
-		assertVectorEquals(new Vector3(-MathUtils.cosDeg(45), -MathUtils.cosDeg(45), 0), TCSUtils.createVectorFromAngles(0, rad45*5, 1), "45*5 deg");
-		assertVectorEquals(new Vector3(MathUtils.cosDeg(45), -MathUtils.cosDeg(45), 0), TCSUtils.createVectorFromAngles(0, rad45*7, 1), "45*7 deg");
+		assertThat(TCSUtils.createVectorFromAngles(0, rad45*1, 1)).as("45 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), MathUtils.cosDeg(45), 0), within(0.001f));
+		assertThat(TCSUtils.createVectorFromAngles(0, rad45*3, 1)).as("45*3 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), MathUtils.cosDeg(45), 0), within(0.001f));
+		assertThat(TCSUtils.createVectorFromAngles(0, rad45*5, 1)).as("45*5 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), -MathUtils.cosDeg(45), 0), within(0.001f));
+		assertThat(TCSUtils.createVectorFromAngles(0, rad45*7, 1)).as("45*7 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), -MathUtils.cosDeg(45), 0), within(0.001f));
 
-		assertVectorEquals(new Vector3(MathUtils.cosDeg(45), -MathUtils.cosDeg(45), 0), TCSUtils.createVectorFromAngles(0, -rad45*1, 1), "-45 deg");
-		assertVectorEquals(new Vector3(-MathUtils.cosDeg(45), -MathUtils.cosDeg(45), 0), TCSUtils.createVectorFromAngles(0, -rad45*3, 1), "-45*3 deg");
-		assertVectorEquals(new Vector3(-MathUtils.cosDeg(45), MathUtils.cosDeg(45), 0), TCSUtils.createVectorFromAngles(0, -rad45*5, 1), "-45*5 deg");
-		assertVectorEquals(new Vector3(MathUtils.cosDeg(45), MathUtils.cosDeg(45), 0), TCSUtils.createVectorFromAngles(0, -rad45*7, 1), "-45*7 deg");
+		assertThat(TCSUtils.createVectorFromAngles(0, -rad45*1, 1)).as("-45 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), -MathUtils.cosDeg(45), 0), within(0.001f));
+		assertThat(TCSUtils.createVectorFromAngles(0, -rad45*3, 1)).as("-45*3 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), -MathUtils.cosDeg(45), 0), within(0.001f));
+		assertThat(TCSUtils.createVectorFromAngles(0, -rad45*5, 1)).as("-45*5 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), MathUtils.cosDeg(45), 0), within(0.001f));
+		assertThat(TCSUtils.createVectorFromAngles(0, -rad45*7, 1)).as("-45*7 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), MathUtils.cosDeg(45), 0), within(0.001f));
 	}
 	
 	
 	@Test
 	void createVectorFromAngles_varyingR()
 	{
-		assertVectorEquals(new Vector3(0.5f, 0, 0), TCSUtils.createVectorFromAngles(0, 0, 0.5f), "len=0.5");
-		assertVectorEquals(new Vector3(1.0f, 0, 0), TCSUtils.createVectorFromAngles(0, 0, 1.0f), "len=1.0");
-		assertThrows(IllegalArgumentException.class, () -> TCSUtils.createVectorFromAngles(0, 0, -0.5f), "len=-0.5");
-		assertThrows(IllegalArgumentException.class, () -> TCSUtils.createVectorFromAngles(0, 0, -1.0f), "len=-1.0");
+		assertThat(TCSUtils.createVectorFromAngles(0, 0, 0.5f)).as("len=0.5").isEqualTo(new Vector3(0.5f, 0, 0));
+		assertThat(TCSUtils.createVectorFromAngles(0, 0, 1.0f)).as("len=1.0").isEqualTo(new Vector3(1.0f, 0, 0));
+		assertThatThrownBy(() -> TCSUtils.createVectorFromAngles(0, 0, -1.0f), "negative magnitude").isInstanceOf(IllegalArgumentException.class);
 	}
 	
 	
@@ -64,36 +62,36 @@ class TCSUtilsTest
 	{
 		Material material = TCSUtils.getMaterialForColour(Color.RED);
 		
-		assertNotNull(material);
-		assertTrue(material == TCSUtils.getMaterialForColour(Color.RED), "same colour instance and value");
-		assertTrue(material == TCSUtils.getMaterialForColour(new Color(0xff0000ff)), "diff colour instance and same value");
-		assertNotEquals(material, TCSUtils.getMaterialForColour(Color.BLUE), "diff colour instance and value");
+		assertThatObject(material).isNotNull();
+		assertThatObject(TCSUtils.getMaterialForColour(Color.RED)).as("same colour instance and value").isSameAs(material);
+		assertThatObject(TCSUtils.getMaterialForColour(new Color(0xff0000ff))).as("diff colour instance and same value").isSameAs(material);
+		assertThatObject(TCSUtils.getMaterialForColour(Color.BLUE)).as("diff colour instance and value").isNotSameAs(material);
 	}
 	
 	
 	@Test
 	void getColourFromHex_validHexCodes_ColorReturned()
 	{
-		assertEquals(new Color(0xfedcba98), TCSUtils.getColourFromHex("#fedcba98"));
-		assertEquals(new Color(0xfedcba98), TCSUtils.getColourFromHex("fedcba98"));
-		assertEquals(new Color(0xfedcbaff), TCSUtils.getColourFromHex("#fedcba"));
-		assertEquals(new Color(0xfedcbaff), TCSUtils.getColourFromHex("fedcba"));
-		assertEquals(new Color(0xffeeddcc), TCSUtils.getColourFromHex("#fedc"));
-		assertEquals(new Color(0xffeeddcc), TCSUtils.getColourFromHex("fedc"));
-		assertEquals(new Color(0xffeeddff), TCSUtils.getColourFromHex("#fed"));
-		assertEquals(new Color(0xffeeddff), TCSUtils.getColourFromHex("fed"));
+		assertThatObject(TCSUtils.getColourFromHex("#fedcba98")).isEqualTo(new Color(0xfedcba98));
+		assertThatObject(TCSUtils.getColourFromHex("fedcba98")).isEqualTo(new Color(0xfedcba98));
+		assertThatObject(TCSUtils.getColourFromHex("#fedcba")).isEqualTo(new Color(0xfedcbaff));
+		assertThatObject(TCSUtils.getColourFromHex("fedcba")).isEqualTo(new Color(0xfedcbaff));
+		assertThatObject(TCSUtils.getColourFromHex("#fedc")).isEqualTo(new Color(0xffeeddcc));
+		assertThatObject(TCSUtils.getColourFromHex("fedc")).isEqualTo(new Color(0xffeeddcc));
+		assertThatObject(TCSUtils.getColourFromHex("#fed")).isEqualTo(new Color(0xffeeddff));
+		assertThatObject(TCSUtils.getColourFromHex("fed")).isEqualTo(new Color(0xffeeddff));
 	}
 	
 	
 	@Test
 	void getColourFromHex_invalidHexCodes_IllegalArgumentException()
 	{
-		assertThrows(IllegalArgumentException.class, () -> TCSUtils.getColourFromHex("#f"));
-		assertThrows(IllegalArgumentException.class, () -> TCSUtils.getColourFromHex("f"));
-		assertThrows(IllegalArgumentException.class, () -> TCSUtils.getColourFromHex("#fffff"));
-		assertThrows(IllegalArgumentException.class, () -> TCSUtils.getColourFromHex("fffff"));
-		assertThrows(IllegalArgumentException.class, () -> TCSUtils.getColourFromHex("#gggggg"));
-		assertThrows(IllegalArgumentException.class, () -> TCSUtils.getColourFromHex("gggggg"));
-		assertThrows(IllegalArgumentException.class, () -> TCSUtils.getColourFromHex("-2"));
+		assertThatThrownBy(() -> TCSUtils.getColourFromHex("#f"), "on invalid hex colour").isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> TCSUtils.getColourFromHex("f"), "on invalid hex colour").isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> TCSUtils.getColourFromHex("#fffff"), "on invalid hex colour").isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> TCSUtils.getColourFromHex("fffff"), "on invalid hex colour").isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> TCSUtils.getColourFromHex("#gggggg"), "on invalid hex colour").isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> TCSUtils.getColourFromHex("gggggg"), "on invalid hex colour").isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> TCSUtils.getColourFromHex("-2"), "on invalid hex colour").isInstanceOf(IllegalArgumentException.class);
 	}
 }

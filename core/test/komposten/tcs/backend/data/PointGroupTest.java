@@ -1,6 +1,6 @@
 package komposten.tcs.backend.data;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,7 +22,7 @@ class PointGroupTest
 	@Test
 	void getColour_noPoints_returnWhite()
 	{
-		assertEquals(Color.WHITE, group.getColour());
+		assertThat(group.getColour()).isEqualTo(Color.WHITE);
 	}
 	
 
@@ -31,6 +31,6 @@ class PointGroupTest
 	{
 		group.getPoints().add(new Point("", null, null, Color.RED, null));
 		
-		assertEquals(Color.RED, group.getColour());
+		assertThat(group.getColour()).isEqualTo(Color.RED);
 	}
 }

@@ -46,6 +46,7 @@ allprojects {
         qhVersion = '1.0.0'
         slf4jVersion = '1.7.25'
         junitVersion = '5.4.2'
+        assertjVersion = '3.12.2'
     }
 
     repositories {
@@ -92,6 +93,7 @@ project(":core") {
         implementation "com.github.Komposten:Utilities:master-SNAPSHOT"
         
         testCompile "org.junit.jupiter:junit-jupiter-api:$junitVersion"
+        testCompile "org.assertj:assertj-core:$assertjVersion"
         testRuntime "org.junit.jupiter:junit-jupiter-engine:$junitVersion"
         
         testCompile "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"

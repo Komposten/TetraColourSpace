@@ -1,7 +1,7 @@
 package komposten.tcs.util;
 
-import static komposten.tcs.util.TestUtils.assertVectorEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static komposten.tcs.util.test.Vector3Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
@@ -27,13 +27,13 @@ class ModelInstanceFactoryTest
 
 		ModelInstance instance = ModelInstanceFactory.create(model, position, colour);
 
-		assertEquals(model, instance.model);
-		assertVectorEquals(position, instance.transform.getTranslation(new Vector3()));
-
+		assertThat(instance.model).isEqualTo(model);
+		assertThat(instance.transform.getTranslation(new Vector3())).isEqualTo(position);
+		
 		instance.nodes.forEach(node -> {
 			node.parts.forEach(part -> {
 				ColorAttribute attr = (ColorAttribute) part.material.get(ColorAttribute.Diffuse);
-				assertEquals(colour, attr.color);
+				assertThat(attr.color).isEqualTo(colour);
 			});
 		});
 	}
