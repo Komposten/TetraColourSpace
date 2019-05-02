@@ -152,11 +152,12 @@ public class World implements Disposable, InputReceiver
 	private void generatePointObjects()
 	{
 		Style style = backend.getStyle();
+		List<PointGroup> pointGroups = backend.getGraph().getDataGroups();
 		int sphereSegments = style.get(Setting.SPHERE_QUALITY).intValue();
 		
-		groupRenderables = new ArrayList<>(backend.getDataGroups().size());
+		groupRenderables = new ArrayList<>(pointGroups.size());
 		
-		for (PointGroup group : backend.getDataGroups())
+		for (PointGroup group : pointGroups)
 		{
 			PointGroupRenderable dataGroup;
 			if (style.get(Setting.RENDER_MODE).intValue() == Style.RENDER_MODE_FAST)
@@ -171,9 +172,10 @@ public class World implements Disposable, InputReceiver
 
 	private void generateVolumeObjects()
 	{
-		volumeRenderables = new ArrayList<>(backend.getDataVolumes().size());
+		List<Volume> volumes = backend.getGraph().getDataVolumes();
+		volumeRenderables = new ArrayList<>(volumes.size());
 		
-		for (Volume volume : backend.getDataVolumes())
+		for (Volume volume : volumes)
 		{
 			VolumeRenderable renderable = new VolumeRenderable(volume, environment);
 			volumeRenderables.add(renderable);
@@ -252,7 +254,7 @@ public class World implements Disposable, InputReceiver
 		Vector3 calc2 = new Vector3();
 		Vector3 calc3 = new Vector3();
 		
-		for (PointGroup group : backend.getDataGroups())
+		for (PointGroup group : backend.getGraph().getDataGroups())
 		{
 			for (Point point : group.getPoints())
 			{

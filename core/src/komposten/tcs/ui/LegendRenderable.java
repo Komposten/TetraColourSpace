@@ -58,7 +58,7 @@ public class LegendRenderable
 		float yP = windowHeight - (padding + lineHeight/2);
 		float yG = windowHeight - (padding + lineHeight/2);
 		
-		for (PointGroup group : backend.getDataGroups())
+		for (PointGroup group : backend.getGraph().getDataGroups())
 		{
 			for (Point point : group.getPoints())
 			{
