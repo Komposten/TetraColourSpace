@@ -35,6 +35,7 @@ import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
+import com.badlogic.gdx.graphics.g3d.attributes.IntAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
@@ -117,11 +118,12 @@ public class GraphSpace implements Disposable, InputReceiver
 	
 	private void createTetrahedron(MeshBuilder meshBuilder, Style style)
 	{
-		Mesh[] tetrahedronMesh = ShapeFactory.createTetrahedronSideMeshes(1f, GL20.GL_TRIANGLES, meshBuilder, style);
+		Mesh[] tetrahedronMesh = ShapeFactory.createTetrahedronSideMeshes(1f, meshBuilder, style);
 		
 		tetrahedronSides = new TetrahedronSide[4];
 		
-		Material materialWhite = TCSUtils.getMaterialForColour(Color.WHITE);
+		Material materialWhite = TCSUtils.getMaterialForColour(Color.WHITE).copy();
+		materialWhite.set(IntAttribute.createCullFace(GL20.GL_NONE));
 		for (int i = 0; i < tetrahedronMesh.length; i++)
 		{
 			tetrahedronSides[i] = new TetrahedronSide();
@@ -134,7 +136,7 @@ public class GraphSpace implements Disposable, InputReceiver
 			tetrahedronSides[i].centre = getMeshCentre(tetrahedronMesh[i]);
 		}
 
-		Mesh tetrahedronMeshSingle = ShapeFactory.createTetrahedronMesh(1f, GL20.GL_LINES, meshBuilder, style);
+		Mesh tetrahedronMeshSingle = ShapeFactory.createTetrahedronMesh(1f, meshBuilder, style);
 		
 		tetrahedronLines = new Renderable();
 		tetrahedronLines.material = new Material(materialWhite);

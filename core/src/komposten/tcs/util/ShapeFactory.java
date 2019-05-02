@@ -54,7 +54,7 @@ public class ShapeFactory
 	
 	public static Model createTetrahedron(ModelBuilder modelBuilder, float size, int primitiveType)
 	{
-		Mesh mesh = createTetrahedronMesh(size, primitiveType, new MeshBuilder(), null);
+		Mesh mesh = createTetrahedronMesh(size, new MeshBuilder(), null);
 		
 		modelBuilder.begin();
 		modelBuilder.part("tetrahedron", mesh, primitiveType, new Material());
@@ -64,15 +64,14 @@ public class ShapeFactory
 
 	/**
 	 * @param size
-	 * @param primitiveType
 	 * @param meshBuilder
 	 * @param style A style with the colours to use for the four corners.
 	 *          <code>WL_LONG, WL_MEDIUM, WL_SHORT</code>, and <code>WL_UV</code> are used.
 	 * @return A single mesh containing a tetrahedron.
 	 */
-	public static Mesh createTetrahedronMesh(float size, int primitiveType, MeshBuilder meshBuilder, Style style)
+	public static Mesh createTetrahedronMesh(float size, MeshBuilder meshBuilder, Style style)
 	{
-		Mesh[] sides = createTetrahedronSideMeshes(size, primitiveType, meshBuilder, style);
+		Mesh[] sides = createTetrahedronSideMeshes(size, meshBuilder, style);
 		
 		meshBuilder.begin(Usage.Position | Usage.Normal | Usage.ColorUnpacked, GL20.GL_TRIANGLES);
 		for (Mesh side : sides)
@@ -87,17 +86,15 @@ public class ShapeFactory
 
 	/**
 	 * @param size
-	 * @param primitiveType
 	 * @param meshBuilder
 	 * @param style A style with the colours to use for the four corners.
 	 *          <code>WL_LONG, WL_MEDIUM, WL_SHORT</code>, and <code>WL_UV</code> are used.
 	 * @return An array containing one mesh for each of the four sides in the tetrahedron.
 	 */
 	@SuppressWarnings("null")
-	public static Mesh[] createTetrahedronSideMeshes(float size, int primitiveType, MeshBuilder meshBuilder, Style style)
+	public static Mesh[] createTetrahedronSideMeshes(float size, MeshBuilder meshBuilder, Style style)
 	{
 		Tetrahedron tetrahedron = new Tetrahedron(size);
-		boolean doubleFaced = (primitiveType == GL20.GL_TRIANGLES);
 		Mesh[] meshes = new Mesh[4];
 		int meshAttributes = Usage.Position | Usage.Normal | Usage.ColorUnpacked;
 		meshBuilder.begin(meshAttributes, GL20.GL_TRIANGLES);
@@ -118,15 +115,6 @@ public class ShapeFactory
 		short corner2 = meshBuilder.vertex(longPos, normal, longColourActive, Vector2.Zero);
 		short corner3 = meshBuilder.vertex(shortPos, normal, shortColourActive, Vector2.Zero);
 		meshBuilder.triangle(corner1, corner2, corner3);
-
-		if (doubleFaced)
-		{
-			normal = normal.scl(-1);
-			corner1 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
-			corner2 = meshBuilder.vertex(longPos, normal, longColourActive, Vector2.Zero);
-			corner3 = meshBuilder.vertex(shortPos, normal, shortColourActive, Vector2.Zero);
-			meshBuilder.triangle(corner3, corner2, corner1);
-		}
 		
 		meshes[0] = meshBuilder.end();
 		meshBuilder.begin(meshAttributes, GL20.GL_TRIANGLES);
@@ -136,15 +124,6 @@ public class ShapeFactory
 		corner2 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
 		corner3 = meshBuilder.vertex(uvPos, normal, uvColourActive, Vector2.Zero);
 		meshBuilder.triangle(corner1, corner2, corner3);
-
-		if (doubleFaced)
-		{
-			normal = normal.scl(-1);
-			corner1 = meshBuilder.vertex(longPos, normal, longColourActive, Vector2.Zero);
-			corner2 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
-			corner3 = meshBuilder.vertex(uvPos, normal, uvColourActive, Vector2.Zero);
-			meshBuilder.triangle(corner3, corner2, corner1);
-		}
 		
 		meshes[1] = meshBuilder.end();
 		meshBuilder.begin(meshAttributes, GL20.GL_TRIANGLES);
@@ -154,15 +133,6 @@ public class ShapeFactory
 		corner2 = meshBuilder.vertex(uvPos, normal, uvColourActive, Vector2.Zero);
 		corner3 = meshBuilder.vertex(shortPos, normal, shortColourActive, Vector2.Zero);
 		meshBuilder.triangle(corner1, corner2, corner3);
-
-		if (doubleFaced)
-		{
-			normal = normal.scl(-1);
-			corner1 = meshBuilder.vertex(longPos, normal, longColourActive, Vector2.Zero);
-			corner2 = meshBuilder.vertex(uvPos, normal, uvColourActive, Vector2.Zero);
-			corner3 = meshBuilder.vertex(shortPos, normal, shortColourActive, Vector2.Zero);
-			meshBuilder.triangle(corner3, corner2, corner1);
-		}
 		
 		meshes[2] = meshBuilder.end();
 		meshBuilder.begin(meshAttributes, GL20.GL_TRIANGLES);
@@ -172,15 +142,6 @@ public class ShapeFactory
 		corner2 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
 		corner3 = meshBuilder.vertex(shortPos, normal, shortColourActive, Vector2.Zero);
 		meshBuilder.triangle(corner1, corner2, corner3);
-
-		if (doubleFaced)
-		{
-			normal = normal.scl(-1);
-			corner1 = meshBuilder.vertex(uvPos, normal, uvColourActive, Vector2.Zero);
-			corner2 = meshBuilder.vertex(mediumPos, normal, mediumColourActive, Vector2.Zero);
-			corner3 = meshBuilder.vertex(shortPos, normal, shortColourActive, Vector2.Zero);
-			meshBuilder.triangle(corner3, corner2, corner1);
-		}
 		
 		meshes[3] = meshBuilder.end();
 
