@@ -194,6 +194,18 @@ public class Style
 		
 		throw new IllegalArgumentException(value + " is not a valid double, integer or rendering mode!");
 	}
+	
+	
+	public boolean has(Colour key)
+	{
+		return colours.containsKey(key);
+	}
+	
+	
+	public boolean has(Setting key)
+	{
+		return colours.containsKey(key);
+	}
 
 
 	public Color get(Colour key)
