@@ -164,7 +164,7 @@ public class Style
 			case RENDER_MODE :
 				if (number.intValue() != RENDER_MODE_FAST
 						&& number.intValue() != RENDER_MODE_SLOW)
-					number = RENDER_MODE_FAST;
+					throw new IllegalArgumentException(number.intValue() + " is an invalid render mode!");
 				break;
 			default :
 				return;
