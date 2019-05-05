@@ -204,7 +204,7 @@ public class Style
 	
 	public boolean has(Setting key)
 	{
-		return colours.containsKey(key);
+		return settings.containsKey(key);
 	}
 
 
