@@ -47,6 +47,7 @@ allprojects {
         slf4jVersion = '1.7.25'
         junitVersion = '5.4.2'
         assertjVersion = '3.12.2'
+        mockitoVersion = '2.27.0'
     }
 
     repositories {
@@ -95,6 +96,8 @@ project(":core") {
         testCompile "org.junit.jupiter:junit-jupiter-api:$junitVersion"
         testCompile "org.assertj:assertj-core:$assertjVersion"
         testRuntime "org.junit.jupiter:junit-jupiter-engine:$junitVersion"
+        
+        testCompile "org.mockito:mockito-core:$mockitoVersion"
         
         testCompile "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
         testCompile "com.badlogicgames.gdx:gdx:$gdxVersion"

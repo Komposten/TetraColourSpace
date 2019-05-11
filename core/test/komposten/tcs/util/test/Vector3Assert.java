@@ -3,6 +3,7 @@ package komposten.tcs.util.test;
 import static org.assertj.core.api.Assertions.within;
 
 import org.assertj.core.api.AbstractAssert;
+import org.assertj.core.api.Assertions;
 import org.assertj.core.data.Offset;
 
 import com.badlogic.gdx.math.MathUtils;
@@ -23,6 +24,32 @@ public class Vector3Assert extends AbstractAssert<Vector3Assert, Vector3>
 	}
 	
 	
+	/**
+	 * Verifies that the magnitude of the actual vector is close to the given one
+	 * within an offset of {@link MathUtils#FLOAT_ROUNDING_ERROR}.
+	 */
+	public Vector3Assert hasMagnitude(float magnitude)
+	{
+		return hasMagnitude(magnitude, within(MathUtils.FLOAT_ROUNDING_ERROR));
+	}
+	
+	
+	/**
+	 * Verifies that the magnitude of the actual vector is close to the given one
+	 * within the given offset value.
+	 * @param magnitude
+	 * @param offset
+	 * @return
+	 */
+	public Vector3Assert hasMagnitude(float magnitude, Offset<Float> offset)
+	{
+		isNotNull();
+		Assertions.assertThat(actual.len()).isEqualTo(magnitude, offset);
+		
+		return this;
+	}
+
+
 	/**
 	 * Verifies that the actual vector is close to the given one within an offset
 	 * of {@link MathUtils#FLOAT_ROUNDING_ERROR}. 
@@ -46,6 +73,42 @@ public class Vector3Assert extends AbstractAssert<Vector3Assert, Vector3>
           "Expecting:%n" +
           "  <%s>%n" +
           "to be close to:%n" +
+          "  <%s>%n" +
+          "by less than or equal to <%s> but difference was:%n" + 
+          "  <%s>.",
+          vectorToString(actual),
+          vectorToString(expected),
+          offset.value,
+          vectorToString(absDiff(actual, expected)));
+		}
+		
+		return this;
+	}
+	
+
+	/**
+	 * Verifies that the actual vector is not close to the given one based on an
+	 * offset of {@link MathUtils#FLOAT_ROUNDING_ERROR}.
+	 */
+	public Vector3Assert isNotEqualTo(Vector3 expected)
+	{
+		return isNotEqualTo(expected, within(MathUtils.FLOAT_ROUNDING_ERROR));
+	}
+	
+
+	/**
+	 * Verifies that the actual vector is not close to the given one based on the
+	 * given offset value. 
+	 */
+	public Vector3Assert isNotEqualTo(Vector3 expected, Offset<Float> offset)
+	{
+		isNotNull();
+		if (actual.epsilonEquals(expected, offset.value))
+		{
+			failWithMessage("%n" +
+          "Expecting:%n" +
+          "  <%s>%n" +
+          "not to be close to:%n" +
           "  <%s>%n" +
           "by less than or equal to <%s> but difference was:%n" + 
           "  <%s>.",
