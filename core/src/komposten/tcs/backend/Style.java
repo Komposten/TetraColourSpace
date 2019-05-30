@@ -108,7 +108,7 @@ public class Style
 		{
 			Node child = childNodes.item(j);
 			
-			if (child.getNodeType() == Node.TEXT_NODE)
+			if (child.getNodeType() != Node.ELEMENT_NODE)
 				continue;
 			
 			String type = child.getNodeName().toLowerCase();
