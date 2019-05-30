@@ -26,6 +26,9 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.swing.JOptionPane;
+import javax.xml.parsers.ParserConfigurationException;
+
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
@@ -46,6 +49,7 @@ import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.ScreenUtils;
 
 import komposten.tcs.backend.Backend;
+import komposten.tcs.backend.ParseException;
 import komposten.tcs.backend.Style.Colour;
 import komposten.tcs.backend.data.Point;
 import komposten.tcs.input.Action;
@@ -118,9 +122,11 @@ public class TetraColourSpace extends ApplicationAdapter
 		inputHandler.addListener(inputListener);
 		
 		createScreenshotBuffer();
-		loadData();
-		setupPerspectiveCamera();
-		updateViewport();
+		if (loadData())
+		{
+			setupPerspectiveCamera();
+			updateViewport();
+		}
 	}
 
 
@@ -136,14 +142,36 @@ public class TetraColourSpace extends ApplicationAdapter
 	}
 
 
-	private void loadData()
+	private boolean loadData()
 	{
-		backend = new Backend(dataFile, logger);
-		world = new World(backend, camera);
-		userInterface = new UserInterface(backend, world);
+		try
+		{
+			backend = new Backend(dataFile, logger);
+			world = new World(backend, camera);
+			userInterface = new UserInterface(backend, world);
+			
+			userInterface.attachToInputHandler(inputHandler);
+			world.attachToInputHandler(inputHandler);
+		}
+		catch (IOException | ParserConfigurationException | ParseException e)
+		{
+			showErrorDialog();
+			Gdx.app.exit();
+			return false;
+		}
 		
-		userInterface.attachToInputHandler(inputHandler);
-		world.attachToInputHandler(inputHandler);
+		return true;
+	}
+
+
+	private void showErrorDialog()
+	{
+		String title = "Load error!";
+		String msg = String.format("Errors occurred while loading %s!"
+				+ "%nThe program will terminate."
+				+ "%n%nSee log.txt for more information.", dataFile.getName());
+		
+		JOptionPane.showMessageDialog(null, msg, title, JOptionPane.ERROR_MESSAGE);
 	}
 
 
@@ -255,14 +283,21 @@ public class TetraColourSpace extends ApplicationAdapter
 
 	private void updateViewport()
 	{
-		float ratio = Gdx.graphics.getHeight() / (float)Gdx.graphics.getWidth();
-		camera.viewportHeight = ratio;
-		cameraDirty = true;
+		if (camera != null)
+		{
+			float ratio = Gdx.graphics.getHeight() / (float)Gdx.graphics.getWidth();
+			camera.viewportHeight = ratio;
+			cameraDirty = true;
+		}
 		
-		spriteCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-		spriteBatch.setProjectionMatrix(spriteCamera.combined);
+		if (spriteCamera != null)
+		{
+			spriteCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+			spriteBatch.setProjectionMatrix(spriteCamera.combined);
+		}
 		
-		userInterface.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+		if (userInterface != null)
+			userInterface.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 	}
 	
 	
@@ -278,7 +313,9 @@ public class TetraColourSpace extends ApplicationAdapter
 	{
 		screenshotBuffer.dispose();
 		batch.dispose();
-		userInterface.dispose();
+		
+		if (userInterface != null)
+			userInterface.dispose();
 		disposeObjects();
 		
 		if (!selectionLog.isEmpty())
@@ -300,7 +337,8 @@ public class TetraColourSpace extends ApplicationAdapter
 			disposable.dispose();
 		}
 		
-		world.dispose();
+		if (world != null)
+			world.dispose();
 	}
 	
 

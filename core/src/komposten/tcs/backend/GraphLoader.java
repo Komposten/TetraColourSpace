@@ -1,6 +1,8 @@
 package komposten.tcs.backend;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -15,37 +17,52 @@ import komposten.tcs.backend.Style.Setting;
 import komposten.tcs.backend.data.GraphData;
 import komposten.tcs.backend.data.Shape;
 import komposten.tcs.util.TCSUtils;
-import komposten.utilities.logging.Level;
-import komposten.utilities.logging.Logger;
 import komposten.utilities.tools.MathOps;
 import komposten.utilities.tools.Regex;
 
 public class GraphLoader
 {
 	private Style style;
-	private Logger logger;
 
+	private GraphData result;
+	private List<String> errors;
 
-	public GraphLoader(Style style, Logger logger)
+	public GraphLoader(Style style)
 	{
 		this.style = style;
-		this.logger = logger;
 	}
 	
 	
-	public GraphData load(Element dataElement)
+	public GraphData getResult()
 	{
-		GraphData graph = new GraphData();
+		return result;
+	}
+	
+	
+	public List<String> getErrors()
+	{
+		return errors;
+	}
+	
+	
+	public boolean load(Element dataElement)
+	{
+		errors = new ArrayList<>();
+		result = new GraphData();
 		
-		loadPointData(dataElement, graph);
-		loadVolumeData(dataElement, graph);
+		boolean success = true;
+		if (!loadPointData(dataElement, result))
+			success = false;
+		if (!loadVolumeData(dataElement, result))
+			success = false;
 		
-		return graph;
+		return success;
 	}
 
 
-	private void loadPointData(Element root, GraphData graph)
+	private boolean loadPointData(Element root, GraphData graph)
 	{
+		boolean success = true;
 		float defaultSize = style.get(Setting.POINT_SIZE).floatValue();
 		
 		NodeList groups = root.getElementsByTagName("group");
@@ -67,17 +84,23 @@ public class GraphLoader
 			if (shape == null)
 			{
 				shape = Shape.SPHERE;
-				logger.log(Level.WARNING, "Invalid point shape: \"" + shapeName + "\"");
+				errors.add("Invalid point shape: \"" + shapeName + "\"");
+				success = false;
 			}
 			
 			int groupIndex = graph.addGroup(groupName, shape, size);
-			createGroupPoints(group, groupIndex, graph);
+			if (!createGroupPoints(group, groupIndex, graph))
+				success = false;
+			
 		}
+
+		return success;
 	}
 
 
-	private void createGroupPoints(Element groupData, int groupIndex, GraphData graph)
+	private boolean createGroupPoints(Element groupData, int groupIndex, GraphData graph)
 	{
+		boolean success = true;
 		NodeList points = groupData.getElementsByTagName("point");
 		for (int i = 0; i < points.getLength(); i++)
 		{
@@ -95,14 +118,25 @@ public class GraphLoader
 			Color colour = TCSUtils.getColourFromHex(colourHex);
 			
 			Vector3 metrics = getColourSpaceMetricsFromLine(position);
-			Vector3 coords = TCSUtils.createVectorFromAngles(metrics.x, metrics.y, metrics.z);
-			graph.addPoint(name, coords, metrics, colour, groupIndex);
+			
+			if (metrics != null)
+			{
+				Vector3 coords = TCSUtils.createVectorFromAngles(metrics.x, metrics.y, metrics.z);
+				graph.addPoint(name, coords, metrics, colour, groupIndex);
+			}
+			else
+			{
+				success = false;
+			}
 		}
+		
+		return success;
 	}
 
 
-	private void loadVolumeData(Element root, GraphData graph)
+	private boolean loadVolumeData(Element root, GraphData graph)
 	{
+		boolean success = true;
 		NodeList volumes = root.getElementsByTagName("volume");
 		for (int i = 0; i < volumes.getLength(); i++)
 		{
@@ -122,13 +156,23 @@ public class GraphLoader
 			{
 				String pointString = pointStrings[j].trim();
 				Vector3 vector = getCoordinatesFromLine(pointString);
-				coords[j*3+0] = vector.x;
-				coords[j*3+1] = vector.y;
-				coords[j*3+2] = vector.z;
+				
+				if (vector != null)
+				{
+					coords[j*3+0] = vector.x;
+					coords[j*3+1] = vector.y;
+					coords[j*3+2] = vector.z;
+				}
+				else
+				{
+					success = false;
+				}
 			}
-
+			
 			graph.addVolume(coords, colour);
 		}
+		
+		return success;
 	}
 	
 	
@@ -145,22 +189,34 @@ public class GraphLoader
 	{
 		Vector3 metrics = getColourSpaceMetricsFromLine(line);
 
-		return TCSUtils.createVectorFromAngles(metrics.x, metrics.y, metrics.z);
+		if (metrics == null)
+			return null;
+		else
+			return TCSUtils.createVectorFromAngles(metrics.x, metrics.y, metrics.z);
 	}
 	
 	
 	private Vector3 getColourSpaceMetricsFromLine(String line)
 	{
 		String[] values = Regex.getMatches(MathOps.doubleRegex, line);
-		float[] floats = new float[values.length];
 		
-		for (int i = 0; i < floats.length; i++)
-			floats[i] = Float.parseFloat(values[i]);
-
-		float theta = floats[0];
-		float phi = floats[1];
-		float magnitude = floats[2];
-		
-		return new Vector3(theta, phi, magnitude);
+		if (values.length >= 3)
+		{
+			float[] floats = new float[values.length];
+			
+			for (int i = 0; i < floats.length; i++)
+				floats[i] = Float.parseFloat(values[i]);
+	
+			float theta = floats[0];
+			float phi = floats[1];
+			float magnitude = floats[2];
+			
+			return new Vector3(theta, phi, magnitude);
+		}
+		else
+		{
+			errors.add("Colour metrics must contain 3 values! [" + line + "]");
+			return null;
+		}
 	}
 }

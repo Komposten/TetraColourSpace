@@ -20,6 +20,7 @@ package komposten.tcs.backend;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -43,7 +44,7 @@ public class Backend
 	private GraphData graph;
 
 	
-	public Backend(File dataFile, Logger logger)
+	public Backend(File dataFile, Logger logger) throws IOException, ParserConfigurationException, ParseException
 	{
 		this.dataFile = dataFile;
 		this.logger = logger;
@@ -64,7 +65,7 @@ public class Backend
 	}
 
 
-	private void loadDataFromFile()
+	private void loadDataFromFile() throws IOException, ParserConfigurationException, ParseException
 	{
 		try
 		{
@@ -79,19 +80,32 @@ public class Backend
 		}
 		catch (IOException e)
 		{
-			String msg = "Error reading data file: " + dataFile.getPath();
-			logger.log(Level.FATAL, getClass().getSimpleName(), msg, e, false);
+			logError("Error reading data file: %s", e, dataFile.getPath());
+			throw e;
 		}
 		catch (ParserConfigurationException e)
 		{
-			String msg = "Error creating the XML parser!";
-			logger.log(Level.FATAL, getClass().getSimpleName(), msg, e, false);
+			logError("Error creating the XML parser!", e);
+			throw e;
 		}
 		catch (SAXException e)
 		{
-			String msg = "Error parsing data file: " + dataFile.getPath();
-			logger.log(Level.FATAL, getClass().getSimpleName(), msg, e, false);
+			logError("Error parsing data file %s", e, dataFile.getPath());
+			throw new ParseException(e);
 		}
+		catch (ParseException e)
+		{
+			String msg = "Error parsing data file " + dataFile.getPath() + ": " + e.getMessage();
+			logger.log(Level.FATAL, msg);
+			throw e;
+		}
+	}
+
+
+	private void logError(String formatString, Throwable cause, Object... params)
+	{
+		String msg = String.format(formatString, params);
+		logger.log(Level.FATAL, getClass().getSimpleName(), msg, cause, false);
 	}
 
 
@@ -105,9 +119,20 @@ public class Backend
 	}
 	
 	
-	private void loadGraph(Element root)
+	private void loadGraph(Element root) throws ParseException
 	{
-		GraphLoader loader = new GraphLoader(style, logger);
-		graph = loader.load(root);
+		GraphLoader loader = new GraphLoader(style);
+		if (!loader.load(root))
+		{
+			List<String> errors = loader.getErrors();
+			
+			StringBuilder message = new StringBuilder();
+			for (String error : errors)
+				message.append("\n").append(error);
+			
+			throw new ParseException(message.toString());
+		}
+		
+		graph = loader.getResult();
 	}
 }
