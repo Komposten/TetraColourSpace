@@ -43,7 +43,7 @@ public class TCSUtils
 	 *          0 and 1).
 	 * @return
 	 */
-	public static Vector3 createVectorFromAngles(float theta, float phi, float magnitude)
+	public static Vector3 getCoordinatesForMetrics(float theta, float phi, float magnitude)
 	{
 		if (magnitude < 0)
 			throw new IllegalArgumentException("the magnitude must not be a negative value!");

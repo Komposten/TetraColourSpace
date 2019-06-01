@@ -121,7 +121,7 @@ public class GraphLoader
 			
 			if (metrics != null)
 			{
-				Vector3 coords = TCSUtils.createVectorFromAngles(metrics.x, metrics.y, metrics.z);
+				Vector3 coords = TCSUtils.getCoordinatesForMetrics(metrics.x, metrics.y, metrics.z);
 				graph.addPoint(name, coords, metrics, colour, groupIndex);
 			}
 			else
@@ -192,7 +192,7 @@ public class GraphLoader
 		if (metrics == null)
 			return null;
 		else
-			return TCSUtils.createVectorFromAngles(metrics.x, metrics.y, metrics.z);
+			return TCSUtils.getCoordinatesForMetrics(metrics.x, metrics.y, metrics.z);
 	}
 	
 	
