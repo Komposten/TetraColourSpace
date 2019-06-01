@@ -19,12 +19,15 @@
 package komposten.tcs.backend;
 
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.math.MathUtils;
 
 import komposten.tcs.util.TCSUtils;
 import komposten.utilities.tools.MathOps;
@@ -60,6 +63,9 @@ public class Style
 	
 	private Map<Colour, Color> colours;
 	private Map<Setting, Number> settings;
+	
+	private Set<Colour> isDefaultColour;
+	private Set<Setting> isDefaultSetting;
 
 	public Style()
 	{
@@ -71,6 +77,8 @@ public class Style
 	{
 		colours = new EnumMap<>(Colour.class);
 		settings = new EnumMap<>(Setting.class);
+		isDefaultColour = EnumSet.noneOf(Colour.class);
+		isDefaultSetting = EnumSet.noneOf(Setting.class);
 		
 		loadDefaults();
 		if (styleNode != null)
@@ -137,7 +145,15 @@ public class Style
 		Colour colour = Colour.valueOf(id);
 		
 		if (colour != null)
-			colours.put(colour, TCSUtils.getColourFromHex(value));
+		{
+			Color colourObj = TCSUtils.getColourFromHex(value);
+			
+			if (!colourObj.equals(colours.get(colour)))
+			{
+				colours.put(colour, colourObj);
+				isDefaultColour.add(colour);
+			}
+		}
 	}
 
 
@@ -170,7 +186,11 @@ public class Style
 				return;
 		}
 		
-		settings.put(setting, number);
+		if (!MathUtils.isEqual(number.floatValue(), settings.get(setting).floatValue()))
+		{
+			settings.put(setting, number);
+			isDefaultSetting.add(setting);
+		}
 	}
 	
 	
@@ -217,5 +237,27 @@ public class Style
 	public Number get(Setting key)
 	{
 		return settings.get(key);
+	}
+	
+	
+	public Map<Colour, Color> getChangedColours()
+	{
+		Map<Colour, Color> result = new EnumMap<>(Colour.class);
+		
+		for (Colour colour : isDefaultColour)
+			result.put(colour, colours.get(colour));
+		
+		return result;
+	}
+	
+	
+	public Map<Setting, Number> getChangedSettings()
+	{
+		Map<Setting, Number> result = new EnumMap<>(Setting.class);
+		
+		for (Setting setting : isDefaultSetting)
+			result.put(setting, settings.get(setting));
+		
+		return result;
 	}
 }

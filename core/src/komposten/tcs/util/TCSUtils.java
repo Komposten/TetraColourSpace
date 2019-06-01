@@ -26,6 +26,8 @@ import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.math.Vector3;
 
+import komposten.utilities.tools.MathOps;
+
 
 public class TCSUtils
 {
@@ -53,6 +55,31 @@ public class TCSUtils
 		coords.rotateRad(new Vector3(-coords.z, 0, coords.x), phi);
 		coords.setLength(magnitude);
 		return coords;
+	}
+	
+	
+	/**
+	 * Calculates the colour metrics (theta, phi and r) for a given set of
+	 * Cartesian coordinates.
+	 * 
+	 * @return A vector containing theta, phi and r (absolute magnitude) as x, y,
+	 *         and z, respectively.
+	 */
+	public static Vector3 getMetricsForCoordinates(Vector3 coordinates)
+	{
+		float r = coordinates.len();
+		float theta = -MathOps.angle(0, 0, coordinates.x, coordinates.z);
+		
+		coordinates.rotateRad(Vector3.Y, -theta);
+		float phi = MathOps.angle(0, 0, coordinates.x, coordinates.y);
+		
+		return new Vector3(theta, phi, r);
+	}
+	
+	
+	public static Vector3 getMetricsForCoordinates(float x, float y, float z)
+	{
+		return getMetricsForCoordinates(new Vector3(x, y, z));
 	}
 
 
