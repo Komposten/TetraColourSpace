@@ -3,6 +3,7 @@ jdk: oraclejdk8
 branches:
   only:
   - master
+  - /^(?i:release)-.+$/
   
 addons:
   sonarcloud:
