@@ -33,6 +33,9 @@ Datasets containing information about data points are loaded from XML-files and 
   - The crosshair
   - The highlight and selection
 - Configurable key bindings.
+- Two rendering modes.
+  - Slow: Uses less memory, but struggles with large data sets (10000-100000+ points).
+  - Fast: Uses more memory, but handles large data sets.
 - Take screenshots from within the program.
 
 ### Running TetraColourSpace
@@ -46,10 +49,24 @@ Datasets containing information about data points are loaded from XML-files and 
 3) Run `gradlew.bat desktop:dist` or `gradlew desktop:dist`. Requires a JDK.
 4) Find the .zip archive with the runnable .jar in `desktop/build/distributions`.
 
-**Running**
-1) Run the .jar file using `javaw -jar TetraColourSpace-[VERSION].jar <xml-file> [screenshot-folder]` or by double-clicking it.
+#### Running
+1) Run the .jar file using `javaw -jar TetraColourSpace-[VERSION].jar <xml-file> [screenshot-folder]`.
 - `xml-file` is a path to the graph XML-file to load.
 - `screenshot-folder` is a path to a folder to store screenshots in (defaults to `/output`).
+
+### Creating and displaying graphs from R
+**Creating new graphs**
+1) Source [`R/tcs_plot.R`](R/tcs_plot.R) into your R session.
+2) Start building a plot by calling `tcs.begin()`. Use the (optional) parameters to configure the graph.
+3) Use `tcs.points()`, `tcs.volumes()` and `tcs.volume()` to add points and volumes to the graph.
+4) Use `tcs.end()` to save the graph file. If you specify the location of TetraColourSpace (using `jarPath`), TetraColourSpace will launch and display the graph.
+
+**Displaying existing graphs**
+- Use `tcs.launch()` to launch TetraColourSpace and display an existing graph.
+- Or, launch it manually from a command prompt/terminal according to the instructions [above](#running).
+
+**Other information**
+- Use `async = TRUE` in `tcs.end()` or `tcs.launch()` to allow execution of other R commands while TetraColourSpace is running.
 
 ### Dependencies
 * [LibGDX](https://libgdx.badlogicgames.com)
