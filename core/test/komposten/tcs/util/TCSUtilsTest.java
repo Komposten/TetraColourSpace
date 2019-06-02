@@ -19,41 +19,41 @@ class TCSUtilsTest
 
 
 	@Test
-	void createVectorFromAngles_varyingTheta()
+	void getCoordinatesForMetrics_varyingTheta()
 	{
-		assertThat(TCSUtils.createVectorFromAngles(rad45*1, 0, 1)).as("45 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), 0, -MathUtils.cosDeg(45)), within(0.001f));
-		assertThat(TCSUtils.createVectorFromAngles(rad45*3, 0, 1)).as("45*3 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), 0, -MathUtils.cosDeg(45)), within(0.001f));
-		assertThat(TCSUtils.createVectorFromAngles(rad45*5, 0, 1)).as("45*5 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), 0, MathUtils.cosDeg(45)), within(0.001f));
-		assertThat(TCSUtils.createVectorFromAngles(rad45*7, 0, 1)).as("45*7 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), 0, MathUtils.cosDeg(45)), within(0.001f));
+		assertThat(TCSUtils.getCoordinatesForMetrics(rad45*1, 0, 1)).as("45 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), 0, -MathUtils.cosDeg(45)), within(0.001f));
+		assertThat(TCSUtils.getCoordinatesForMetrics(rad45*3, 0, 1)).as("45*3 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), 0, -MathUtils.cosDeg(45)), within(0.001f));
+		assertThat(TCSUtils.getCoordinatesForMetrics(rad45*5, 0, 1)).as("45*5 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), 0, MathUtils.cosDeg(45)), within(0.001f));
+		assertThat(TCSUtils.getCoordinatesForMetrics(rad45*7, 0, 1)).as("45*7 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), 0, MathUtils.cosDeg(45)), within(0.001f));
 
-		assertThat(TCSUtils.createVectorFromAngles(-rad45*1, 0, 1)).as("-45 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), 0, MathUtils.cosDeg(45)), within(0.001f));
-		assertThat(TCSUtils.createVectorFromAngles(-rad45*3, 0, 1)).as("-45*3 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), 0, MathUtils.cosDeg(45)), within(0.001f));
-		assertThat(TCSUtils.createVectorFromAngles(-rad45*5, 0, 1)).as("-45*5 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), 0, -MathUtils.cosDeg(45)), within(0.001f));
-		assertThat(TCSUtils.createVectorFromAngles(-rad45*7, 0, 1)).as("-45*7 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), 0, -MathUtils.cosDeg(45)), within(0.001f));
+		assertThat(TCSUtils.getCoordinatesForMetrics(-rad45*1, 0, 1)).as("-45 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), 0, MathUtils.cosDeg(45)), within(0.001f));
+		assertThat(TCSUtils.getCoordinatesForMetrics(-rad45*3, 0, 1)).as("-45*3 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), 0, MathUtils.cosDeg(45)), within(0.001f));
+		assertThat(TCSUtils.getCoordinatesForMetrics(-rad45*5, 0, 1)).as("-45*5 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), 0, -MathUtils.cosDeg(45)), within(0.001f));
+		assertThat(TCSUtils.getCoordinatesForMetrics(-rad45*7, 0, 1)).as("-45*7 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), 0, -MathUtils.cosDeg(45)), within(0.001f));
 	}
 	
 	
 	@Test
-	void createVectorFromAngles_varyingPhi()
+	void getCoordinatesForMetrics_varyingPhi()
 	{
-		assertThat(TCSUtils.createVectorFromAngles(0, rad45*1, 1)).as("45 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), MathUtils.cosDeg(45), 0), within(0.001f));
-		assertThat(TCSUtils.createVectorFromAngles(0, rad45*3, 1)).as("45*3 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), MathUtils.cosDeg(45), 0), within(0.001f));
-		assertThat(TCSUtils.createVectorFromAngles(0, rad45*5, 1)).as("45*5 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), -MathUtils.cosDeg(45), 0), within(0.001f));
-		assertThat(TCSUtils.createVectorFromAngles(0, rad45*7, 1)).as("45*7 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), -MathUtils.cosDeg(45), 0), within(0.001f));
+		assertThat(TCSUtils.getCoordinatesForMetrics(0, rad45*1, 1)).as("45 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), MathUtils.cosDeg(45), 0), within(0.001f));
+		assertThat(TCSUtils.getCoordinatesForMetrics(0, rad45*3, 1)).as("45*3 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), MathUtils.cosDeg(45), 0), within(0.001f));
+		assertThat(TCSUtils.getCoordinatesForMetrics(0, rad45*5, 1)).as("45*5 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), -MathUtils.cosDeg(45), 0), within(0.001f));
+		assertThat(TCSUtils.getCoordinatesForMetrics(0, rad45*7, 1)).as("45*7 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), -MathUtils.cosDeg(45), 0), within(0.001f));
 
-		assertThat(TCSUtils.createVectorFromAngles(0, -rad45*1, 1)).as("-45 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), -MathUtils.cosDeg(45), 0), within(0.001f));
-		assertThat(TCSUtils.createVectorFromAngles(0, -rad45*3, 1)).as("-45*3 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), -MathUtils.cosDeg(45), 0), within(0.001f));
-		assertThat(TCSUtils.createVectorFromAngles(0, -rad45*5, 1)).as("-45*5 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), MathUtils.cosDeg(45), 0), within(0.001f));
-		assertThat(TCSUtils.createVectorFromAngles(0, -rad45*7, 1)).as("-45*7 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), MathUtils.cosDeg(45), 0), within(0.001f));
+		assertThat(TCSUtils.getCoordinatesForMetrics(0, -rad45*1, 1)).as("-45 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), -MathUtils.cosDeg(45), 0), within(0.001f));
+		assertThat(TCSUtils.getCoordinatesForMetrics(0, -rad45*3, 1)).as("-45*3 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), -MathUtils.cosDeg(45), 0), within(0.001f));
+		assertThat(TCSUtils.getCoordinatesForMetrics(0, -rad45*5, 1)).as("-45*5 deg").isEqualTo(new Vector3(-MathUtils.cosDeg(45), MathUtils.cosDeg(45), 0), within(0.001f));
+		assertThat(TCSUtils.getCoordinatesForMetrics(0, -rad45*7, 1)).as("-45*7 deg").isEqualTo(new Vector3(MathUtils.cosDeg(45), MathUtils.cosDeg(45), 0), within(0.001f));
 	}
 	
 	
 	@Test
-	void createVectorFromAngles_varyingR()
+	void getCoordinatesForMetrics_varyingR()
 	{
-		assertThat(TCSUtils.createVectorFromAngles(0, 0, 0.5f)).as("len=0.5").isEqualTo(new Vector3(0.5f, 0, 0));
-		assertThat(TCSUtils.createVectorFromAngles(0, 0, 1.0f)).as("len=1.0").isEqualTo(new Vector3(1.0f, 0, 0));
-		assertThatThrownBy(() -> TCSUtils.createVectorFromAngles(0, 0, -1.0f), "negative magnitude").isInstanceOf(IllegalArgumentException.class);
+		assertThat(TCSUtils.getCoordinatesForMetrics(0, 0, 0.5f)).as("len=0.5").isEqualTo(new Vector3(0.5f, 0, 0));
+		assertThat(TCSUtils.getCoordinatesForMetrics(0, 0, 1.0f)).as("len=1.0").isEqualTo(new Vector3(1.0f, 0, 0));
+		assertThatThrownBy(() -> TCSUtils.getCoordinatesForMetrics(0, 0, -1.0f), "negative magnitude").isInstanceOf(IllegalArgumentException.class);
 	}
 	
 	
