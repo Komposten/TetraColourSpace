@@ -22,6 +22,7 @@ import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -142,7 +143,7 @@ public class Style
 
 	private void loadColour(String id, String value)
 	{
-		Colour colour = Colour.valueOf(id);
+		Colour colour = getEnumConstant(Colour::valueOf, id);
 		
 		if (colour != null)
 		{
@@ -159,7 +160,10 @@ public class Style
 
 	private void loadSetting(String id, String value)
 	{
-		Setting setting = Setting.valueOf(id);
+		Setting setting = getEnumConstant(Setting::valueOf, id);
+		
+		if (setting == null)
+			return;
 		
 		Number number = getNumberFromString(setting, value);
 		
@@ -193,16 +197,26 @@ public class Style
 		}
 	}
 	
+
+	private <T extends Enum<?>> T getEnumConstant(
+			Function<String, T> valueOfFunction, String value)
+	{
+		try
+		{
+			return valueOfFunction.apply(value);
+		}
+		catch (IllegalArgumentException e)
+		{
+			return null;
+		}
+	}
+	
 	
 	private Number getNumberFromString(Setting setting, String value)
 	{
 		if (MathOps.isDouble(value))
 		{
 			return Double.valueOf(value);
-		}
-		else if (value.matches("-?\\d+"))
-		{
-			return Integer.valueOf(value);
 		}
 		else if (setting == Setting.RENDER_MODE)
 		{
