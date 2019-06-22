@@ -58,7 +58,8 @@ public class Style
 		POINT_SIZE,
 		CORNER_SIZE,
 		SPHERE_QUALITY,
-		RENDER_MODE
+		RENDER_MODE,
+		FIELD_OF_VIEW
 	}
 	
 	private Map<Colour, Color> colours;
@@ -105,6 +106,7 @@ public class Style
 		settings.put(Setting.CORNER_SIZE, 0.03f);
 		settings.put(Setting.SPHERE_QUALITY, 25);
 		settings.put(Setting.RENDER_MODE, RENDER_MODE_FAST);
+		settings.put(Setting.FIELD_OF_VIEW, 67);
 	}
 
 
@@ -181,6 +183,10 @@ public class Style
 				if (number.intValue() != RENDER_MODE_FAST
 						&& number.intValue() != RENDER_MODE_SLOW)
 					throw new IllegalArgumentException(number.intValue() + " is an invalid render mode!");
+				break;
+			case FIELD_OF_VIEW :
+				if (number.intValue() <= 0)
+					throw new IllegalArgumentException("FIELD_OF_VIEW must be positive and non-zero!");
 				break;
 			default :
 				return;

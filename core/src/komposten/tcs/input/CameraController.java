@@ -20,10 +20,12 @@ package komposten.tcs.input;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Camera;
+import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.math.Vector3;
 
 import komposten.tcs.input.InputHandler.InputListener;
 import komposten.tcs.rendering.World;
+import komposten.tcs.util.TCSUtils;
 import komposten.utilities.tools.MathOps;
 
 public class CameraController implements InputReceiver
@@ -31,8 +33,9 @@ public class CameraController implements InputReceiver
 	private static final float MAX_ZOOM = 0.025f;
 	private static final float SENSITIVITY = -0.2f;
 	private static final float SLOW_MODIFIER = .33f;
-	private static final int LINEAR_VELOCITY = 1;
-	private static final int SCROLL_VELOCITY = 5;
+	private static final float LINEAR_VELOCITY = 1;
+	private static final float ZOOM_VELOCITY = 1;
+	private static final float SCROLL_VELOCITY = 5;
 	private static final int ANGULAR_VELOCITY = 50;
 	private static final int ANGULAR_AUTO_VELOCITY = 20;
 	private static final int MAX_DISTANCE = 5;
@@ -44,13 +47,21 @@ public class CameraController implements InputReceiver
 		OFF
 	}
 
+	private final float distanceModifier;
+	private final float zoomModifier;
+	
+	private final float maxDistance;
+	private final float linearVelocity;
+	private final float zoomVelocity;
+	private final float scrollVelocity;
+
 	private Vector3 calcVector = new Vector3();
 	
 	private Camera camera;
 	private World world;
 	
 	private FollowMode followMode = FollowMode.OFF;
-	private int scrollDelta = 0;
+	private float scrollDelta = 0;
 	private boolean autoRotate = false;
 	private int autoRotation = 1;
 	private boolean cameraDirty = true;
@@ -60,6 +71,23 @@ public class CameraController implements InputReceiver
 	{
 		this.camera = camera;
 		this.world = world;
+		
+		if (camera instanceof PerspectiveCamera)
+		{
+			PerspectiveCamera pCamera = (PerspectiveCamera) camera;
+			distanceModifier = TCSUtils.getDistanceModifier(pCamera.fieldOfView);
+			zoomModifier = TCSUtils.getZoomModifier(pCamera.fieldOfView);
+		}
+		else
+		{
+			distanceModifier = 1;
+			zoomModifier = 1;
+		}
+		
+		this.maxDistance = MAX_DISTANCE * distanceModifier;
+		this.linearVelocity = LINEAR_VELOCITY;
+		this.zoomVelocity = ZOOM_VELOCITY * zoomModifier;
+		this.scrollVelocity = SCROLL_VELOCITY * zoomModifier;
 	}
 	
 	
@@ -113,7 +141,7 @@ public class CameraController implements InputReceiver
 		{
 			calcVector
 					.set(camera.direction.x, 0, camera.direction.z)
-					.setLength(LINEAR_VELOCITY * deltaTime);
+					.setLength(linearVelocity * deltaTime);
 			
 			if (handler.isActionActive(Action.MOVE_FORWARD))
 				movement.add(calcVector);
@@ -126,7 +154,7 @@ public class CameraController implements InputReceiver
 		{
 			calcVector
 					.set(camera.direction.z, 0, -camera.direction.x)
-					.setLength(LINEAR_VELOCITY * deltaTime);
+					.setLength(linearVelocity * deltaTime);
 			
 			if (handler.isActionActive(Action.MOVE_LEFT))
 				movement.add(calcVector);
@@ -137,7 +165,7 @@ public class CameraController implements InputReceiver
 		if (handler.isActionActive(Action.MOVE_IN) ||
 				handler.isActionActive(Action.MOVE_OUT))
 		{
-			calcVector.set(camera.direction).setLength(LINEAR_VELOCITY * deltaTime);
+			calcVector.set(camera.direction).setLength(zoomVelocity * deltaTime);
 			
 			if (handler.isActionActive(Action.MOVE_IN))
 				movement.add(calcVector);
@@ -147,11 +175,11 @@ public class CameraController implements InputReceiver
 		
 		if (handler.isActionActive(Action.MOVE_UP))
 		{
-			movement.y += LINEAR_VELOCITY * deltaTime;
+			movement.y += linearVelocity * deltaTime;
 		}
 		else if (handler.isActionActive(Action.MOVE_DOWN))
 		{
-			movement.y -= LINEAR_VELOCITY * deltaTime;
+			movement.y -= linearVelocity * deltaTime;
 		}
 		
 		boolean needsUpdate = false;
@@ -160,9 +188,9 @@ public class CameraController implements InputReceiver
 			if (handler.isActionActive(Action.REDUCE_SPEED))
 				movement.scl(SLOW_MODIFIER);
 			
-			camera.position.x = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.x + movement.x);
-			camera.position.y = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.y + movement.y);
-			camera.position.z = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.z + movement.z);
+			camera.position.x = MathOps.clamp(-maxDistance, maxDistance, camera.position.x + movement.x);
+			camera.position.y = MathOps.clamp(-maxDistance, maxDistance, camera.position.y + movement.y);
+			camera.position.z = MathOps.clamp(-maxDistance, maxDistance, camera.position.z + movement.z);
 			needsUpdate = true;
 		}
 		
@@ -204,9 +232,9 @@ public class CameraController implements InputReceiver
 		float zoom = 0;
 
 		if (handler.isActionActive(Action.MOVE_FORWARD) || handler.isActionActive(Action.MOVE_IN))
-			zoom += LINEAR_VELOCITY * deltaTime;
+			zoom += zoomVelocity * deltaTime;
 		if (handler.isActionActive(Action.MOVE_BACKWARD) || handler.isActionActive(Action.MOVE_OUT))
-			zoom -= LINEAR_VELOCITY * deltaTime;
+			zoom -= zoomVelocity * deltaTime;
 		if (handler.isActionActive(Action.MOVE_LEFT))
 			rotX -= ANGULAR_VELOCITY * deltaTime;
 		if (handler.isActionActive(Action.MOVE_RIGHT))
@@ -218,7 +246,7 @@ public class CameraController implements InputReceiver
 		
 		if (scrollDelta != 0)
 		{
-			zoom -= scrollDelta * SCROLL_VELOCITY * deltaTime;
+			zoom -= scrollDelta * scrollVelocity * deltaTime;
 			scrollDelta = 0;
 		}
 		
@@ -290,9 +318,9 @@ public class CameraController implements InputReceiver
 		boolean needsUpdate = false;
 		if (!movement.epsilonEquals(Vector3.Zero))
 		{
-			camera.position.x = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.x + movement.x);
-			camera.position.y = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.y + movement.y);
-			camera.position.z = MathOps.clamp(-MAX_DISTANCE, MAX_DISTANCE, camera.position.z + movement.z);
+			camera.position.x = MathOps.clamp(-maxDistance, maxDistance, camera.position.x + movement.x);
+			camera.position.y = MathOps.clamp(-maxDistance, maxDistance, camera.position.y + movement.y);
+			camera.position.z = MathOps.clamp(-maxDistance, maxDistance, camera.position.z + movement.z);
 			
 			lookAt(focalPoint);
 			
@@ -438,19 +466,19 @@ public class CameraController implements InputReceiver
 			}
 			else if (action == Action.CAMERA_PRESET_1)
 			{
-				camera.position.set(1, 1, -0.3f);
+				camera.position.set(1, 1, -0.3f).scl(distanceModifier);
 				lookAt(Vector3.Zero);
 				cameraDirty = true;
 			}
 			else if (action == Action.CAMERA_PRESET_2)
 			{
-				camera.position.set(0, -1.4f, 0.0001f);
+				camera.position.set(0, -1.4f, 0.0001f).scl(distanceModifier);
 				lookAt(Vector3.Zero);
 				cameraDirty = true;
 			}
 			else if (action == Action.CAMERA_PRESET_3)
 			{
-				camera.position.set(0, 1f, 0.0001f);
+				camera.position.set(0, 1f, 0.0001f).scl(distanceModifier);
 				lookAt(Vector3.Zero);
 				cameraDirty = true;
 			}
@@ -461,14 +489,14 @@ public class CameraController implements InputReceiver
 			}
 			else if (action.name().startsWith("ZOOM") && followMode != FollowMode.OFF)
 			{
-				int amount;
+				float amount;
 				
 				if (parameters.length > 0)
 					amount = (Integer) parameters[0];
 				else if (action == Action.ZOOM_IN)
-					amount = -SCROLL_VELOCITY;
+					amount = -scrollVelocity;
 				else
-					amount = SCROLL_VELOCITY;
+					amount = scrollVelocity;
 				
 				scrollDelta += amount;
 				return true;

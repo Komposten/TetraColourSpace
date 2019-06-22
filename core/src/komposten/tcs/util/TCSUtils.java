@@ -123,4 +123,46 @@ public class TCSUtils
 	{
 		return materials.computeIfAbsent(colour, c -> new Material(ColorAttribute.createDiffuse(colour)));
 	}
+	
+	
+	public static float getDistanceModifier(float fieldOfView)
+	{
+		/*
+		 * Scaling is based on the following data:
+		 * 
+		 * FOV	 DIST
+		 *   1	70.00
+		 *  10	 7.00
+		 *  30	 2.50
+		 *  67	 1.00
+		 *  90	 0.75
+		 * 110	 0.62
+		 * 150	 0.40
+		 * =========
+		 * Equation: y = e^(-1.018*log(x) + 4.285)
+		 */
+		
+		return (float) (Math.exp(4.285) * Math.exp(-1.018*Math.log(fieldOfView)));
+	}
+	
+	
+	public static float getZoomModifier(float fieldOfView)
+	{
+		/*
+		 * Scaling is based on the following data:
+		 * 
+		 * FOV	VEL
+		 *   1	200
+		 *  10	40
+		 *  30	10
+		 *  67	5
+		 *  90	3
+		 * 110	2.5
+		 * 150	2.15
+		 * =========
+		 * Equation: y = e^(-0.945*log(x) + 3.886)
+		 */
+		
+		return (float) (Math.exp(3.886) * Math.exp(-0.945*Math.log(fieldOfView)));
+	}
 }

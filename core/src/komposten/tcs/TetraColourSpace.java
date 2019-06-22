@@ -51,6 +51,7 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import komposten.tcs.backend.Backend;
 import komposten.tcs.backend.ParseException;
 import komposten.tcs.backend.Style.Colour;
+import komposten.tcs.backend.Style.Setting;
 import komposten.tcs.backend.data.Point;
 import komposten.tcs.input.Action;
 import komposten.tcs.input.CameraController;
@@ -58,6 +59,7 @@ import komposten.tcs.input.InputHandler;
 import komposten.tcs.input.InputHandler.InputListener;
 import komposten.tcs.rendering.World;
 import komposten.tcs.ui.UserInterface;
+import komposten.tcs.util.TCSUtils;
 import komposten.utilities.logging.Level;
 import komposten.utilities.logging.Logger;
 import komposten.utilities.tools.FileOperations;
@@ -177,10 +179,12 @@ public class TetraColourSpace extends ApplicationAdapter
 
 	private void setupPerspectiveCamera()
 	{
-		int distance = 1;
-		camera.translate(distance, distance, -0.3f*distance);
+		camera.fieldOfView = backend.getStyle().get(Setting.FIELD_OF_VIEW).intValue();
 		camera.near = 0.01f;
 		camera.far = 300;
+		
+		float distance = TCSUtils.getDistanceModifier(camera.fieldOfView);
+		camera.translate(distance, distance, -0.3f*distance);
 		
 		cameraController = new CameraController(camera, world);
 		cameraController.lookAt(Vector3.Zero);

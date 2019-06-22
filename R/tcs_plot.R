@@ -1,5 +1,5 @@
-#' Call this to start building a TCS plot.
-#' Will clear all previously added TCS data.
+#' Call this to start building a TCS plot. All parameters are optional.
+#' Note: This will clear all previously added TCS data.
 #' 
 #' @param colour_background The graph's background colour.
 #' @param colour_text The graph's text colour.
@@ -16,6 +16,7 @@
 #' @param corner_size The size to use for the spheres in the corners of the tetrahedron.
 #' @param sphere_quality The quality of the spheres, as an integer >= 5.
 #' @param render_mode The render mode to use, either 'fast' or 'slow'.
+#' @param field_of_view The field of view of the camera, as an integer >= 1.
 #' 
 tcs.begin <- function(colour_background = NULL, colour_text = NULL,
                       colour_wl_long = NULL, colour_wl_medium = NULL,
@@ -24,7 +25,7 @@ tcs.begin <- function(colour_background = NULL, colour_text = NULL,
                       colour_highlight = NULL, colour_metric_line = NULL,
                       colour_metric_fill = NULL, point_size = NULL,
                       corner_size = NULL, sphere_quality = NULL,
-                      render_mode = c("fast", "slow"))
+                      render_mode = c("fast", "slow"), field_of_view = NULL)
 {
   tcsEnv <<- new.env()
   tcsEnv$data <- c("<?xml version=\"1.0\"?>", "<data>")
